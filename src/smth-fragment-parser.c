@@ -438,13 +438,19 @@ static int parsetrun(box* root)
  */
 static int parseencr(box* root)
 {
+	encryptiontype enc;
 	size boxsize = root->size;
 	fseek(root->stream, sizeof(signature), SEEK_CUR); /* skip signature */
 	flags cryptflags;
 	if(!getflags(&cryptflags)) return FRAGMENT_IO_ERROR;
 
 	if(cryptflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
-	{   
+	{
+		for(enc = NONE; enc <= AES_CBC; enc++)
+			if(!memcmp(name, encryptiontypebytes[enc], sizeof(name)))
+			{   root->type = element;
+				break;
+			}
 //	encryptiontype algorithm;
 //	byte vectorsize;
 //	keyID kID;
@@ -470,6 +476,7 @@ static int parseencr(box* root)
 // scrivere che se fallisce l'analisi, lo stato del fragment potrebbe essere
 // indefinito
 //FIXME controllare che non ci voglia +1
+// sostituire i for sulle enumerazioni con un &. togliere max e mettere < UNKNOWN
 
 /* +---------+-----------------------------------------------------------------+
  * |'VendorExtensionUUIDBox': variable content                                 |
