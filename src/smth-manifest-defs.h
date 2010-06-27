@@ -19,20 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-/* synthetic type definitions: though not appearing in [smth] specifications,
- * these help clarify the meaning of many symbols
- */
+#ifndef __SMTH_MANIFEST_DEFS_H__
+#define __SMTH_MANIFEST_DEFS_H__
 
-#include <stdint.h>
-
-typedef uint64_t tick;
-typedef uint32_t count;
-typedef uint32_t bitrate;
-typedef uint32_t metric;
-typedef uint32_t tag;
-typedef uint16_t unit;
-typedef char base64data, hexdata, chardata, url;
-typedef char uuid[38];
+#include <smth-common-defs.h>
 
 /*
  *  Manifest Response (chapter 2.2.2)
@@ -80,27 +70,8 @@ typedef enum {	H264, /* Advanced Video Coding, as specified in [AVCFF] */
 				WMAP, /* WMA Professional */
 				CUST  /* SYNTHETIC A vendor extension value containing a
 				       * registered with MPEG4-RA, as specified in [ISOFF] */
-} Format;
-char FormatNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
-
-/*
- * UrlPattern
- *
- * define a pattern that can be used by the Client to make semantically
- * valid Fragment Requests for the Presentation.
- *
- * +Bitrate:
- *	A placeholder expression for the Bit Rate of a Track.
- * +CustomAttributes:
- *	A placeholder expression for the Attributes used to
- *	disambiguate a Track from other Tracks in the Stream.
- * +TrackName:
- *	A unique identifier that applies to all Tracks in a Stream.
- * +Time:
- *	A placeholder expression for the time of a Fragment.
- */
-char UrlPattern[] = \
-	"QualityLevels({bitrate},{CustomAttributes})/Fragments(video={start_time})";
+} Container;
+char ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
 
 /*
  * /SmoothStreamingMedia/StreamIndex/c/f
@@ -160,7 +131,7 @@ typedef struct
 	 */
 	tick FragmentTime; // t
 	/**/
-	TrackFragmentElement*  TrackFragments;
+	TrackFragmentElement*  TrackFragment;
 } StreamFragmentElement;
 
 /*
@@ -212,7 +183,7 @@ typedef struct
 	/* A four-character code that identifies which Media Format
 	 * is used for each Sample.
 	 */
-	Format FourCC;
+	Container FourCC;
 	/* Data that specifies parameters specific to the Media Format and
 	 * common to all Samples in the Track, represented as a string
 	 * of hex-coded bytes.
@@ -245,9 +216,9 @@ typedef struct
 	 */
 	unit NALUnitLengthField;
 	/* specify metadata that disambiguates Tracks in a Stream. */
-	CustomAttributeElement *CustomAttributes;
+	CustomAttributeElement *CustomAttribute;
 	/* */
-	StreamFragmentElement *StreamFragments;
+	StreamFragmentElement *StreamFragment;
 } TrackElement;
 
 /* /SmoothStreamingMedia/StreamIndex
@@ -270,14 +241,14 @@ typedef struct
 	 * specified as the number of increments in one second. */
 	tick TimeScale;
 	/* Metadata describing available Tracks and Fragments. */
-	TrackElement *StreamContent;
+	TrackElement *Track;
 	/* A four-character code that identifies the intended use
 	 * category for each Sample in a text Track. */
 	Subtype SubContent;
 	/* The name of the Stream. */
 	chardata *Name;
 	/* Control events for applications on the Client. */
-	//SubtypeControlEvents FIXME non è definito
+	//SubtypeControlEvents //FIXME NOT DEFINED!!
 	/* The maximum width of a video Sample, in pixels. */
 	metric StreamMaxWidth; //TODO: sistemare con struct
 	/* The maximum height of a video Sample, in pixels. */
@@ -287,8 +258,8 @@ typedef struct
 	/* The suggested display height of a video Sample, in pixels. */
 	metric DisplayHeight;
 	/**/
-	StreamFragmentElement *StreamFragments;
-} StreamIndex;
+	StreamFragmentElement *StreamFragment;
+} StreamIndexElement;
 
 /*
  * /SmoothStreamingMedia/ProtectionHeaderElement
@@ -333,7 +304,9 @@ typedef struct
 	/* child nodes: though there may be only one, using pointers
 	 * enables a quick expansion if MS will modify the standard */
 	ProtectionHeaderElement *ProtectionHeader;
-	StreamIndex *Stream;
+	StreamIndexElement *StreamIndex;
 } SmoothStreamingMedia;
 
-/* this is the end of smth-defs.c */
+#endif /* __SMTH_MANIFEST_DEFS_H__ */
+
+/* vim: set ts=4 sw=4 tw=0: */
