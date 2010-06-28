@@ -549,6 +549,7 @@ static int parsemdat(Box* root)
 ///////////////////////////////////////TODO/////////////////////////////////////
 static int parseuuid(Box* root)
 {	byte discarded[root->size];
+	printf("mi hai chiamato"); //DEBUG
 	readbox(discarded, root->size, root);
 /* |Fields   | UUIDBoxUUID   |BYTE[16]
  * |         | UUIDBoxData   | *BYTE */
