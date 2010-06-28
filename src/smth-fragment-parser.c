@@ -129,7 +129,7 @@ static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
                                          0x7c, 0x64, 0x8d, 0xf4 };
 
 /************************START ENDIAN DEPENDENT SECTION************************/
-
+//FIXME rendere indipendente: le32toh
 /** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
 static const word boxishuge = 0x01000000;
 
@@ -138,17 +138,17 @@ static const word boxishuge = 0x01000000;
 /*  Use this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word BoxTypeMask[7] = {	0x666f6f6d, /**< "moof" */
-										0x6468666d, /**< "mfhd" */
-								   		0x66617274, /**< "traf" */
-								        0x64697575, /**< "uuid" */
-								        0x64686674, /**< "tfhd" */
-								        0x6e757274, /**< "trun" */
-								        0x7461646d  /**< "mdat" */ };
+static const word BoxTypeMask[7] = { 0x666f6f6d, /**< "moof" */
+									 0x6468666d, /**< "mfhd" */
+								   	 0x66617274, /**< "traf" */
+								     0x64697575, /**< "uuid" */
+								     0x64686674, /**< "tfhd" */
+								     0x6e757274, /**< "trun" */
+								     0x7461646d  /**< "mdat" */ };
 
 /** The signature of different encryption methods. [Last byte is keysize] */
-static const word EncryptionTypeMask[3] = { 0x00000100,   /**< AES 128-bit CTR */
-                                            0x00000200};  /**< AES 128-bit CBC */
+static const word EncryptionTypeMask[3] = { 0x00010000,   /**< AES 128-bit CTR */
+                                            0x00020000};  /**< AES 128-bit CBC */
 
 /*************************END ENDIAN DEPENDED SECTION**************************/
 
@@ -186,9 +186,9 @@ static bool isencrbox(Box* root)
  * \return            true if the operation was successfull, otherwise false
  */
 static bool getflags(flags *defaultflags, Box *root)
-{	if(!readbox(defaultflags, sizeof(flags), root))
-		return false;
+{	if(!readbox(defaultflags, sizeof(flags), root)) return false;
 	*defaultflags = (flags) be64toh(*defaultflags); /* endian-safe */
+	return true;
 }
 
 /**
@@ -231,7 +231,7 @@ static int parsebox(Box* root)
 	else root->size = (lenght) be32toh(tmpsize);
 	root->size -= offset;
 
-	printf("size: %ld | type: %d\n", root->size, root->type); //DEBUG
+	printf("size: 0x%03lx\n", root->size, root->type); //DEBUG
 	return FRAGMENT_SUCCESS;
 }
 
@@ -293,11 +293,11 @@ static int parsemoof(Box* root)
 
 static int parsemfhd(Box* root)
 {
-	count tmp;
 	signedlenght boxsize = root->size;
-
+//FIXME restore me!! count + 32<>64
+	tick tmp;
 	if(!readbox(&tmp, sizeof(tmp), root)) return FRAGMENT_IO_ERROR;
-	root->f->ordinal = (count)be32toh(tmp);
+	root->f->ordinal = (count)be64toh(tmp);
 
 	if(boxsize > sizeof(tmp)) /* if there is something more */
 	{	int result = parseuuid(root);
@@ -549,10 +549,11 @@ static int parsemdat(Box* root)
 ///////////////////////////////////////TODO/////////////////////////////////////
 static int parseuuid(Box* root)
 {	byte discarded[root->size];
-	printf("mi hai chiamato"); //DEBUG
+	printf("mi hai chiamato\n"); //DEBUG
 	readbox(discarded, root->size, root);
 /* |Fields   | UUIDBoxUUID   |BYTE[16]
  * |         | UUIDBoxData   | *BYTE */
+	return FRAGMENT_SUCCESS;
 }
 
 ///////////////////////////////////////FIXME////////////////////////////////////
