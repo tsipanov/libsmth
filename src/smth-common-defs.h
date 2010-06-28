@@ -30,12 +30,11 @@
  * \date   27th June 2010
  *
  * Though not appearing in [smth] specifications, these may
- * help clarifying the meaning of many symbols
+ * help to clarify the meaning of many symbols
  */
 
 #include <stdint.h>
 #include <stdio.h>
-
 
 typedef uint64_t tick;			/**< A time interval					*/
 typedef uint64_t offset;		/**< A memory offset					*/
@@ -49,12 +48,12 @@ typedef uint32_t word;			/**< A 32bit word						*/
 typedef uint32_t flags;			/**< Flags bitfield						*/
 typedef uint16_t unit;			/**< An atomic unit						*/
 typedef uint16_t keyID;			/**< A keyID							*/
-//typedef uint8_t  byte;
+/*typedef uint8_t  byte;*/
 typedef char byte;
 typedef char base64data, hexdata, chardata, url;
 typedef char uuid[38];
 
-typedef FILE *SmoothStream;
+typedef FILE SmoothStream;
 
 #endif /* __SMTH_COMMON_DEFS_H__ */
 

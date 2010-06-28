@@ -21,15 +21,16 @@
 #ifndef __SMTH_MANIFEST_FRAGMENT_H__
 #define __SMTH_MANIFEST_FRAGMENT_H__
 
-#include <smth-common-defs.h>
-#include <stdbool.h>
-
 /**
  * \file   smth-fragment-defs.h
  * \brief  private header for smth-fragment-parser.c
  * \author Stefano Sanfilippo
  * \date   27th June 2010
  */
+
+#include <stdbool.h>
+#include <smth-fragment-parser.h>
+#include <smth-common-defs.h>
 
 /** The type of the Box being parsed. */
 typedef enum {  MOOF,    /**< main metadata container                */
@@ -39,25 +40,16 @@ typedef enum {  MOOF,    /**< main metadata container                */
 				TFHD,    /**< per-sample defaults metadata           */
 				TRUN,    /**< per-sample metadata                    */ 
 				MDAT,    /**< data container                         */
-				UNKNOWN  /**< unknown box type						 */
-			 } boxtype;
-
-/** The encryption system used by the samples */
-typedef enum {  NONE,    /**< non encrypted sample            */
-				AES_CTR, /**< AES 128bit CTR encrypted sample */
-				AES_CBC  /**< AES 128bit CBC encrypted sample */
-			 } encryptiontype ;
+				UNKNOWN  /**< unknown box type. MUST be the last	 */
+			 } Boxtype;
 
 /** Holds the stream and metadata of currently parsed Box */
 typedef struct
-{   lenght  size;		 /**< size of the incoming block				*/
-	boxtype type;		 /**< type of the incoming block				*/
-	SmoothStream stream; /**< input stream								*/
-	Fragment* fragment;  /**< Fragment to be filled with extracted data */
-} box;
-
-/** The number of Box types, UNKNOWN excluded       */
-#define N_OF_BOXES 7
+{   lenght  size;			/**< size of the incoming block					*/
+	Boxtype type;			/**< type of the incoming block					*/
+	SmoothStream *stream;	/**< input stream								*/
+	Fragment *f;			/**< Fragment to be filled with extracted data  */
+} Box;
 
 /** The tfhd Box has a BaseDataOffset field			*/
 #define TFHD_BASE_DATA_OFFSET_PRESENT						(1<<0)
@@ -84,147 +76,88 @@ typedef struct
 /** The SampleEncryptionBox has the optional fields */
 #define ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT  (1<<0)
 
-static  int  parsebox(box *root);
-static  int parsemoof(box* root);
-static  int parsemdat(box* root);
-static  int parsemfhd(box* root);
-static  int parsetraf(box* root);
-static  int parsetfhd(box* root);
-static  int parsetrun(box* root);
-static  int parseuuid(box* root);
-static  int parseencr(box* root);
-static bool isencrbox(box* root);
-static bool readbox(void *dest, size_t size, box* root);
+static  int  parsebox(Box* root);
+static  int parsemoof(Box* root);
+static  int parsemdat(Box* root);
+static  int parsemfhd(Box* root);
+static  int parsetraf(Box* root);
+static  int parsetfhd(Box* root);
+static  int parsetrun(Box* root);
+static  int parseuuid(Box* root);
+static  int parseencr(Box* root);
+static bool isencrbox(Box* root);
+static bool readbox(void *dest, size_t size, Box* root);
 
-////////////////////////////////////////////////////////////////////////////////
-  
-typedef struct
-{	/* A single Sample of Media. Sample boundaries in the MdatBox are defined
-	 * by the values of the DefaultSampleSize and SampleSize fields
-	 * in the TrunBox. */
-	byte* SampleData;
-} MdatBox;
+#endif /* __SMTH_MANIFEST_FRAGMENT_H__ */
 
 #if 0
-typedef struct
-{	/* The number of Samples in the Fragment (4 bytes) */
-	count SampleCount;
-	/* The value of the SampleFlags field for the first Sample.
-	 * This field MUST be present if and only if FirstSampleFlagsPresent
-	 * takes the value %b1. (4 bytes) */
-	bitrate FirstSampleFlags;
-	/* The size of each Sample, in bytes. This field MUST be present
-	 * if and only if SampleSizePresent takes the value %b1. If this field is
-	 * not present, its implicit value is the value of the DefaultSampleSize
-	 * field. (4 bytes)
-	 */
-	bitrate SampleSize;
-	/* The duration of each Sample, in increments defined by the TimeScale
-	 * for the Track. This field MUST be present if and only if
-	 * SampleDurationPresent takes the value %b1.
-	 * If this field is not present, its implicit value is the value
-	 * of the DefaultSampleDuration field. (4 bytes)
-	 */
-	bitrate SampleDuration;
-	/* The Sample flags of each Sample. This field MUST be present if and
-	 * only if SampleFlagsPresent takes the value %b1. If this field is not
-	 * present, its implicit value is the value of the DefaultSampleDuration
-	 * field. If the FirstSampleFlags field is present and this field is
-	 * omitted, this field's implicit value for the first Sample in the
-	 * Fragment MUST be the value of the FirstSampleFlags field. (4 bytes)
-	 */
-	bitrate SampleFlags;
-	/* The Sample Composition Time offset of each Sample, as defined in [ISOFF].
-	 * This field MUST be present if and only if
-	 * SampleCompositionTimeOffsetPresent takes the value %b1. (4 bytes) */
-	bitrate SampleCompositionTimeOffset;
-} TrunBox;
+FIXME preparare il parser dei flag
+/* used by TRUN and TFHD */
 
-struct PerSampleFields
-{	/* The duration of each Sample, in increments defined by the TimeScale
-	 * for the Track. If this field is not present, its implicit value is
-     * the value of the DefaultSampleDuration field. (4 bytes)
-	 */
-	bitrate SampleDuration;
-	/* The size of each Sample, in bytes. This field MUST be present
-	 * if and only if SampleSizePresent takes the value %b1. If this field is
-	 * not present, its implicit value is the value of the DefaultSampleSize
-	 * field. (4 bytes)
-	 */
-	bitrate SampleSize;
-	/* The Sample flags of each Sample. This field MUST be present if and
-	 * only if SampleFlagsPresent takes the value %b1. If this field is not
-	 * present, its implicit value is the value of the DefaultSampleDuration
-	 * field. If the FirstSampleFlags field is present and this field is
-	 * omitted, this field's implicit value for the first Sample in the
-	 * Fragment MUST be the value of the FirstSampleFlags field. (4 bytes)
-	 */
-	bitrate SampleFlags;
-	/* The Sample Composition Time offset of each Sample, as defined in [ISOFF].
-	 * This field MUST be present if and only if
-	 * SampleCompositionTimeOffsetPresent takes the value %b1. (4 bytes) */
-	bitrate SampleCompositionTimeOffset;
-};
-#endif
-#if 0
-ExtendedSampleFlags (4 bytes): A comprehensive Sample flags field.
-SampleFlags (1 byte): A compact Sample flags field useful to choose Samples to discard.
+/** ExtendedSampleFlags (4 bytes): A comprehensive Sample flags field. */
+/** non ci mascheriamo na cippa perche` possono essere anche nulli e avere senso */
+ExtendedSampleFlags =
+6*6 RESERVED_BIT
 SampleDependsOn (2 bits): Specifies whether this Sample depends on another Sample.
+	SampleDependsOn =   SampleDependsOnUnknown = %b0 %b0/
+						SampleDependsOnOthers  = %b0 %b1/
+						SampleDoesNotDependsOnOthers = %b1 %b0
+SampleIsDependedOn (2 bits): Specifies whether other Samples depend on this Sample.
+	SampleIsDependedOn =	SampleIsDependedOnUnknown = %b0 %b0/
+							SampleIsNotDisposable = %b0 %b1/
+							SampleIsDisposable = %b1 %b0
+SampleHasRedundancy (2 bits): Specifies whether this Sample uses redundant coding.
+	SampleHasRedundancy =   RedundantCodingUnknown = %b0 %b0/
+							RedundantCoding = %b0 %b1/
+							NoRedundantCoding = %b1 %b0
+SamplePaddingValue (3 bits): The Sample padding value, as specified in [ISOFF].
+	SamplePaddingValue = 3*3 BIT
+SampleIsDifferenceValue (1 bit): Specifies whether the Sample is a difference between two states.
+	SampleIsDifferenceValue = BIT
+
+SampleDegradationPriority (2 bytes): The Sample degradation priority, as specified in [ISOFF].
+	SampleDegradationPriority = UNSIGNED_INT16
+================================================================================
 SampleDependsOnUnknown (2 bits): Unknown whether this Sample depends on other Samples.
 SampleDependsOnOthers (2 bits): This Sample depends on other Samples.
 SampleDoesNotDependOnOthers (2 bits): This Sample does not depend on other Samples.
-SampleIsDependedOn (2 bits): Specifies whether other Samples depend on this Sample.
+
 SampleIsDependedOnUnknown (2 bits): Unknown whether other Samples depend on this Sample.
 SampleIsNotDisposable (2 bits): Other Samples depend on this Sample.
 SampleIsDisposable (2 bits): No other Samples depend on this Sample.
-SampleHasRedundancy (2 bits): Specifies whether this Sample uses redundant coding.
+
 RedundantCodingUnknown (2 bits): Unknown whether this Sample uses redundant coding.
 RedundantCoding (2 bits): This Sample uses redundant coding.
 NoRedundantCoding (2 bits): This Sample does not use redundant coding.
-SampleIsDifferenceValue (1 bit): Specifies whether the Sample is a difference between two states.
-SamplePaddingValue (3 bits): The Sample padding value, as specified in [ISOFF].
-SampleDegradationPriority (2 bytes): The Sample degradation priority, as specified in [ISOFF].
 
-ExtendedSampleFlags = 6*6 RESERVED_BIT
-                            SampleDependsOn
-                            SampleIsDependedOn
-                            SampleHasRedundancy
-                            SamplePaddingValue
-                            SampleIsDifferenceValue
-                            SampleDegradationPriority
 
-SampleFlags = 2*2 RESERVED_BIT
-                  SampleDependsOn
-                  SampleIsDependedOn
-                  SampleHasRedundancy
 
-SampleDependsOn = SampleDependsOnUnknown / SampleDependsOnOthers  / SampleDoesNotDependsOnOthers
-SampleDependsOnUnknown = %b0 %b0
-SampleDependsOnOthers = %b0 %b1
-SampleDoesNotDependOnOthers = %b1 %b0
-SampleIsDependedOn = SampleIsDependedOnUnknown / SampleIsNotDisposable / SampleIsDisposable
-SampleIsDependedOnUnknown = %b0 %b0
-SampleIsNotDisposable = %b0 %b1
-SampleIsDisposable = %b1 %b0
-SampleHasRedundancy = RedundantCodingUnknown / RedundantCoding / NoRedundantCoding
-RedundantCodingUnknown = %b0 %b0
-RedundantCoding = %b0 %b1
-NoRedundantCoding = %b1 %b0
-SamplePaddingValue = 3*3 BIT
-SampleIsDifferenceValue = BIT
-SampleDegradationPriority = UNSIGNED_INT16
+
+
+
+
+
+SampleFlags (1 byte): A compact Sample flags field useful to choose Samples to discard.
+
+2*2 RESERVED_BIT
+SampleDependsOn (2 bits): Specifies whether this Sample depends on another Sample.
+	SampleDependsOn =   SampleDependsOnUnknown = %b0 %b0/
+						SampleDependsOnOthers  = %b0 %b1/
+						SampleDoesNotDependsOnOthers = %b1 %b0
+SampleIsDependedOn (2 bits): Specifies whether other Samples depend on this Sample.
+	SampleIsDependedOn =	SampleIsDependedOnUnknown = %b0 %b0/
+							SampleIsNotDisposable = %b0 %b1/
+							SampleIsDisposable = %b1 %b0
+SampleHasRedundancy (2 bits): Specifies whether this Sample uses redundant coding.
+	SampleHasRedundancy =   RedundantCodingUnknown = %b0 %b0/
+							RedundantCoding = %b0 %b1/
+							NoRedundantCoding = %b1 %b0
+
 RESERVED_UNSIGNED_INT64 = %x00 %x00 %x00 %x00 %x00 %x00 %x00 %x00
-UNSIGNED_INT64 = 8*8 BYTE
 RESERVED_UNSIGNED_INT32 = %x00 %x00 %x00 %x00
-UNSIGNED_INT32 = 4*4 BYTE
 RESERVED_UNSIGNED_INT16 = %x00 %x00
-UNSIGNED_INT16 = 2*2 BYTE
-RESERVED_BYTE = %x00
-BYTE = 8*8 BIT
-RESERVED_BIT = %b0
-BIT = %b0 / %b1
+RESERVED_BYTE			= %x00
+RESERVED_BIT			= %b0
 #endif
-
-#endif /* __SMTH_MANIFEST_FRAGMENT_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
