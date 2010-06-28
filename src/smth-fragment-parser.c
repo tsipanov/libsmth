@@ -46,11 +46,12 @@ int parsefragment(SmoothStream *stream, Fragment *f)
 	root.stream = stream;
 	root.f = f;
 
-	if(parsebox(&root) != FRAGMENT_SUCCESS) return FRAGMENT_PARSE_ERROR;
+	result = parsebox(&root);
+	if(result != FRAGMENT_SUCCESS) return result;
 	result = parsemoof(&root);
 	if(result != FRAGMENT_SUCCESS) return result;
-
-	if(parsebox(&root) != FRAGMENT_SUCCESS) return FRAGMENT_PARSE_ERROR;
+	result = parsebox(&root);
+	if(result != FRAGMENT_SUCCESS) return result;
 	result = parsemdat(&root);
 	if(result != FRAGMENT_SUCCESS) return result;
 
@@ -137,13 +138,13 @@ static const word boxishuge = 0x01000000;
 /*  Use this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word BoxTypeMask[7] = {	0x6d6f6f66, /**< "moof" */
-										0x6d666864, /**< "mfhd" */
-								   		0x74726166, /**< "traf" */
-								        0x75756964, /**< "uuid" */
-								        0x74666864, /**< "tfhd" */
-								        0x7472756e, /**< "trun" */
-								        0x6d646174  /**< "mdat" */ };
+static const word BoxTypeMask[7] = {	0x666f6f6d, /**< "moof" */
+										0x6468666d, /**< "mfhd" */
+								   		0x66617274, /**< "traf" */
+								        0x64697575, /**< "uuid" */
+								        0x64686674, /**< "tfhd" */
+								        0x6e757274, /**< "trun" */
+								        0x7461646d  /**< "mdat" */ };
 
 /** The signature of different encryption methods. [Last byte is keysize] */
 static const word EncryptionTypeMask[3] = { 0x00000100,   /**< AES 128-bit CTR */
@@ -225,13 +226,13 @@ static int parsebox(Box* root)
 	{
 		if(!readbox(&root->size, sizeof(lenght),root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof(lenght);
+		root->size = (lenght) be64toh(root->size);
 	}
-	else root->size = (lenght)tmpsize;
+	else root->size = (lenght) be32toh(tmpsize);
+	root->size -= offset;
 
-	root->size = (lenght)be64toh(root->size) - offset;
+	printf("size: %ld | type: %d\n", root->size, root->type); //DEBUG
 	return FRAGMENT_SUCCESS;
-
-	printf("size: %d", root->size); //DEBUG
 }
 
 /**
