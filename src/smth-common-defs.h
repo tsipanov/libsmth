@@ -52,7 +52,7 @@ typedef uint32_t flags;			/**< Flags bitfield						*/
 typedef uint16_t unit;			/**< An atomic unit						*/
 /*typedef uint8_t  byte;*/
 typedef char byte;
-typedef char keyID[16];			/**< A keyID							*/
+typedef char ID[16];			/**< A keyID							*/
 typedef char base64data, hexdata, chardata, url;
 typedef char uuid[38];
 

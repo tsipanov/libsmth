@@ -420,7 +420,7 @@ static int parsetrun(Box* root)
 	if(root->f->sampleno > 0)
 	{	SampleFields* tmp = malloc(root->f->sampleno * sizeof(SampleFields));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
-		for( i = 0; i < root->f->sampleno; i++)  //FIXME e` corretto?? FIXME memory leak!! torna senza liberare
+		for( i = 0; i < root->f->sampleno; i++)  //FIXME e` corretto??
 		{
 			SETBYFLAG(tmp[i].duration,  TRUN_SAMPLE_DURATION_PRESENT);
 			SETBYFLAG(tmp[i].size,		TRUN_SAMPLE_SIZE_PRESENT);
@@ -475,36 +475,44 @@ static int parseencr(Box* root)
 		else root->f->armor.type = NONE;
 		root->f->armor.vectorsize = (byte)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
 		
-		if(!readbox(&root->f->armor.id, sizeof(keyID), root)
+		if(!readbox(&root->f->armor.id, sizeof(ID), root))
 			return FRAGMENT_IO_ERROR;
-		/* if you change type size, it will break!! */
-		boxsize -= sizeof(flags) + sizeof(byte) + sizeof(keyID); 
+		/* WARNING: if you change type size, it will break!! */
+		boxsize -= sizeof(flags) + sizeof(byte) + sizeof(ID); 
 	}
 
 	lenght vectorlenght = root->f->armor.vectorsize * root->f->armor.vectorno;
 	byte *tmp = malloc(vectorlenght);
 	if(!tmp) return FRAGMENT_NO_MEMORY;
-	if(!readbox(tmp, vectorlenght, Box* root)
+	if(!readbox(tmp, vectorlenght, root))
 	{   free(tmp);
 		return FRAGMENT_IO_ERROR;
 	}
-
+	boxsize -= vectorlenght;
+	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
+	{
+		int result = parseuuid(root);
+		if(result != FRAGMENT_SUCCESS) return result;
+		boxsize -= root->size;
+	}
+	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
 	return FRAGMENT_SUCCESS;
 }
 
-///////////////////////////////////////FIXME////////////////////////////////////
-
-/* +---------------------------------------------------------------------------+
- * |'MdatBox': data container                                                  |
- * +---------------------------------------------------------------------------+
- * |Name     | 'mdat'
- * |Fields   | SampleData |BYTE*
- * |         |            | A single Sample of Media. Sample boundaries in 
- * |         |            | the MdatBox are defined by the values of the
- * |         |            | `DefaultSampleSize` and `SampleSize` field in the
- * |         |            | `TrunBox`
- * |Children | none (tutti assieme)
- * +---------+------------------------------------------------------------------
+/**
+ * \brief MdatBox (data container) parser
+ *
+ * A MdatBox has no children (not even a UUIDBox) and no fields: simply reads
+ * it in Fragment::data. There may be only one per fragment, so we do not
+ * worry about data concatenation.
+ * Sample boundaries in the MdatBox are defined by the values of the
+ * TrunBox::DefaultSampleSize and TrunBox::SampleSize fields. Individual sample
+ * sizes are stored into SampleFields::size and the number of samples in
+ * Fragment::sampleno.
+ *
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
+ *             code.
  */
 static int parsemdat(Box* root)
 {
@@ -518,7 +526,7 @@ static int parsemdat(Box* root)
 	return FRAGMENT_SUCCESS;
 }
 
-///////////////////////////////////////TODO/////////////////////////////////////
+///////////////////////////////////////FIXME////////////////////////////////////
 // questo must mi preoccupa: devo controllare le dimensioni??
 // Ma la dimensione include anche quella dei figli??
 // delle UUID facciamo un arrray, e il tipo == il tipo dell'enum
@@ -532,7 +540,10 @@ static int parsemdat(Box* root)
 // aggiungere le strutture per uuiddata
 // * il test per boxsize < 0 fallisce: lenght è uint!!
 // FIXME controllare che il salto con fseek sia ok
-
+// Sostituire la ricerca finale di una UUID box con una macro.
+//
+// FIXME possibile memory leak attorno alla linea 423!! torna senza liberare
+///////////////////////////////////////TODO/////////////////////////////////////
 /* +---------+-----------------------------------------------------------------+
  * |'VendorExtensionUUIDBox': variable content                                 |
  * +---------+-----------------------------------------------------------------+
@@ -547,7 +558,6 @@ static int parsemdat(Box* root)
 
 static int parseuuid(Box* root)
 {
-	
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

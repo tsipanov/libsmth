@@ -46,7 +46,7 @@ typedef struct
 {	/** The algorithm used to encrypt each Sample. Filled from AlgorithmID */
 	EncryptionType type;
 	/** A UUID that identifies the key used to encrypt Samples. */
-	keyID id;
+	ID id;
 	/** The size of the InitializationVector field, in bytes.
 	    Allowed values are 0x08 and 0x10 */
 	byte vectorsize;
