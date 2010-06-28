@@ -42,9 +42,9 @@
  */
 int parsefragment(SmoothStream *stream, Fragment *f)
 {   Box root;
+	int result;
 	root.stream = stream;
 	root.f = f;
-	int result;
 
 	if(parsebox(&root) != FRAGMENT_SUCCESS) return FRAGMENT_PARSE_ERROR;
 	result = parsemoof(&root);
@@ -121,21 +121,23 @@ static const byte tfhdVersion = 0;
 /** Version of the SampleEncryption box structure */
 static const byte encryptionVersion = 0;
 
-/** If BoxSize is equal to boxishuge, then a LongBoxSize section is present. */
-static const byte boxishuge[4] = {0, 0, 0, 1};
-
 /** The signature of a SampleEncryptionBox, namely a specific UUIDBox */
 static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
                                          0x5a, 0x9b, 0x4f, 0x14,
                                          0xa2, 0x44, 0x6c, 0x42,
                                          0x7c, 0x64, 0x8d, 0xf4 };
 
+/************************START ENDIAN DEPENDENT SECTION************************/
+
+/** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
+static const word boxishuge = 0x01000000;
+
 /** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
 
 /*  Use this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word BoxTypeMask[7] = {	0x6d6f6f66,  /**< "moof" */
+static const word BoxTypeMask[7] = {	0x6d6f6f66, /**< "moof" */
 										0x6d666864, /**< "mfhd" */
 								   		0x74726166, /**< "traf" */
 								        0x75756964, /**< "uuid" */
@@ -143,9 +145,11 @@ static const word BoxTypeMask[7] = {	0x6d6f6f66,  /**< "moof" */
 								        0x7472756e, /**< "trun" */
 								        0x6d646174  /**< "mdat" */ };
 
-/** The signature of different encryption methods. [Last byte is keysize] */ //FIXME vedere se sono corretti
+/** The signature of different encryption methods. [Last byte is keysize] */
 static const word EncryptionTypeMask[3] = { 0x00000100,   /**< AES 128-bit CTR */
                                             0x00000200};  /**< AES 128-bit CBC */
+
+/*************************END ENDIAN DEPENDED SECTION**************************/
 
 /**
  * \brief      Read size bytes from root->stream, and stores them into dest.
@@ -183,7 +187,7 @@ static bool isencrbox(Box* root)
 static bool getflags(flags *defaultflags, Box *root)
 {	if(!readbox(defaultflags, sizeof(flags), root))
 		return false;
-	*defaultflags = (flags)be64toh(*defaultflags); /* endian-safe */
+	*defaultflags = (flags) be64toh(*defaultflags); /* endian-safe */
 }
 
 /**
@@ -201,7 +205,7 @@ static bool getflags(flags *defaultflags, Box *root)
  *         FRAGMENT_IO_ERROR in case of read/write error and FRAGMENT_UNKNOWN 
  *         if an unknown Box type was encountered (it should never happen).
  */
-static int parsebox(Box* root) //FIXME attenzione! alle dimensioni! è big endian!!
+static int parsebox(Box* root)
 {
 	lenght tmpsize;
 	word name;
@@ -211,12 +215,13 @@ static int parsebox(Box* root) //FIXME attenzione! alle dimensioni! è big endia
 	if(!readbox(&tmpsize, sizeof(shortlenght), root)) return FRAGMENT_IO_ERROR;
 	if(!readbox(&name, sizeof(name), root)) return FRAGMENT_IO_ERROR;
 	for(element = 0, root->type = UNKNOWN; element < UNKNOWN; element++)
-		if( name & BoxTypeMask[element])
+		if( name == BoxTypeMask[element])
 		{   root->type = element;
 			break;
 		}
-	if(root->type == UNKNOWN) return FRAGMENT_UNKNOWN; //element non puo` mai essere UNKNOWN...
-	if(!memcmp(boxishuge, &tmpsize, sizeof(boxishuge)))
+	/* if it is still unknown */
+	if(root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
+	if(tmpsize == boxishuge)
 	{
 		if(!readbox(&root->size, sizeof(lenght),root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof(lenght);
@@ -225,6 +230,8 @@ static int parsebox(Box* root) //FIXME attenzione! alle dimensioni! è big endia
 
 	root->size = (lenght)be64toh(root->size) - offset;
 	return FRAGMENT_SUCCESS;
+
+	printf("size: %d", root->size); //DEBUG
 }
 
 /**
@@ -240,7 +247,7 @@ static int parsebox(Box* root) //FIXME attenzione! alle dimensioni! è big endia
  *             a Box that should not stay into a MoofBox was encountered.
  */
 
-/* FIXME do they have to appear in a fixed order? It would be much simpler... */
+/* TODO do they have to appear in a fixed order? It would be much simpler... */
 
 static int parsemoof(Box* root)
 {
@@ -411,14 +418,16 @@ static int parsetrun(Box* root)
 	flags boxflags;
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
-	count samplecount, i;
+	count samplecount;
 	if(!readbox(&samplecount, sizeof(count), root))
 		return FRAGMENT_IO_ERROR;
 	root->f->sampleno = (count)be32toh(samplecount); /* endian-safe */
 	SETBYFLAG(root->f->settings, TRUN_FIRST_SAMPLE_FLAGS_PRESENT);
 
 	if(root->f->sampleno > 0)
-	{	SampleFields* tmp = malloc(root->f->sampleno * sizeof(SampleFields));
+	{	
+		int i;
+		SampleFields* tmp = malloc(root->f->sampleno * sizeof(SampleFields));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
 		for( i = 0; i < root->f->sampleno; i++)  //FIXME e` corretto??
 		{
@@ -507,8 +516,8 @@ static int parseencr(Box* root)
  * worry about data concatenation.
  * Sample boundaries in the MdatBox are defined by the values of the
  * TrunBox::DefaultSampleSize and TrunBox::SampleSize fields. Individual sample
- * sizes are stored into SampleFields::size and the number of samples in
- * Fragment::sampleno.
+ * sizes are stored into SampleFields::size and the overall number of samples
+ * in Fragment::sampleno.
  *
  * \param root pointer to the Box structure to be parsed
  * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
@@ -524,6 +533,24 @@ static int parsemdat(Box* root)
 	}
 	root->f->data = tmp;
 	return FRAGMENT_SUCCESS;
+}
+
+/**
+ * \brief VendorExtensionUUIDBox (variable content) box.
+ *
+ * Parses a 16byte UUID and a bytestream content to a Variable structure, and
+ * adds it to the list dereferenced by Fragment::extensions
+ *
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
+ *             code.
+ */
+///////////////////////////////////////TODO/////////////////////////////////////
+static int parseuuid(Box* root)
+{	byte discarded[root->size];
+	readbox(discarded, root->size, root);
+/* |Fields   | UUIDBoxUUID   |BYTE[16]
+ * |         | UUIDBoxData   | *BYTE */
 }
 
 ///////////////////////////////////////FIXME////////////////////////////////////
@@ -543,21 +570,5 @@ static int parsemdat(Box* root)
 // Sostituire la ricerca finale di una UUID box con una macro.
 //
 // FIXME possibile memory leak attorno alla linea 423!! torna senza liberare
-///////////////////////////////////////TODO/////////////////////////////////////
-/* +---------+-----------------------------------------------------------------+
- * |'VendorExtensionUUIDBox': variable content                                 |
- * +---------+-----------------------------------------------------------------+
- * |Name     | 'uuid'
- * |Fields   | UUIDBoxUUID   |BYTE[16]
- * |         |               | uuid signature
- * |         | UUIDBoxData   | *BYTE
- * |         |               | variable content
- * |Children | none
- * +---------+-----------------------------------------------------------------+
- */
-
-static int parseuuid(Box* root)
-{
-}
 
 /* vim: set ts=4 sw=4 tw=0: */
