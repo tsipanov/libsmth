@@ -17,6 +17,7 @@
  */
 
 /**
+ * \internal
  * \file   smth-fragment-parser.c
  * \brief  Parses binary Fragments
  * \author Stefano Sanfilippo
@@ -43,12 +44,16 @@ int parsefragment(SmoothStream *stream, Fragment *f)
 {   Box root;
 	root.stream = stream;
 	root.f = f;
-	if(parsebox(&root)== FRAGMENT_SUCCESS)
-		parsemoof(&root);
-	else return FRAGMENT_PARSE_ERROR;
-	if(parsebox(&root)== FRAGMENT_SUCCESS)
-		 parsemdat(&root);
-	else return FRAGMENT_PARSE_ERROR;
+	int result;
+
+	if(parsebox(&root) != FRAGMENT_SUCCESS) return FRAGMENT_PARSE_ERROR;
+	result = parsemoof(&root);
+	if(result != FRAGMENT_SUCCESS) return result;
+
+	if(parsebox(&root) != FRAGMENT_SUCCESS) return FRAGMENT_PARSE_ERROR;
+	result = parsemdat(&root);
+	if(result != FRAGMENT_SUCCESS) return result;
+
 	return FRAGMENT_SUCCESS; //FIXME se il file non e` finito, UUIDBox
 }
 
@@ -125,19 +130,23 @@ static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
                                          0xa2, 0x44, 0x6c, 0x42,
                                          0x7c, 0x64, 0x8d, 0xf4 };
 
-/** Names of Boxes, used for type detection */
-static const byte boxtypebytes[7][4] = {{'m','o','o','f'},
-								        {'m','f','h','d'},
-								        {'t','r','a','f'},
-								        {'u','u','i','d'},
-								        {'t','f','h','d'},
-								        {'t','r','u','n'},
-								        {'m','d','a','t'}};
+/** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
 
-/** The signature of different encryption methods */ 
-static const byte encryptiontypebytes[3][3] = {{0,0,0},   /* Not encrypted   */
-                                               {0,0,1},   /* AES 128-bit CTR */
-                                               {0,0,2}};  /* AES 128-bit CBC */
+/*  Use this Python snippet to build each row:
+ *		for c in namestring: print '%x' % ord(c)
+ */
+static const word BoxTypeMask[7] = {   0x6d6f6f66,  /**< "moof" */
+								        0x6d666864, /**< "mfhd" */
+								   		0x74726166, /**< "traf" */
+								        0x75756964, /**< "uuid" */
+								        0x74666864, /**< "tfhd" */
+								        0x7472756e, /**< "trun" */
+								        0x6d646174  /**< "mdat" */ };
+
+/** The signature of different encryption methods. Last byte is keysize */
+static const word EncryptionTypeBytes[3] = { 0x00000000,   /**< Not encrypted   */
+                                             0x00000100,   /**< AES 128-bit CTR */
+                                             0x00000200};  /**< AES 128-bit CBC */
 
 /**
  * \brief      Read size bytes from root->stream, and stores them into dest.
@@ -193,21 +202,21 @@ static bool getflags(flags *defaultflags, Box *root)
  *         FRAGMENT_IO_ERROR in case of read/write error and FRAGMENT_UNKNOWN 
  *         if an unknown Box type was encountered (it should never happen).
  */
-static int parsebox(Box* root)
+static int parsebox(Box* root) //FIXME attenzione! alle dimensioni! è big endian!!
 {
-	lenght  tmpsize;
-	byte name[4];
+	lenght tmpsize;
+	word name;
 	Boxtype element;
 	shortlenght offset = sizeof(shortlenght)+sizeof(name);
 
 	if(!readbox(&tmpsize, sizeof(shortlenght), root)) return FRAGMENT_IO_ERROR;
-	if(!readbox(name, sizeof(name), root)) return FRAGMENT_IO_ERROR;
+	if(!readbox(&name, sizeof(name), root)) return FRAGMENT_IO_ERROR;
 	for(element = 0, root->type = UNKNOWN; element < UNKNOWN; element++)
-		if(!memcmp(name, boxtypebytes[element], sizeof(name)))
+		if( name & BoxTypeMask[element])
 		{   root->type = element;
 			break;
 		}
-	if(element == UNKNOWN) return FRAGMENT_UNKNOWN;
+	if(root->type == UNKNOWN) return FRAGMENT_UNKNOWN; //element non puo` mai essere UNKNOWN...
 	if(!memcmp(boxishuge, &tmpsize, sizeof(boxishuge)))
 	{
 		if(!readbox(&root->size, sizeof(lenght),root)) return FRAGMENT_IO_ERROR;
@@ -237,7 +246,7 @@ static int parsebox(Box* root)
 static int parsemoof(Box* root)
 {
 	int i, result;
-	lenght boxsize = root->size;
+	signedlenght boxsize = root->size;
 
 	for( i = 0; i < 2; i++)
 	{   
@@ -278,7 +287,7 @@ static int parsemoof(Box* root)
 static int parsemfhd(Box* root)
 {
 	count tmp;
-	lenght boxsize = root->size;
+	signedlenght boxsize = root->size;
 
 	if(!readbox(&tmp, sizeof(tmp), root)) return FRAGMENT_IO_ERROR;
 	root->f->ordinal = (count)be32toh(tmp);
@@ -307,7 +316,7 @@ static int parsemfhd(Box* root)
 static int parsetraf(Box* root)
 {
 	int i, result;
-	lenght boxsize = root->size;
+	signedlenght boxsize = root->size;
 
 	for( i = 0; i < 2; i++)
 	{   
@@ -335,7 +344,10 @@ static int parsetraf(Box* root)
 
 /**
  * \brief        Sets target reading an appropriate number of bytes from stream
- *               if flag marked by mask is set and decrements boxsize accordingly.
+ *               if flag marked by mask is set and decrements boxsize
+ *				 accordingly. You may add a else statement after this block,
+ *               but it is highly risky: this macro is intended for internal
+ *               use only, and implemention may vary without notice.
  * \param target The target to be set
  * \param mask   The mask to select the appropriate flag bit
  */
@@ -360,16 +372,16 @@ static int parsetraf(Box* root)
  */
 static int parsetfhd(Box* root)
 {
-	lenght boxsize = root->size;
+	signedlenght boxsize = root->size;
 	flags boxflags;
 
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
 	SETBYFLAG(root->f->defaults.dataoffset, TFHD_BASE_DATA_OFFSET_PRESENT);
-	SETBYFLAG(root->f->defaults.index,		TFHD_SAMPLE_DESCRIPTION_INDEX_PRESENT);
-	SETBYFLAG(root->f->defaults.duration,	TFHD_DEFAULT_SAMPLE_DURATION_PRESENT);
-	SETBYFLAG(root->f->defaults.size,		TFHD_DEFAULT_SAMPLE_SIZE_PRESENT);
-	SETBYFLAG(root->f->defaults.settings,	TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT);
+	SETBYFLAG(root->f->defaults.index, TFHD_SAMPLE_DESCRIPTION_INDEX_PRESENT);
+	SETBYFLAG(root->f->defaults.duration, TFHD_DEFAULT_SAMPLE_DURATION_PRESENT);
+	SETBYFLAG(root->f->defaults.size, TFHD_DEFAULT_SAMPLE_SIZE_PRESENT);
+	SETBYFLAG(root->f->defaults.settings, TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT);
 
 	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
 	{
@@ -396,7 +408,7 @@ static int parsetfhd(Box* root)
  */
 static int parsetrun(Box* root)
 {
-	lenght boxsize = root->size;
+	signedlenght boxsize = root->size;
 	flags boxflags;
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
@@ -406,74 +418,82 @@ static int parsetrun(Box* root)
 	root->f->sampleno = (count)be32toh(samplecount); /* endian-safe */
 	SETBYFLAG(root->f->settings, TRUN_FIRST_SAMPLE_FLAGS_PRESENT);
 
-	SampleFields* tmp;
-	tmp = malloc(root->f->sampleno * sizeof(SampleFields)); //FIXME e` corretto??
-	for( i = 0; i < root->f->sampleno; i++)
-	{
-		SETBYFLAG(tmp[i].duration,  TRUN_SAMPLE_DURATION_PRESENT);
-		SETBYFLAG(tmp[i].size,		TRUN_SAMPLE_SIZE_PRESENT);
-		SETBYFLAG(tmp[i].settings,  TRUN_SAMPLE_FLAGS_PRESENT);
-		SETBYFLAG(tmp[i].timeoffset,TRUN_SAMPLE_COMPOSITION_TIME_OFFSET_PRESENT);
+	if(root->f->sampleno > 0)
+	{	SampleFields* tmp = malloc(root->f->sampleno * sizeof(SampleFields));
+		for( i = 0; i < root->f->sampleno; i++)  //FIXME e` corretto?? FIXME memory leak!! torna senza liberare
+		{
+			SETBYFLAG(tmp[i].duration,  TRUN_SAMPLE_DURATION_PRESENT);
+			SETBYFLAG(tmp[i].size,		TRUN_SAMPLE_SIZE_PRESENT);
+			SETBYFLAG(tmp[i].settings,  TRUN_SAMPLE_FLAGS_PRESENT);
+			SETBYFLAG(tmp[i].timeoffset,TRUN_SAMPLE_COMPOSITION_TIME_OFFSET_PRESENT);
+		}
+		root->f->samples = tmp;
+		boxsize -= root->f->sampleno * sizeof(SampleFields);
 	}
-	root->f->samples = tmp;
+	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
+	{
+		int result = parseuuid(root);
+		if(result != FRAGMENT_SUCCESS) return result;
+		boxsize -= root->size;
+	}
+	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
 	return FRAGMENT_SUCCESS;
 }
-// controllare lo uuidbox
-///////////////////////////////////////FIXME////////////////////////////////////
+
 /**
  * \brief SampleEncryptionBox (content protection metadata) parser
  *
- * |         | [AlgorithmID               |3*UINT8
- * |         |                            | The algorithm used to encrypt Sample
- * |         |  InitializationVectorSize  |UINT8 = \x8 | \x10
- * |         |                            | The size of the InitializationVector
- * |         |                            | field, in bytes.
- * |         |  KID]                      |UINT16
- * |         |                            | UUID that identifies the key used
- * |         |                            | to encrypt Samples.
- * |         | SampleEncryptionBoxSampleCount | UINT32
- * |         |                                | The number of instances of the
- * |         |                                | InitializationVector field in
- * |         |                                | the SampleEncryptionBox field.
- * |         | InitializationVector       |BYTE*
- * |         |                            | The Initialization Vector for each
- * |         |                            | Sample. MUST be repeated exactly
- * |         |                            | SampleEncryptionBoxSampleCount times
- * FREED
+ * A SampleEncryptionBox is a VendorUUIDBox with a particulare uuid, no
+ * compulsory children and a few optional fields, whose presence is determined
+ * using a flag field.
+ *
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
+ *             code.
+ * \sa         encryptionuuid, isencrbox
  */
-#if 0
 static int parseencr(Box* root)
 {
-	encryptiontype enc;
-	lenght boxsize = root->size;
-	fseek(root->stream, sizeof(signature), SEEK_CUR); /* skip signature */
-	flags cryptflags;
-	if(!getflags(&cryptflags, root)) return FRAGMENT_IO_ERROR;
+	EncryptionType enc;
+	signedlenght boxsize = root->size;
+	fseek(root->stream, sizeof(encryptionuuid), SEEK_CUR); /* skip signature */ //FIXME controllare che il salto sia ok
+	flags boxflags;
+	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
-	if(cryptflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
+	if(boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
-		for(enc = NONE; enc <= AES_CBC; enc++)
-			if(!memcmp(name, encryptiontypebytes[enc], sizeof(name)))
-			{   root->type = element;
+		if(!readbox(&boxflags, sizeof(flags), root)) return FRAGMENT_IO_ERROR;
+
+///////////////////////////////////////FIXME////////////////////////////////////
+
+		for(enc = NONE, root->f->armor.type = NEW; enc < NEW; enc++) //puo` essere null
+			if(boxflags & EncryptionTypeMask[enc]) //anche qui, fare una maschera
+			{   root->f->armor.type = enc;  // attenzione all'ultimo byte
 				break;
 			}
+		if(root->f->armor.type == NEW) return FRAGMENT_UNKNOWN_ENCRYPTION;
+		boxsize -= sizeof(flags)+sizeof(byte)+sizeof(keyID); 
+	}
 //	encryptiontype algorithm;
 //	byte vectorsize;
 //	keyID kID;
 //	count vectorno;
 //	byte* vectors;
+/*
+ * |         | [AlgorithmID               |3*UINT8
+ * |         |  InitializationVectorSize  |UINT8 = \x8 | \x10
+ * |         |  KID]                      |UINT16
+ * |         | SampleEncryptionBoxSampleCount | UINT32
+ * |         | InitializationVector       |BYTE*
+ * FREED
+ */
 /*	if(boxflags & (mask))								\*/
 /*	{   if(!readbox(&(target), sizeof(target), root))   \*/
 /*			return FRAGMENT_IO_ERROR;					\*/
 /*		boxsize -= sizeof(target);						\*/
 /*	}*/
-
-		boxsize -= sizeof(flags)+sizeof(byte)+sizeof(keyID); 
-	}
-
 	return FRAGMENT_SUCCESS;
 }
-#endif
 
 /* +---------------------------------------------------------------------------+
  * |'MdatBox': data container                                                  |
@@ -490,15 +510,14 @@ static int parseencr(Box* root)
 static int parsemdat(Box* root)
 {
 	byte* tmp = malloc(root->size);
-	if(!tmp) return FRAGMENT_NO_MEMORY; //TODO set error code?
-	if(!readbox(tmp, root->size, root)) return FRAGMENT_IO_ERROR;
-
+	if(!tmp) return FRAGMENT_NO_MEMORY;
+	if(!readbox(tmp, root->size, root))
+	{   free(tmp);
+		return FRAGMENT_IO_ERROR;
+	}
 	root->f->data = tmp;
 	return FRAGMENT_SUCCESS;
 }
-/*					result = parsetraf(root);*/
-/*					if(result != FRAGMENT_SUCCESS) return result;*/
-/*					break;*/
 
 ///////////////////////////////////////TODO/////////////////////////////////////
 // questo must mi preoccupa: devo controllare le dimensioni??
@@ -510,7 +529,9 @@ static int parsemdat(Box* root)
 //FIXME controllare che non ci voglia +1
 // sostituire i for sulle enumerazioni con un &. togliere max e mettere < UNKNOWN
 // attenzione alla deallocazione dinamica (al top-level)
-//inizializzare tutti i campi del Frammento a zero.
+// inizializzare tutti i campi del Frammento a zero.
+// aggiungere le strutture per uuiddata
+// * il test per boxsize < 0 fallisce: lenght è uint!!
 
 /* +---------+-----------------------------------------------------------------+
  * |'VendorExtensionUUIDBox': variable content                                 |

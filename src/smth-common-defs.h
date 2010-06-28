@@ -24,6 +24,7 @@
 #define __SMTH_COMMON_DEFS_H__
 
 /**
+ * \internal
  * \file   smth-common-defs.h
  * \brief  synthetic type definitions.
  * \author Stefano Sanfilippo
@@ -39,6 +40,8 @@
 typedef uint64_t tick;			/**< A time interval					*/
 typedef uint64_t offset;		/**< A memory offset					*/
 typedef uint64_t lenght;		/**< A memory lenght					*/
+typedef  int32_t signedlenght;  /**< A lenght that can be negative. Used
+								 **  for overflow check.				*/
 typedef uint32_t shortlenght;   /**< Short memory lenght				*/
 typedef uint32_t count;			/**< An ordinal number					*/
 typedef uint32_t bitrate;		/**< A bitrate or a samplerate			*/

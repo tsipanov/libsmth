@@ -22,6 +22,7 @@
 #define __SMTH_FRAGMENT_PARSER__
 
 /**
+ * \internal
  * \file   smth-fragment-parser.h
  * \brief  Exported definitions for smth-fragment-parser.c
  * \author Stefano Sanfilippo
@@ -31,9 +32,10 @@
 #include <smth-common-defs.h>
 
 /** The encryption system used by the samples */
-typedef enum {  NONE,    /**< non encrypted sample            */
-				AES_CTR, /**< AES 128bit CTR encrypted sample */
-				AES_CBC  /**< AES 128bit CBC encrypted sample */
+typedef enum {  NONE,    /**< non encrypted sample							  */
+				AES_CTR, /**< AES 128bit CTR encrypted sample				  */
+				AES_CBC, /**< AES 128bit CBC encrypted sample				  */
+				NEW		 /**< Unknown encryption method. MUST be the last one */
 			 } EncryptionType ;
 
 /** Holds the encryption metadata for the samples
@@ -41,12 +43,12 @@ typedef enum {  NONE,    /**< non encrypted sample            */
  */
 typedef struct
 {	/** The algorithm used to encrypt each Sample. Filled from AlgorithmID */
-	EncryptionType algorithm;
+	EncryptionType type;
+	/** A UUID that identifies the key used to encrypt Samples. */
+	keyID kID;
 	/** The size of the InitializationVector field, in bytes.
 	    Allowed values are 0x08 and 0x10 */
 	byte vectorsize;
-	/** A UUID that identifies the key used to encrypt Samples. */
-	keyID kID;
 	/** The number of instances of the InitializationVector field in
 	 *  the SampleEncryptionBox field, filled from
 	 *  SampleEncryptionBoxSampleCount field
@@ -130,7 +132,7 @@ typedef struct
 	count sampleno;
 	/** The value of the SampleFlags field for the first Sample.
 	 *  This field may be 0x00000000: in that case, program should check
-	 *  per-sample settings. Filled from FirstSampleFlags
+	 *  per-sample settings and default settings. Filled from FirstSampleFlags
 	 */ 
 	flags settings;
 	/** The encryption data for ciphered streams */
@@ -146,23 +148,95 @@ typedef struct
 } Fragment;
 
 /** the fragment was successfully parsed */
-#define FRAGMENT_SUCCESS		( 1)
+#define FRAGMENT_SUCCESS			( 1)
 /** the parser encountered an i/o error on the SmoothStream */
-#define FRAGMENT_IO_ERROR		(-1)
+#define FRAGMENT_IO_ERROR			(-1)
 /** an unknown Box was encountered */
-#define FRAGMENT_UNKNOWN		(-2)
+#define FRAGMENT_UNKNOWN			(-2)
 /** no more memory to allocate for data sections */ 
-#define FRAGMENT_NO_MEMORY		(-3)
+#define FRAGMENT_NO_MEMORY			(-3)
 /** a malformed Box was encountered */
-#define FRAGMENT_PARSE_ERROR	(-4)
+#define FRAGMENT_PARSE_ERROR		(-4)
 /** a fragment that should not be in the current section was parsed */
-#define FRAGMENT_INAPPROPRIATE  (-5)
+#define FRAGMENT_INAPPROPRIATE		(-5)
 /** the fragment is smaller than declared. This often means a parse error */
-#define FRAGMENT_OUT_OF_BOUNDS  (-6)
+#define FRAGMENT_OUT_OF_BOUNDS		(-6)
+/** the fragment is encrypted in a new, non implemented, algorithm */
+#define FRAGMENT_UNKNOWN_ENCRYPTION (-7)
 
 int parsefragment(SmoothStream *stream, Fragment *f);
 void disposefragment(Fragment *f);
 
 #endif /* __SMTH_FRAGMENT_PARSER__ */
+
+#if 0
+FIXME preparare il parser dei flag
+/* used by TRUN and TFHD */
+
+/** ExtendedSampleFlags (4 bytes): A comprehensive Sample flags field. */
+/** non ci mascheriamo na cippa perche` possono essere anche nulli e avere senso */
+ExtendedSampleFlags =
+6*6 RESERVED_BIT
+SampleDependsOn (2 bits): Specifies whether this Sample depends on another Sample.
+	SampleDependsOn =   SampleDependsOnUnknown = %b0 %b0/
+						SampleDependsOnOthers  = %b0 %b1/
+						SampleDoesNotDependsOnOthers = %b1 %b0
+SampleIsDependedOn (2 bits): Specifies whether other Samples depend on this Sample.
+	SampleIsDependedOn =	SampleIsDependedOnUnknown = %b0 %b0/
+							SampleIsNotDisposable = %b0 %b1/
+							SampleIsDisposable = %b1 %b0
+SampleHasRedundancy (2 bits): Specifies whether this Sample uses redundant coding.
+	SampleHasRedundancy =   RedundantCodingUnknown = %b0 %b0/
+							RedundantCoding = %b0 %b1/
+							NoRedundantCoding = %b1 %b0
+SamplePaddingValue (3 bits): The Sample padding value, as specified in [ISOFF].
+	SamplePaddingValue = 3*3 BIT
+SampleIsDifferenceValue (1 bit): Specifies whether the Sample is a difference between two states.
+	SampleIsDifferenceValue = BIT
+
+SampleDegradationPriority (2 bytes): The Sample degradation priority, as specified in [ISOFF].
+	SampleDegradationPriority = UNSIGNED_INT16
+================================================================================
+SampleDependsOnUnknown (2 bits): Unknown whether this Sample depends on other Samples.
+SampleDependsOnOthers (2 bits): This Sample depends on other Samples.
+SampleDoesNotDependOnOthers (2 bits): This Sample does not depend on other Samples.
+
+SampleIsDependedOnUnknown (2 bits): Unknown whether other Samples depend on this Sample.
+SampleIsNotDisposable (2 bits): Other Samples depend on this Sample.
+SampleIsDisposable (2 bits): No other Samples depend on this Sample.
+
+RedundantCodingUnknown (2 bits): Unknown whether this Sample uses redundant coding.
+RedundantCoding (2 bits): This Sample uses redundant coding.
+NoRedundantCoding (2 bits): This Sample does not use redundant coding.
+
+
+
+
+
+
+
+
+SampleFlags (1 byte): A compact Sample flags field useful to choose Samples to discard.
+
+2*2 RESERVED_BIT
+SampleDependsOn (2 bits): Specifies whether this Sample depends on another Sample.
+	SampleDependsOn =   SampleDependsOnUnknown = %b0 %b0/
+						SampleDependsOnOthers  = %b0 %b1/
+						SampleDoesNotDependsOnOthers = %b1 %b0
+SampleIsDependedOn (2 bits): Specifies whether other Samples depend on this Sample.
+	SampleIsDependedOn =	SampleIsDependedOnUnknown = %b0 %b0/
+							SampleIsNotDisposable = %b0 %b1/
+							SampleIsDisposable = %b1 %b0
+SampleHasRedundancy (2 bits): Specifies whether this Sample uses redundant coding.
+	SampleHasRedundancy =   RedundantCodingUnknown = %b0 %b0/
+							RedundantCoding = %b0 %b1/
+							NoRedundantCoding = %b1 %b0
+
+RESERVED_UNSIGNED_INT64 = %x00 %x00 %x00 %x00 %x00 %x00 %x00 %x00
+RESERVED_UNSIGNED_INT32 = %x00 %x00 %x00 %x00
+RESERVED_UNSIGNED_INT16 = %x00 %x00
+RESERVED_BYTE			= %x00
+RESERVED_BIT			= %b0
+#endif
 
 /* vim: set ts=4 sw=4 tw=0: */
