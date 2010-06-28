@@ -77,6 +77,13 @@ typedef struct
 /** The SampleEncryptionBox has the optional fields */
 #define ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT  (1<<0)
 
+/** Mask for extracting keysize value from a 32bit word containing both flags
+ *  and KeySizeValue. Beware of endianess */
+#define ENCRYPTION_KEY_TYPE_MASK (0xffffff00)
+/** Mask for extracting flags value from a 32bit word containing both flags
+ *  and KeySizeValue. Beware of endianess */
+#define ENCRYPTION_KEY_SIZE_MASK (0x000000ff)
+
 static  int  parsebox(Box* root);
 static  int parsemoof(Box* root);
 static  int parsemdat(Box* root);

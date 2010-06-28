@@ -135,18 +135,17 @@ static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
 /*  Use this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word BoxTypeMask[7] = {   0x6d6f6f66,  /**< "moof" */
-								        0x6d666864, /**< "mfhd" */
+static const word BoxTypeMask[7] = {	0x6d6f6f66,  /**< "moof" */
+										0x6d666864, /**< "mfhd" */
 								   		0x74726166, /**< "traf" */
 								        0x75756964, /**< "uuid" */
 								        0x74666864, /**< "tfhd" */
 								        0x7472756e, /**< "trun" */
 								        0x6d646174  /**< "mdat" */ };
 
-/** The signature of different encryption methods. Last byte is keysize */
-static const word EncryptionTypeBytes[3] = { 0x00000000,   /**< Not encrypted   */
-                                             0x00000100,   /**< AES 128-bit CTR */
-                                             0x00000200};  /**< AES 128-bit CBC */
+/** The signature of different encryption methods. [Last byte is keysize] */ //FIXME vedere se sono corretti
+static const word EncryptionTypeMask[3] = { 0x00000100,   /**< AES 128-bit CTR */
+                                            0x00000200};  /**< AES 128-bit CBC */
 
 /**
  * \brief      Read size bytes from root->stream, and stores them into dest.
@@ -420,6 +419,7 @@ static int parsetrun(Box* root)
 
 	if(root->f->sampleno > 0)
 	{	SampleFields* tmp = malloc(root->f->sampleno * sizeof(SampleFields));
+		if(!tmp) return FRAGMENT_NO_MEMORY;
 		for( i = 0; i < root->f->sampleno; i++)  //FIXME e` corretto?? FIXME memory leak!! torna senza liberare
 		{
 			SETBYFLAG(tmp[i].duration,  TRUN_SAMPLE_DURATION_PRESENT);
@@ -456,44 +456,43 @@ static int parseencr(Box* root)
 {
 	EncryptionType enc;
 	signedlenght boxsize = root->size;
-	fseek(root->stream, sizeof(encryptionuuid), SEEK_CUR); /* skip signature */ //FIXME controllare che il salto sia ok
-	flags boxflags;
+	fseek(root->stream, sizeof(encryptionuuid), SEEK_CUR); /* skip signature */
+	flags boxflags; /* first used to retrieve box flags, then crypt flags */
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
 	if(boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
 		if(!readbox(&boxflags, sizeof(flags), root)) return FRAGMENT_IO_ERROR;
-
-///////////////////////////////////////FIXME////////////////////////////////////
-
-		for(enc = NONE, root->f->armor.type = NEW; enc < NEW; enc++) //puo` essere null
-			if(boxflags & EncryptionTypeMask[enc]) //anche qui, fare una maschera
-			{   root->f->armor.type = enc;  // attenzione all'ultimo byte
-				break;
-			}
-		if(root->f->armor.type == NEW) return FRAGMENT_UNKNOWN_ENCRYPTION;
-		boxsize -= sizeof(flags)+sizeof(byte)+sizeof(keyID); 
+		boxflags = be32toh(boxflags); /* endian-safe */
+		if(boxflags & ENCRYPTION_KEY_TYPE_MASK) /* if it is encrypted */
+		{	for(enc = AES_CTR, root->f->armor.type = NEW; enc < NEW; enc++)
+				if(boxflags & EncryptionTypeMask[enc])
+				{   root->f->armor.type = enc;
+					break;
+				}
+			if(root->f->armor.type == NEW) return FRAGMENT_UNKNOWN_ENCRYPTION;
+		}
+		else root->f->armor.type = NONE;
+		root->f->armor.vectorsize = (byte)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
+		
+		if(!readbox(&root->f->armor.id, sizeof(keyID), root)
+			return FRAGMENT_IO_ERROR;
+		/* if you change type size, it will break!! */
+		boxsize -= sizeof(flags) + sizeof(byte) + sizeof(keyID); 
 	}
-//	encryptiontype algorithm;
-//	byte vectorsize;
-//	keyID kID;
-//	count vectorno;
-//	byte* vectors;
-/*
- * |         | [AlgorithmID               |3*UINT8
- * |         |  InitializationVectorSize  |UINT8 = \x8 | \x10
- * |         |  KID]                      |UINT16
- * |         | SampleEncryptionBoxSampleCount | UINT32
- * |         | InitializationVector       |BYTE*
- * FREED
- */
-/*	if(boxflags & (mask))								\*/
-/*	{   if(!readbox(&(target), sizeof(target), root))   \*/
-/*			return FRAGMENT_IO_ERROR;					\*/
-/*		boxsize -= sizeof(target);						\*/
-/*	}*/
+
+	lenght vectorlenght = root->f->armor.vectorsize * root->f->armor.vectorno;
+	byte *tmp = malloc(vectorlenght);
+	if(!tmp) return FRAGMENT_NO_MEMORY;
+	if(!readbox(tmp, vectorlenght, Box* root)
+	{   free(tmp);
+		return FRAGMENT_IO_ERROR;
+	}
+
 	return FRAGMENT_SUCCESS;
 }
+
+///////////////////////////////////////FIXME////////////////////////////////////
 
 /* +---------------------------------------------------------------------------+
  * |'MdatBox': data container                                                  |
@@ -532,6 +531,7 @@ static int parsemdat(Box* root)
 // inizializzare tutti i campi del Frammento a zero.
 // aggiungere le strutture per uuiddata
 // * il test per boxsize < 0 fallisce: lenght è uint!!
+// FIXME controllare che il salto con fseek sia ok
 
 /* +---------+-----------------------------------------------------------------+
  * |'VendorExtensionUUIDBox': variable content                                 |

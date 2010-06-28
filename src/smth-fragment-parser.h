@@ -32,6 +32,7 @@
 #include <smth-common-defs.h>
 
 /** The encryption system used by the samples */
+/* To avoid coding issues, add new encodings ONLY between AES_CBC and NEW	  */
 typedef enum {  NONE,    /**< non encrypted sample							  */
 				AES_CTR, /**< AES 128bit CTR encrypted sample				  */
 				AES_CBC, /**< AES 128bit CBC encrypted sample				  */
@@ -45,7 +46,7 @@ typedef struct
 {	/** The algorithm used to encrypt each Sample. Filled from AlgorithmID */
 	EncryptionType type;
 	/** A UUID that identifies the key used to encrypt Samples. */
-	keyID kID;
+	keyID id;
 	/** The size of the InitializationVector field, in bytes.
 	    Allowed values are 0x08 and 0x10 */
 	byte vectorsize;
@@ -56,7 +57,9 @@ typedef struct
 	count vectorno;
 	/** The Initialization Vector for each Sample.
 	 *  MUST be repeated exactly SampleEncryptionBoxSampleCount times.
-	 *  Filled from InitializationVector field
+	 *  Filled from InitializationVector field.
+	 *  There is no way to tell where one vector ends and another one starts but
+	 *  relying on the vectorsize and vectorno fields.
 	 */
 	byte* vectors;
 } Encryption; // MUST BE FREED.
