@@ -18,6 +18,7 @@
 // Il numero delle UUIDBox deve essere variabile (ciclo while)
 //FIXME rendere endian indipendente le maschere e gli array: le32toh
 //FIXME in parsemfhd: restore me!! count + 32<>64 (che cacchio servono i 4byte+?
+// Alla linea 425, la sintassi e` corretta??
 ////////////////////////////////////////////////////////////////////////////////
 
 Delle varie:

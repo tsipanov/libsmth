@@ -227,28 +227,6 @@ static int parsebox(Box* root)
 }
 
 /**
- * \brief  If total size of extracted elements is smaller than Box size, it
- *         means that there is one or more UUIDBoxes awaiting at the end of
- *         the Box: try to parse them, and if they are not UUIDBoxes, return
- *         an error.
- * \return If buffer was overflowed (read size is bigger than Box size) returns
- *         FRAGMENT_OUT_OF_BOUNDS (it should never happen), else
- *         FRAGMENT_INAPPROPRIATE if an out-of-context Box was parsed, or
- *         or FRAGMENT_SUCCESS on successful parse.
- */
-#define LOOK_FOR_UUIDBOXES_AND_RETURN \
-	while(boxsize > 0) \
-	{   int result = parsebox(root);\
-		if(result != FRAGMENT_SUCCESS) return result; \
-		if(root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE; \
-		result = parseuuid(root); \
-		if(result != FRAGMENT_SUCCESS) return result; \
-		boxsize -= root->size; \
-	} \
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; \
-	return FRAGMENT_SUCCESS;
-
-/**
  * \brief      MoofBox (metadata container) parser
  * 
  * MoofBox has two compulsory children, one MfhdBox and one TrafBox,
@@ -346,22 +324,6 @@ static int parsetraf(Box* root)
 }
 
 /**
- * \brief        Sets target reading an appropriate number of bytes from stream
- *               if flag marked by mask is set and decrements boxsize
- *				 accordingly. You may add a else statement after this block,
- *               but it is highly risky: this macro is intended for internal
- *               use only, and implemention may vary without notice.
- * \param target The target to be set
- * \param mask   The mask to select the appropriate flag bit
- */
-#define SETBYFLAG(target, mask) \
-	if(boxflags & (mask)) \
-	{   if(!readbox(&(target), sizeof(target), root)) \
-			return FRAGMENT_IO_ERROR; \
-		boxsize -= sizeof(target); \
-	}
-
-/**
  * \brief TfhdBox (per-sample defaults metadata) parser
  *
  * A Tfhd Box has no children and a variable number of default settings, whose
@@ -412,7 +374,7 @@ static int parsetrun(Box* root)
 	count samplecount;
 	if(!readbox(&samplecount, sizeof(count), root))
 		return FRAGMENT_IO_ERROR;
-	root->f->sampleno = (count)be32toh(samplecount); /* endian-safe */
+	root->f->sampleno = (count) be32toh(samplecount); /* endian-safe */
 	SETBYFLAG(root->f->settings, TRUN_FIRST_SAMPLE_FLAGS_PRESENT);
 
 	if(root->f->sampleno > 0)
@@ -420,12 +382,12 @@ static int parsetrun(Box* root)
 		int i;
 		SampleFields* tmp = malloc(root->f->sampleno * sizeof(SampleFields));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
-		for( i = 0; i < root->f->sampleno; i++)  //FIXME e` corretto??
+		for( i = 0; i < root->f->sampleno; i++)
 		{
-			SETBYFLAG(tmp[i].duration,  TRUN_SAMPLE_DURATION_PRESENT);
-			SETBYFLAG(tmp[i].size,		TRUN_SAMPLE_SIZE_PRESENT);
-			SETBYFLAG(tmp[i].settings,  TRUN_SAMPLE_FLAGS_PRESENT);
-			SETBYFLAG(tmp[i].timeoffset,TRUN_SAMPLE_COMPOSITION_TIME_OFFSET_PRESENT);
+			SETBYFLAG(tmp[i].duration, TRUN_SAMPLE_DURATION_PRESENT);
+			SETBYFLAG(tmp[i].size, TRUN_SAMPLE_SIZE_PRESENT);
+			SETBYFLAG(tmp[i].settings, TRUN_SAMPLE_FLAGS_PRESENT);
+			SETBYFLAG(tmp[i].timeoffset, TRUN_SAMPLE_COMPOSITION_TIME_OFFSET_PRESENT);
 		}
 		root->f->samples = tmp;
 		boxsize -= root->f->sampleno * sizeof(SampleFields);

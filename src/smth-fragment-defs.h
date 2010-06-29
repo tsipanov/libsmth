@@ -84,6 +84,44 @@ typedef struct
  *  and KeySizeValue. Beware of endianess */
 #define ENCRYPTION_KEY_SIZE_MASK (0x000000ff)
 
+/**
+ * \brief  If total size of extracted elements is smaller than Box size, it
+ *         means that there is one or more UUIDBoxes awaiting at the end of
+ *         the Box: try to parse them, and if they are not UUIDBoxes, return
+ *         an error.
+ * \return If buffer was overflowed (read size is bigger than Box size) returns
+ *         FRAGMENT_OUT_OF_BOUNDS (it should never happen), else
+ *         FRAGMENT_INAPPROPRIATE if an out-of-context Box was parsed, or
+ *         or FRAGMENT_SUCCESS on successful parse.
+ */
+#define LOOK_FOR_UUIDBOXES_AND_RETURN \
+	while(boxsize > 0) \
+	{   int result = parsebox(root);\
+		if(result != FRAGMENT_SUCCESS) return result; \
+		if(root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE; \
+		result = parseuuid(root); \
+		if(result != FRAGMENT_SUCCESS) return result; \
+		boxsize -= root->size; \
+	} \
+	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; \
+	return FRAGMENT_SUCCESS;
+
+/**
+ * \brief        Sets target reading an appropriate number of bytes from stream
+ *               if flag marked by mask is set and decrements boxsize
+ *				 accordingly. You may add a else statement after this block,
+ *               but it is highly risky: this macro is intended for internal
+ *               use only, and implemention may vary without notice.
+ * \param target The target to be set
+ * \param mask   The mask to select the appropriate flag bit
+ */
+#define SETBYFLAG(target, mask) \
+	if(boxflags & (mask)) \
+	{   if(!readbox(&(target), sizeof(target), root)) \
+			return FRAGMENT_IO_ERROR; \
+		boxsize -= sizeof(target); \
+	}
+
 static  int  parsebox(Box* root);
 static  int parsemoof(Box* root);
 static  int parsemdat(Box* root);
