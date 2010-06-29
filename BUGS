@@ -15,7 +15,7 @@
 // Sostituire la ricerca finale di una UUID box con una macro.
 //
 // FIXME possibile memory leak attorno alla linea 423!! torna senza liberare
-// Il numero delle UUIDBox deve essere variabile (ciclo for)
+// Il numero delle UUIDBox deve essere variabile (ciclo while)
 //FIXME rendere endian indipendente le maschere e gli array: le32toh
 //FIXME in parsemfhd: restore me!! count + 32<>64 (che cacchio servono i 4byte+?
 ////////////////////////////////////////////////////////////////////////////////
@@ -23,3 +23,4 @@
 Delle varie:
 	*moof funziona correttamente
 	*le dimensioni del blocco comprendono anche il nome e la dimensione.
+	*parsebox funziona correttamente: il file presenta dei campi non documentati

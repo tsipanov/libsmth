@@ -169,18 +169,6 @@ static bool readbox(void *dest, size_t size, Box* root)
 }
 
 /**
- * \brief      Checks if a UUIDBox is a SampleEncryptionBox
- * \param root Pointer to the structure holding the Box to be parsed
- * \return     true if the Box is a SampleEncryptionBox, otherwise false.
- */
-static bool isencrbox(Box* root)
-{   byte signature[16];
-	if(!readbox(signature, sizeof(signature), root)) return false;
-	fseek(root->stream, -sizeof(signature), SEEK_CUR); /* rewind */
-	return !memcmp(signature, encryptionuuid, sizeof(signature));
-}
-
-/**
  * \brief             Get flags&version field from the stream
  * \param defultflags Pointer to the buffer that will hold the flags
  * \return            true if the operation was successfull, otherwise false
@@ -521,6 +509,18 @@ static int parsemdat(Box* root)
 	}
 	root->f->data = tmp;
 	return FRAGMENT_SUCCESS;
+}
+
+/**
+ * \brief      Checks if a UUIDBox is a SampleEncryptionBox
+ * \param root Pointer to the structure holding the Box to be parsed
+ * \return     true if the Box is a SampleEncryptionBox, otherwise false.
+ */
+static bool isencrbox(Box* root)
+{   byte signature[16];
+	if(!readbox(signature, sizeof(signature), root)) return false;
+	fseek(root->stream, -sizeof(signature), SEEK_CUR); /* rewind */
+	return !memcmp(signature, encryptionuuid, sizeof(signature));
 }
 
 /**

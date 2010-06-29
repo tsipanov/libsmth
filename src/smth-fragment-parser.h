@@ -31,7 +31,7 @@
 
 #include <smth-common-defs.h>
 
-/** The encryption system used by the samples */
+/** \brief The encryption system used by the samples */
 /* To avoid coding issues, add new encodings ONLY between AES_CBC and NEW	  */
 typedef enum {  NONE,    /**< non encrypted sample							  */
 				AES_CTR, /**< AES 128bit CTR encrypted sample				  */
@@ -39,7 +39,7 @@ typedef enum {  NONE,    /**< non encrypted sample							  */
 				NEW		 /**< Unknown encryption method. MUST be the last one */
 			 } EncryptionType ;
 
-/** Holds the encryption metadata for the samples
+/** \brief Holds the encryption metadata for the samples
  *  parsed from SampleEncryptionBox.
  */
 typedef struct
@@ -64,7 +64,7 @@ typedef struct
 	byte* vectors;
 } Encryption; // MUST BE FREED.
 //TODO cerchiamo di unificare le due strutture sottostanti
-/** Holds the default sample metadata parsed from the TfhdBox */
+/** \brief Holds the default sample metadata parsed from the TfhdBox */
 typedef struct
 {	/** The offset, in bytes, from the beginning of the MdatBox field to the
 	 *  Sample field in the MdatBox field. Filled from BaseDataOffset field.
@@ -122,7 +122,7 @@ typedef struct
 	bitrate timeoffset;
 } SampleFields;
 
-/** Fragment will hold the parsed fragment data */
+/** \brief Fragment will hold the parsed fragment data */
 typedef struct
 {   /** \brief An ordinal number for the Fragment in the Track timeline.
 	 *
