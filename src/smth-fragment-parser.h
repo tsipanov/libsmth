@@ -36,7 +36,7 @@
 typedef enum {  NONE,    /**< non encrypted sample							  */
 				AES_CTR, /**< AES 128bit CTR encrypted sample				  */
 				AES_CBC, /**< AES 128bit CBC encrypted sample				  */
-				NEW		 /**< Unknown encryption method. MUST be the last one */
+				UNSET	 /**< Unknown encryption method. MUST be the last one */
 			 } EncryptionType ;
 
 /** \brief Holds the encryption metadata for the samples
@@ -46,7 +46,7 @@ typedef struct
 {	/** The algorithm used to encrypt each Sample. Filled from AlgorithmID */
 	EncryptionType type;
 	/** A UUID that identifies the key used to encrypt Samples. */
-	ID_t id;
+	uuid_t id;
 	/** The size of the InitializationVector field, in bytes.
 	    Allowed values are 0x08 and 0x10 */
 	byte_t vectorsize;
@@ -155,21 +155,21 @@ typedef struct
 } Fragment;
 
 /** The fragment was successfully parsed */
-#define FRAGMENT_SUCCESS			( 1)
+#define FRAGMENT_SUCCESS			  ( 1)
 /** The parser encountered an i/o error on the SmoothStream */
-#define FRAGMENT_IO_ERROR			(-1)
+#define FRAGMENT_IO_ERROR			  (-1)
 /** An unknown Box was encountered */
-#define FRAGMENT_UNKNOWN			(-2)
+#define FRAGMENT_UNKNOWN			  (-2)
 /** No more memory to allocate for data sections */ 
-#define FRAGMENT_NO_MEMORY			(-3)
+#define FRAGMENT_NO_MEMORY			  (-3)
 /** A malformed Box was encountered */
-#define FRAGMENT_PARSE_ERROR		(-4)
+#define FRAGMENT_PARSE_ERROR		  (-4)
 /** A fragment that should not be in the current section was parsed */
-#define FRAGMENT_INAPPROPRIATE		(-5)
+#define FRAGMENT_INAPPROPRIATE		  (-5)
 /** The fragment is smaller than declared. This often means a parse error */
-#define FRAGMENT_OUT_OF_BOUNDS		(-6)
+#define FRAGMENT_OUT_OF_BOUNDS		  (-6)
 /** The fragment is encrypted in a new, non implemented, algorithm */
-#define FRAGMENT_UNKNOWN_ENCRYPTION (-7)
+#define FRAGMENT_UNKNOWN_ENCRYPTION	  (-7)
 /** There are trailing bytes after a MdatBox that will not be parsed */
 #define FRAGMENT_BIGGER_THAN_DECLARED (-8)
 

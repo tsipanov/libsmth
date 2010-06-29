@@ -1,5 +1,8 @@
 //
 Aggiungere una _t alla fine del nome dei tipi.
+i flag sono gia` in little-endian
+
+Il sdtp e` nella sezione sbagliata
 #if 0
 FIXME preparare il parser dei flag
 /* used by TRUN and TFHD */

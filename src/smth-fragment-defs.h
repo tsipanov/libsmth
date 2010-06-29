@@ -42,6 +42,7 @@ typedef enum {  MOOF,    /**< main metadata container                */
 				TFHD,    /**< per-sample defaults metadata           */
 				TRUN,    /**< per-sample metadata                    */ 
 				MDAT,    /**< data container                         */
+				SDTP,    /**< ???									 */
 				UNKNOWN	 /**< unknown box type. MUST be the last	 */
 			 } BoxType;
 
@@ -52,7 +53,7 @@ typedef struct
 	SmoothStream *stream;	/**< input stream								*/
 	Fragment *f;			/**< Fragment to be filled with extracted data  */
 } Box;
-
+//FIXME attenzione all'endianess dei flag
 /** The tfhd Box has a BaseDataOffset field			*/
 #define TFHD_BASE_DATA_OFFSET_PRESENT						(1<<0)
 /** The tfhd Box has a SampleDescriptionIndex field */
@@ -86,6 +87,20 @@ typedef struct
 #define ENCRYPTION_KEY_SIZE_MASK (0x000000ff)
 
 /**
+ * \brief If there are less than 8 bytes remaining in the Box, skips 4B.
+ *
+ * They are certainly trailing or unknown bytes (no box is shorter than 9B).
+ * This is an orrible quirk, specifically crafted for parsemfhd and parsetfhd,
+ * and should been removed as soon as the function of undocumented fields is
+ * discovered.
+ */
+#define XXX_SKIP_TRAILING_QUIRK \
+	if (boxsize < 9) \
+	{   fseek(root->stream, sizeof(word_t), SEEK_CUR); \
+		boxsize -= sizeof(word_t); \
+	}
+
+/**
  * \brief  If total size of extracted elements is smaller than Box size, it
  *         means that there is one or more UUIDBoxes awaiting at the end of
  *         the Box: try to parse them, and if they are not UUIDBoxes, return
@@ -98,7 +113,7 @@ typedef struct
  */
 #define LOOK_FOR_UUIDBOXES_AND_RETURN \
 	while (boxsize > 0) \
-	{   int result = parsebox(root);\
+	{   error_t result = parsebox(root);\
 		if (result != FRAGMENT_SUCCESS) return result; \
 		if (root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE; \
 		result = parseuuid(root); \
@@ -110,19 +125,21 @@ typedef struct
 
 /**
  * \brief        Sets target reading an appropriate number of bytes from stream
- *               if flag marked by mask is set and decrements boxsize
- *				 accordingly. You may add a else statement after this block,
- *               but it is highly risky: this macro is intended for internal
- *               use only, and implemention may vary without notice.
+ *
+ * If flag marked by mask is set and decrements boxsize accordingly, or
+ * initialises target to 0. This macro is intended for internal use only, and
+ * implemention may vary without notice.
+ *
  * \param target The target to be set
  * \param mask   The mask to select the appropriate flag bit
  */
-#define SETBYFLAG(target, mask) \
+#define GET_IF_FLAG_SET(target, mask) \
 	if (boxflags & (mask)) \
 	{   if (!readbox(&(target), sizeof (target), root)) \
 			return FRAGMENT_IO_ERROR; \
 		boxsize -= sizeof (target); \
-	}
+	} \
+	else target = 0;
 
 /** Version of the TFHD box structure */
 static const byte_t tfhdVersion = 0x00;
@@ -131,13 +148,15 @@ static const byte_t tfhdVersion = 0x00;
 static const byte_t encryptionVersion = 0x00;
 
 /** The signature of a SampleEncryptionBox, namely a specific UUIDBox */
-static const byte_t encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
-                                           0x5a, 0x9b, 0x4f, 0x14,
-                                           0xa2, 0x44, 0x6c, 0x42,
-                                           0x7c, 0x64, 0x8d, 0xf4 };
+static const uuid_t encryptionuuid = { 0xa2, 0x39, 0x4f, 0x52,
+                                       0x5a, 0x9b, 0x4f, 0x14,
+                                       0xa2, 0x44, 0x6c, 0x42,
+                                       0x7c, 0x64, 0x8d, 0xf4 };
+
+static const uuid_t emptyuuid = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
 /************************START ENDIAN DEPENDENT SECTION*************************
- * All data is initialised with as little endian, as most people using this
+ * All data is initialised with little endian values, as most people using this
  * library will compile it on a x86 platform. Anyway, it should not change
  * much if using a big endian CPU, only a few assembler istructions more...
  ******************************************************************************/
@@ -150,29 +169,31 @@ static const word_t boxishuge = le32toh(0x01000000);
 /*  Used this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word_t BoxTypeMask[7] = {  le32toh(0x666f6f6d), /**< "moof" */
+static const word_t BoxTypeMask[] = {   le32toh(0x666f6f6d), /**< "moof" */
 										le32toh(0x6468666d), /**< "mfhd" */
 								   		le32toh(0x66617274), /**< "traf" */
 								 		le32toh(0x64697575), /**< "uuid" */
 								 		le32toh(0x64686674), /**< "tfhd" */
 								 		le32toh(0x6e757274), /**< "trun" */
-								 		le32toh(0x7461646d)  /**< "mdat" */ };
+								 		le32toh(0x7461646d), /**< "mdat" */
+										le32toh(0x70746473)  /**< "sdtp" */ };
 
 /** The signature of different encryption methods. [First byte is keysize] */
-static const word_t EncryptionTypeMask[2] = { le32toh(0x00010000),   /**< AES 128-bit CTR */
-               		                          le32toh(0x00020000)};  /**< AES 128-bit CBC */
+static const word_t EncryptionTypeMask[] = { le32toh(0x00010000),   /**< AES 128-bit CTR */
+               		                         le32toh(0x00020000)};  /**< AES 128-bit CBC */
 
 /*************************END ENDIAN DEPENDED SECTION**************************/
 
-static  int  parsebox(Box* root);
-static  int parsemoof(Box* root);
-static  int parsemdat(Box* root);
-static  int parsemfhd(Box* root);
-static  int parsetraf(Box* root);
-static  int parsetfhd(Box* root);
-static  int parsetrun(Box* root);
-static  int parseuuid(Box* root);
-static  int parseencr(Box* root);
+static error_t  parsebox(Box* root);
+static error_t parsemoof(Box* root);
+static error_t parsemdat(Box* root);
+static error_t parsemfhd(Box* root);
+static error_t parsetraf(Box* root);
+static error_t parsetfhd(Box* root);
+static error_t parsetrun(Box* root);
+static error_t parseuuid(Box* root);
+static error_t parseencr(Box* root);
+static error_t parsesdtp(Box* root);
 static bool isencrbox(Box* root);
 static bool readbox(void *dest, size_t size, Box* root);
 

@@ -40,23 +40,22 @@
 typedef uint64_t tick_t;			/**< A time interval					*/
 typedef uint64_t offset_t;			/**< A memory offset					*/
 typedef uint64_t lenght_t;			/**< A memory lenght					*/
-typedef  int32_t signedlenght_t;	/**< A lenght that can be negative. Used
-									 **  for overflow check.				*/
 typedef uint32_t shortlenght_t;	    /**< Short memory lenght				*/
 typedef uint32_t count_t;		    /**< An ordinal number					*/
 typedef uint32_t bitrate_t;		    /**< A bitrate or a samplerate			*/
 typedef uint32_t metric_t;		    /**< Something concerning screen size   */
-typedef uint32_t tag_t;
+typedef uint32_t tag_t;				/**< A numeric code that identifier		*/
 typedef uint32_t word_t;			/**< A 32bit word						*/
 typedef uint32_t flags_t;			/**< Flags bitfield						*/
 typedef uint16_t unit_t;			/**< An atomic unit						*/
-/*typedef uint8_t  byte;*/
-typedef char byte_t;
-typedef char ID_t[16];			/**< A keyID							*/
-typedef char base64data, hexdata, chardata, url;
-typedef byte_t uuid_t[16];
+typedef  int32_t signedlenght_t;	/**< A lenght that can be negative. Used
+									 **  for overflow check.				*/
+typedef int error_t;				/**< An error type (returned by parser  */
+typedef char byte_t;				/**< A byte (obviously)					*/
+typedef char uuid_t[16];			/**< A unique id						*/
+typedef char base64data, hexdata, chardata, url_t;
 
-typedef FILE SmoothStream;
+typedef FILE SmoothStream;			/**< A SmoothStream descriptor			*/
 
 #endif /* __SMTH_COMMON_DEFS_H__ */
 

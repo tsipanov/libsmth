@@ -236,7 +236,7 @@ typedef struct
 	 * 2. The number of Tracks available for this Stream. */
 	count NumberOfFragments, NumberOfTracks;
 	/* A pattern used by the Client to generate Fragment Request messages. */
-	url Url;
+	url_t *Url;
 	/* The time scale for duration and time values in this Stream,
 	 * specified as the number of increments in one second. */
 	tick TimeScale;

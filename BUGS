@@ -21,6 +21,8 @@
 // Alla linea 425, la sintassi e` corretta??
 // prova a tralasciare i campi sconosciuti
 //
+// URGENTE: correggere endianess!!
+//
 // in fragment-defs, sostituire le32toh: su una piattaforma big endian, non funzia.
 ////////////////////////////////////////////////////////////////////////////////
 
