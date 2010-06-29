@@ -69,6 +69,9 @@ void disposefragment(Fragment *f)
 {
 	free(f->data);
 	free(f->samples);
+	/* destroy even the reference */
+	f->data = NULL;
+	f->samples = NULL;
 }
 
 /*
@@ -147,7 +150,7 @@ static const word BoxTypeMask[7] = { 0x666f6f6d, /**< "moof" */
 								     0x7461646d  /**< "mdat" */ };
 
 /** The signature of different encryption methods. [First byte is keysize] */
-static const word EncryptionTypeMask[3] = { 0x00010000,   /**< AES 128-bit CTR */
+static const word EncryptionTypeMask[2] = { 0x00010000,   /**< AES 128-bit CTR */
                                             0x00020000};  /**< AES 128-bit CBC */
 
 /*************************END ENDIAN DEPENDED SECTION**************************/
@@ -219,7 +222,7 @@ static int parsebox(Box* root)
 	else root->size = (lenght) be32toh(tmpsize);
 	root->size -= offset;
 
-	fprintf(stderr, "size: 0x%03lx\n", root->size); //DEBUG
+	fprintf(stderr, "size: 0x%04lx\n", root->size); //DEBUG
 	return FRAGMENT_SUCCESS;
 }
 
@@ -434,20 +437,20 @@ static int parsetrun(Box* root)
 /**
  * \brief SampleEncryptionBox (content protection metadata) parser
  *
- * A SampleEncryptionBox is a VendorUUIDBox with a particulare uuid, no
+ * A SampleEncryptionBox is a particularly crafted VendorUUIDBox, no
  * compulsory children and a few optional fields, whose presence is determined
- * using a flag field.
+ * using a flag field. It assumes that the signature has already been stripped
+ * by a call to parseuuid.
  *
  * \param root pointer to the Box structure to be parsed
  * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
  *             code.
- * \sa         encryptionuuid, isencrbox
+ * \sa         encryptionuuid, parseuuid
  */
 static int parseencr(Box* root)
 {
 	EncryptionType enc;
 	signedlenght boxsize = root->size;
-	fseek(root->stream, sizeof(encryptionuuid), SEEK_CUR); /* skip signature */
 	flags boxflags; /* first used to retrieve box flags, then crypt flags */
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
@@ -512,35 +515,31 @@ static int parsemdat(Box* root)
 }
 
 /**
- * \brief      Checks if a UUIDBox is a SampleEncryptionBox
- * \param root Pointer to the structure holding the Box to be parsed
- * \return     true if the Box is a SampleEncryptionBox, otherwise false.
- */
-static bool isencrbox(Box* root)
-{   byte signature[16];
-	if(!readbox(signature, sizeof(signature), root)) return false;
-	fseek(root->stream, -sizeof(signature), SEEK_CUR); /* rewind */
-	return !memcmp(signature, encryptionuuid, sizeof(signature));
-}
-
-/**
  * \brief VendorExtensionUUIDBox (variable content) box.
  *
  * Parses a 16byte UUID and a bytestream content to a Variable structure, and
- * adds it to the list dereferenced by Fragment::extensions
+ * adds it to the list dereferenced by Fragment::extensions. If the Box is a 
+ * SampleEncryptionBox, it calls parseencr.
  *
  * \param root pointer to the Box structure to be parsed
  * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
  *             code.
+ * \sa         parseencr
  */
 ///////////////////////////////////////TODO/////////////////////////////////////
-//Unificare con l'armatura
 static int parseuuid(Box* root)
 {
+	byte signature[16];
+	int result;
 	fprintf(stderr, "Mi hai chiamato?\n"); //DEBUG
+	if(!readbox(signature, sizeof(signature), root)) return FRAGMENT_IO_ERROR;
+	if(!memcmp(signature, encryptionuuid, sizeof(signature)))
+		result = parseencr(root);
 /* UUIDBoxUUID | UUIDBoxData  *
  * BYTE[16]    | *BYTE        */
 // aggiungere un campo type.
+// fseek(root->stream, sizeof(encryptionuuid), SEEK_CUR);
+/* skip signature */
 	return FRAGMENT_SUCCESS;
 }
 
