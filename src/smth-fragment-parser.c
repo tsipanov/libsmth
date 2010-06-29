@@ -231,9 +231,31 @@ static int parsebox(Box* root)
 	else root->size = (lenght) be32toh(tmpsize);
 	root->size -= offset;
 
-	printf("size: 0x%03lx\n", root->size, root->type); //DEBUG
+	fprintf(stderr, "size: 0x%03lx\n", root->size); //DEBUG
 	return FRAGMENT_SUCCESS;
 }
+
+/**
+ * \brief  If total size of extracted elements is smaller than Box size, it
+ *         means that there is one or more UUIDBoxes awaiting at the end of
+ *         the Box: try to parse them, and if they are not UUIDBoxes, return
+ *         an error.
+ * \return If buffer was overflowed (read size is bigger than Box size) returns
+ *         FRAGMENT_OUT_OF_BOUNDS (it should never happen), else
+ *         FRAGMENT_INAPPROPRIATE if an out-of-context Box was parsed, or
+ *         or FRAGMENT_SUCCESS on successful parse.
+ */
+#define LOOK_FOR_UUIDBOXES_AND_RETURN \
+	while(boxsize > 0) \
+	{   int result = parsebox(root);\
+		if(result != FRAGMENT_SUCCESS) return result; \
+		if(root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE; \
+		result = parseuuid(root); \
+		if(result != FRAGMENT_SUCCESS) return result; \
+		boxsize -= root->size; \
+	} \
+	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; \
+	return FRAGMENT_SUCCESS;
 
 /**
  * \brief      MoofBox (metadata container) parser
@@ -269,14 +291,8 @@ static int parsemoof(Box* root)
 		}
 		else return result;
 	}
-	if(boxsize > 0) /*if there is something more, it is a UUIDBox */
-	{
-		result = parseuuid(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		boxsize -= root->size;
-	}
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
-	return FRAGMENT_SUCCESS;
+
+	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
 
 /**
@@ -297,15 +313,10 @@ static int parsemfhd(Box* root)
 
 	count tmp;
 	if(!readbox(&tmp, sizeof(tmp), root)) return FRAGMENT_IO_ERROR;
-	root->f->ordinal = (count)be32toh(tmp);
+	root->f->ordinal = (count) be32toh(tmp);
+	boxsize -= sizeof(tmp);
 
-	if(boxsize > sizeof(tmp)) /* if there is something more */
-	{	int result = parseuuid(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		boxsize -= root->size;
-	}
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS;
-	return FRAGMENT_SUCCESS;
+	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
 
 /**
@@ -339,14 +350,8 @@ static int parsetraf(Box* root)
 		}
 		else return result;
 	}
-	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
-	{
-		result = parseuuid(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		boxsize -= root->size;
-	}
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
-	return FRAGMENT_SUCCESS;
+
+	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
 
 /**
@@ -358,11 +363,11 @@ static int parsetraf(Box* root)
  * \param target The target to be set
  * \param mask   The mask to select the appropriate flag bit
  */
-#define SETBYFLAG(target, mask)							\
-	if(boxflags & (mask))								\
-	{   if(!readbox(&(target), sizeof(target), root))   \
-			return FRAGMENT_IO_ERROR;					\
-		boxsize -= sizeof(target);						\
+#define SETBYFLAG(target, mask) \
+	if(boxflags & (mask)) \
+	{   if(!readbox(&(target), sizeof(target), root)) \
+			return FRAGMENT_IO_ERROR; \
+		boxsize -= sizeof(target); \
 	}
 
 /**
@@ -391,14 +396,7 @@ static int parsetfhd(Box* root)
 	SETBYFLAG(root->f->defaults.size, TFHD_DEFAULT_SAMPLE_SIZE_PRESENT);
 	SETBYFLAG(root->f->defaults.settings, TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT);
 
-	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
-	{
-		int result = parseuuid(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		boxsize -= root->size;
-	}
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
-	return FRAGMENT_SUCCESS;
+	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
 
 /**
@@ -441,14 +439,8 @@ static int parsetrun(Box* root)
 		root->f->samples = tmp;
 		boxsize -= root->f->sampleno * sizeof(SampleFields);
 	}
-	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
-	{
-		int result = parseuuid(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		boxsize -= root->size;
-	}
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
-	return FRAGMENT_SUCCESS;
+
+	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
 
 /**
@@ -500,14 +492,8 @@ static int parseencr(Box* root)
 		return FRAGMENT_IO_ERROR;
 	}
 	boxsize -= vectorlenght;
-	if(boxsize > 0) /* if there is something more, it is a UUIDBox */
-	{
-		int result = parseuuid(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		boxsize -= root->size;
-	}
-	if(boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; /* should never happen */
-	return FRAGMENT_SUCCESS;
+
+	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
 
 /**
@@ -548,12 +534,13 @@ static int parsemdat(Box* root)
  *             code.
  */
 ///////////////////////////////////////TODO/////////////////////////////////////
+//Unificare con l'armatura
 static int parseuuid(Box* root)
-{	byte discarded[root->size];
-	printf("mi hai chiamato\n"); //DEBUG
-	readbox(discarded, root->size, root);
+{
+	fprintf(stderr, "Mi hai chiamato?\n"); //DEBUG
 /* UUIDBoxUUID | UUIDBoxData  *
  * BYTE[16]    | *BYTE        */
+// aggiungere un campo type.
 	return FRAGMENT_SUCCESS;
 }
 
