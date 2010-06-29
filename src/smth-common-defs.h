@@ -37,24 +37,24 @@
 #include <stdint.h>
 #include <stdio.h>
 
-typedef uint64_t tick;			/**< A time interval					*/
-typedef uint64_t offset;		/**< A memory offset					*/
-typedef uint64_t lenght;		/**< A memory lenght					*/
-typedef  int32_t signedlenght;  /**< A lenght that can be negative. Used
-								 **  for overflow check.				*/
-typedef uint32_t shortlenght;   /**< Short memory lenght				*/
-typedef uint32_t count;			/**< An ordinal number					*/
-typedef uint32_t bitrate;		/**< A bitrate or a samplerate			*/
-typedef uint32_t metric;		/**< Something concerning screen size   */
-typedef uint32_t tag;
-typedef uint32_t word;			/**< A 32bit word						*/
-typedef uint32_t flags;			/**< Flags bitfield						*/
-typedef uint16_t unit;			/**< An atomic unit						*/
+typedef uint64_t tick_t;			/**< A time interval					*/
+typedef uint64_t offset_t;			/**< A memory offset					*/
+typedef uint64_t lenght_t;			/**< A memory lenght					*/
+typedef  int32_t signedlenght_t;	/**< A lenght that can be negative. Used
+									 **  for overflow check.				*/
+typedef uint32_t shortlenght_t;	    /**< Short memory lenght				*/
+typedef uint32_t count_t;		    /**< An ordinal number					*/
+typedef uint32_t bitrate_t;		    /**< A bitrate or a samplerate			*/
+typedef uint32_t metric_t;		    /**< Something concerning screen size   */
+typedef uint32_t tag_t;
+typedef uint32_t word_t;			/**< A 32bit word						*/
+typedef uint32_t flags_t;			/**< Flags bitfield						*/
+typedef uint16_t unit_t;			/**< An atomic unit						*/
 /*typedef uint8_t  byte;*/
-typedef char byte;
-typedef char ID[16];			/**< A keyID							*/
+typedef char byte_t;
+typedef char ID_t[16];			/**< A keyID							*/
 typedef char base64data, hexdata, chardata, url;
-typedef char uuid[38];
+typedef byte_t uuid_t[16];
 
 typedef FILE SmoothStream;
 

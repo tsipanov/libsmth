@@ -46,22 +46,22 @@ typedef struct
 {	/** The algorithm used to encrypt each Sample. Filled from AlgorithmID */
 	EncryptionType type;
 	/** A UUID that identifies the key used to encrypt Samples. */
-	ID id;
+	ID_t id;
 	/** The size of the InitializationVector field, in bytes.
 	    Allowed values are 0x08 and 0x10 */
-	byte vectorsize;
+	byte_t vectorsize;
 	/** The number of instances of the InitializationVector field in
 	 *  the SampleEncryptionBox field, filled from
 	 *  SampleEncryptionBoxSampleCount field
 	 */
-	count vectorno;
+	count_t vectorno;
 	/** The Initialization Vector for each Sample.
 	 *  MUST be repeated exactly SampleEncryptionBoxSampleCount times.
 	 *  Filled from InitializationVector field.
 	 *  There is no way to tell where one vector ends and another one starts but
 	 *  relying on the vectorsize and vectorno fields.
 	 */
-	byte* vectors;
+	byte_t *vectors;
 } Encryption; // MUST BE FREED.
 
 //TODO cerchiamo di unificare le due strutture sottostanti
@@ -71,24 +71,24 @@ typedef struct
 {	/** The offset, in bytes, from the beginning of the MdatBox field to the
 	 *  Sample field in the MdatBox field. Filled from BaseDataOffset field.
 	 */
-	offset dataoffset;
+	offset_t dataoffset;
 	/** The ordinal of the Sample description for the Track that is
 	 *  applicable to this Fragment. This field \e should be omitted.
 	 *  Filled from SampleDescriptionIndex field.
 	 */
-	count index;
+	count_t index;
 	/** The default duration of each Sample, in increments defined by
 	 *  the TimeScale for the Track. Filled from DefaultSampleDuration field
 	 */
-	tick duration;
+	tick_t duration;
 	/** The default size of each Sample, in bytes. Filled from
 	 *  DefaultSampleSize field.
 	 */
-	bitrate size;
+	bitrate_t size;
 	/** The default value of the SampleFlags field for each Sample. Filled from
 	 *  DefaultSampleFlags field.
 	 */
-	flags settings;
+	flags_t settings;
 } SampleDefaultFields;
 
 /** Note that the first three fields are equal to the ones in
@@ -100,13 +100,13 @@ typedef struct
 	 *  if and only if SampleDurationPresent flag is set. Filled from
 	 *  SampleDuration field.
 	 */
-	bitrate duration;
+	bitrate_t duration;
 	/** The size of each Sample, in bytes. This field MUST be present
 	 *  if and only if the flag SampleSizePresent is set. If this field is
 	 *  not present, its implicit value is the value of the DefaultSampleSize
 	 *  field. Filled from SampleSize field.
 	 */
-	bitrate size;
+	bitrate_t size;
 	/** The Sample flags of each Sample. This field MUST be present if and
 	 *  only if SampleFlagsPresent flag is set. If this field is not
 	 *  present, its implicit value is the value of the DefaultSampleDuration
@@ -115,13 +115,13 @@ typedef struct
 	 *  Fragment MUST be the value of the FirstSampleFlags field.
 	 *  Retrieved from SampleFlags field.
 	 */
-	flags settings;
+	flags_t settings;
 	/* The Sample Composition Time offset of each Sample, as defined in [ISOFF].
 	 * This field MUST be present if and only if the
 	 * SampleCompositionTimeOffsetPresent flag is set. Filled from
 	 * SampleCompositionTimeOffset field.
 	 */
-	bitrate timeoffset;
+	bitrate_t timeoffset;
 } SampleFields;
 
 /** \brief Fragment will hold the parsed fragment data */
@@ -132,14 +132,14 @@ typedef struct
 	 *  a Fragment earlier in the timeline, but ordinal values for consecutive
 	 *  Fragments are not required to be consecutive.
 	 */
-	count ordinal;
+	count_t ordinal;
 	/** The number of Samples in the Fragment, filled from Trun::SampleCount */
-	count sampleno;
+	count_t sampleno;
 	/** The value of the SampleFlags field for the first Sample.
 	 *  This field may be 0x00000000: in that case, program should check
 	 *  per-sample settings and default settings. Filled from FirstSampleFlags
 	 */ 
-	flags settings;
+	flags_t settings;
 	/** The encryption data for ciphered streams */
 	Encryption armor;
 	/** The default metadata for samples in the stream */
@@ -147,11 +147,11 @@ typedef struct
 	/** Per-field settings from TrunBox, repeated exactly SampleCount times. */
 	SampleFields *samples;
 	/** The size of the allocated data block [synthetic] */
-	lenght size;
+	lenght_t size;
 	/** The fragment data. Sample boundaries in the MdatBox are defined
 	 *  by the values of the DefaultSampleSize and SampleSize fields
 	 *  in the TrunBox. */
-	byte *data;
+	byte_t *data;
 } Fragment;
 
 /** The fragment was successfully parsed */

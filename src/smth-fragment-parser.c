@@ -129,7 +129,7 @@ void disposefragment(Fragment *f)
  */
 static bool readbox(void *dest, size_t size, Box* root)
 {
-	if ((fread(dest, sizeof (byte), size, root->stream) < (size*sizeof (byte))) &&
+	if ((fread(dest, sizeof (byte_t), size, root->stream) < (size*sizeof (byte_t))) &&
 	   (feof(root->stream) || ferror(root->stream)))
 		return false;
 	return true;
@@ -140,9 +140,9 @@ static bool readbox(void *dest, size_t size, Box* root)
  * \param defultflags Pointer to the buffer that will hold the flags
  * \return            true if the operation was successfull, otherwise false
  */
-static bool getflags(flags *defaultflags, Box *root)
-{	if (!readbox(defaultflags, sizeof (flags), root)) return false;
-	*defaultflags = (flags) be32toh(*defaultflags); /* endian-safe */
+static bool getflags(flags_t *defaultflags, Box *root)
+{	if (!readbox(defaultflags, sizeof (flags_t), root)) return false;
+	*defaultflags = (flags_t) be32toh(*defaultflags); /* endian-safe */
 	return true;
 }
 
@@ -163,12 +163,12 @@ static bool getflags(flags *defaultflags, Box *root)
  */
 static int parsebox(Box* root)
 {
-	lenght tmpsize;
-	word name;
-	Boxtype element;
-	shortlenght offset = sizeof(shortlenght)+sizeof(name);
+	lenght_t tmpsize;
+	word_t name;
+	BoxType element;
+	shortlenght_t offset = sizeof (shortlenght_t) + sizeof (name);
 
-	if (!readbox(&tmpsize, sizeof (shortlenght), root)) return FRAGMENT_IO_ERROR;
+	if (!readbox(&tmpsize, sizeof (shortlenght_t), root)) return FRAGMENT_IO_ERROR;
 	if (!readbox(&name, sizeof (name), root)) return FRAGMENT_IO_ERROR;
 	for (element = 0, root->type = UNKNOWN; element < UNKNOWN; element++)
 		if ( name == BoxTypeMask[element])
@@ -179,11 +179,11 @@ static int parsebox(Box* root)
 	if (root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
 	if (tmpsize == boxishuge)
 	{
-		if (!readbox(&root->size, sizeof (lenght), root)) return FRAGMENT_IO_ERROR;
-		offset += sizeof (lenght);
-		root->size = (lenght) be64toh(root->size);
+		if (!readbox(&root->size, sizeof (lenght_t), root)) return FRAGMENT_IO_ERROR;
+		offset += sizeof (lenght_t);
+		root->size = (lenght_t) be64toh(root->size);
 	}
-	else root->size = (lenght) be32toh(tmpsize);
+	else root->size = (lenght_t) be32toh(tmpsize);
 
 	root->size -= offset;
 	fprintf(stderr, "size: 0x%04lx\n", root->size); //DEBUG
@@ -208,7 +208,7 @@ static int parsebox(Box* root)
 static int parsemoof(Box* root)
 {
 	int i, result;
-	signedlenght boxsize = (signedlenght) root->size;
+	signedlenght_t boxsize = (signedlenght_t) root->size;
 
 	for ( i = 0; i < 2; i++)
 	{   
@@ -242,10 +242,10 @@ static int parsemoof(Box* root)
 
 static int parsemfhd(Box* root)
 {
-	signedlenght boxsize = root->size;
-	count tmp;
+	signedlenght_t boxsize = (signedlenght_t) root->size;
+	count_t tmp;
 	if (!readbox(&tmp, sizeof (tmp), root)) return FRAGMENT_IO_ERROR;
-	root->f->ordinal = (count) be32toh(tmp);
+	root->f->ordinal = (count_t) be32toh(tmp);
 	boxsize -= sizeof (tmp);
 
 	LOOK_FOR_UUIDBOXES_AND_RETURN;
@@ -266,7 +266,7 @@ static int parsemfhd(Box* root)
 static int parsetraf(Box* root)
 {
 	int i, result;
-	signedlenght boxsize = (signedlenght) root->size;
+	signedlenght_t boxsize = (signedlenght_t) root->size;
 
 	for ( i = 0; i < 2; i++)
 	{   
@@ -300,8 +300,8 @@ static int parsetraf(Box* root)
  */
 static int parsetfhd(Box* root)
 {
-	signedlenght boxsize = (signedlenght) root->size;
-	flags boxflags;
+	signedlenght_t boxsize = (signedlenght_t) root->size;
+	flags_t boxflags;
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 	boxsize -= sizeof (boxflags);
 
@@ -329,14 +329,14 @@ static int parsetfhd(Box* root)
  */
 static int parsetrun(Box* root)
 {
-	signedlenght boxsize = (signedlenght) root->size;
-	flags boxflags;
+	signedlenght_t boxsize = (signedlenght_t) root->size;
+	flags_t boxflags;
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
-	count samplecount;
-	if (!readbox(&samplecount, sizeof (count), root))
+	count_t samplecount;
+	if (!readbox(&samplecount, sizeof (count_t), root))
 		return FRAGMENT_IO_ERROR;
-	root->f->sampleno = (count) be32toh(samplecount); /* endian-safe */
+	root->f->sampleno = (count_t) be32toh(samplecount); /* endian-safe */
 	SETBYFLAG(root->f->settings, TRUN_FIRST_SAMPLE_FLAGS_PRESENT);
 
 	if(root->f->sampleno > 0)
@@ -375,7 +375,7 @@ static int parsetrun(Box* root)
  */
 static int parsemdat(Box* root)
 {
-	byte* tmp = malloc(root->size);
+	byte_t *tmp = malloc(root->size);
 	if (!tmp) return FRAGMENT_NO_MEMORY;
 	if (!readbox(tmp, root->size, root))
 	{   free(tmp);
@@ -401,14 +401,14 @@ static int parsemdat(Box* root)
 static int parseencr(Box* root)
 {
 	EncryptionType enc;
-	signedlenght boxsize = (signedlenght) root->size;
-	flags boxflags; /* first used to retrieve box flags, then crypt flags */
+	signedlenght_t boxsize = (signedlenght_t) root->size;
+	flags_t boxflags; /* first used to retrieve box flags, then crypt flags */
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
 	if (boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
-		if(!readbox(&boxflags, sizeof (flags), root)) return FRAGMENT_IO_ERROR;
-		boxflags = (flags) be32toh(boxflags); /* endian-safe */
+		if(!readbox(&boxflags, sizeof (flags_t), root)) return FRAGMENT_IO_ERROR;
+		boxflags = (flags_t) be32toh(boxflags); /* endian-safe */
 		if(boxflags & ENCRYPTION_KEY_TYPE_MASK) /* if it is encrypted */
 		{	for (enc = AES_CTR, root->f->armor.type = NEW; enc < NEW; enc++)
 				if (boxflags & EncryptionTypeMask[enc])
@@ -419,16 +419,16 @@ static int parseencr(Box* root)
 		}
 		else root->f->armor.type = NONE;
 
-		root->f->armor.vectorsize = (byte)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
+		root->f->armor.vectorsize = (byte_t)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
 		
-		if (!readbox(&root->f->armor.id, sizeof(ID), root))
+		if (!readbox(&root->f->armor.id, sizeof(ID_t), root))
 			return FRAGMENT_IO_ERROR;
 		/* WARNING: if you change type size, it will break!! */
-		boxsize -= sizeof (flags) + sizeof (byte) + sizeof (ID); 
+		boxsize -= sizeof (flags_t) + sizeof (byte_t) + sizeof (ID_t); 
 	}
 
-	lenght vectorlenght = root->f->armor.vectorsize * root->f->armor.vectorno;
-	byte *tmp = malloc(vectorlenght);
+	lenght_t vectorlenght = root->f->armor.vectorsize * root->f->armor.vectorno;
+	byte_t *tmp = malloc(vectorlenght);
 	if (!tmp) return FRAGMENT_NO_MEMORY;
 	if (!readbox(tmp, vectorlenght, root))
 	{   free(tmp);
@@ -454,11 +454,11 @@ static int parseencr(Box* root)
 ///////////////////////////////////////TODO/////////////////////////////////////
 static int parseuuid(Box* root)
 {
-	byte signature[16];
+	uuid_t uuid;
 	int result;
 	fprintf(stderr, "Mi hai chiamato?\n"); //DEBUG
-	if (!readbox(signature, sizeof (signature), root)) return FRAGMENT_IO_ERROR;
-	if (!memcmp(signature, encryptionuuid, sizeof (signature)))
+	if (!readbox(uuid, sizeof (uuid), root)) return FRAGMENT_IO_ERROR;
+	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
 		result = parseencr(root);
 /* UUIDBoxUUID | UUIDBoxData  *
  * BYTE[16]    | *BYTE        */
