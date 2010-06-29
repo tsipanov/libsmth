@@ -152,22 +152,24 @@ typedef struct
 	byte *data;
 } Fragment;
 
-/** the fragment was successfully parsed */
+/** The fragment was successfully parsed */
 #define FRAGMENT_SUCCESS			( 1)
-/** the parser encountered an i/o error on the SmoothStream */
+/** The parser encountered an i/o error on the SmoothStream */
 #define FRAGMENT_IO_ERROR			(-1)
-/** an unknown Box was encountered */
+/** An unknown Box was encountered */
 #define FRAGMENT_UNKNOWN			(-2)
-/** no more memory to allocate for data sections */ 
+/** No more memory to allocate for data sections */ 
 #define FRAGMENT_NO_MEMORY			(-3)
-/** a malformed Box was encountered */
+/** A malformed Box was encountered */
 #define FRAGMENT_PARSE_ERROR		(-4)
-/** a fragment that should not be in the current section was parsed */
+/** A fragment that should not be in the current section was parsed */
 #define FRAGMENT_INAPPROPRIATE		(-5)
-/** the fragment is smaller than declared. This often means a parse error */
+/** The fragment is smaller than declared. This often means a parse error */
 #define FRAGMENT_OUT_OF_BOUNDS		(-6)
-/** the fragment is encrypted in a new, non implemented, algorithm */
+/** The fragment is encrypted in a new, non implemented, algorithm */
 #define FRAGMENT_UNKNOWN_ENCRYPTION (-7)
+/** There are trailing bytes after a MdatBox that will not be parsed */
+#define FRAGMENT_BIGGER_THAN_DECLARED (-8)
 
 int parsefragment(SmoothStream *stream, Fragment *f);
 void disposefragment(Fragment *f);

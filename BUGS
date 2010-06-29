@@ -19,6 +19,9 @@
 //FIXME rendere endian indipendente le maschere e gli array: le32toh
 //FIXME in parsemfhd: restore me!! count + 32<>64 (che cacchio servono i 4byte+?
 // Alla linea 425, la sintassi e` corretta??
+// prova a tralasciare i campi sconosciuti
+//
+// in fragment-defs, sostituire le32toh: su una piattaforma big endian, non funzia.
 ////////////////////////////////////////////////////////////////////////////////
 
 Delle varie:

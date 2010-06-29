@@ -29,8 +29,6 @@
 #include <endian.h>
 #include <smth-fragment-defs.h>
 
-/*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
-
 /**
  * \brief        Parses a fragment opened as SmoothStream and fills all the 
  *               details in a Fragment structure.
@@ -54,7 +52,7 @@ int parsefragment(SmoothStream *stream, Fragment *f)
 	if(result != FRAGMENT_SUCCESS) return result;
 	result = parsemdat(&root);
 	if(result != FRAGMENT_SUCCESS) return result;
-//	while(!feof(stream)) FIXME se il file non e` finito, UUIDBox
+	if(!feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED;
 	return FRAGMENT_SUCCESS;
 }
 
@@ -119,41 +117,7 @@ void disposefragment(Fragment *f)
  *
  */
 
-/** Version of the TFHD box structure */
-static const byte tfhdVersion = 0;
-
-/** Version of the SampleEncryption box structure */
-static const byte encryptionVersion = 0;
-
-/** The signature of a SampleEncryptionBox, namely a specific UUIDBox */
-static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
-                                         0x5a, 0x9b, 0x4f, 0x14,
-                                         0xa2, 0x44, 0x6c, 0x42,
-                                         0x7c, 0x64, 0x8d, 0xf4 };
-
-/************************START ENDIAN DEPENDENT SECTION************************/
-
-/** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
-static const word boxishuge = 0x01000000;
-
-/** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
-
-/*  Use this Python snippet to build each row:
- *		for c in namestring: print '%x' % ord(c)
- */
-static const word BoxTypeMask[7] = { 0x666f6f6d, /**< "moof" */
-									 0x6468666d, /**< "mfhd" */
-								   	 0x66617274, /**< "traf" */
-								     0x64697575, /**< "uuid" */
-								     0x64686674, /**< "tfhd" */
-								     0x6e757274, /**< "trun" */
-								     0x7461646d  /**< "mdat" */ };
-
-/** The signature of different encryption methods. [First byte is keysize] */
-static const word EncryptionTypeMask[2] = { 0x00010000,   /**< AES 128-bit CTR */
-                                            0x00020000};  /**< AES 128-bit CBC */
-
-/*************************END ENDIAN DEPENDED SECTION**************************/
+/*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
 
 /**
  * \brief      Read size bytes from root->stream, and stores them into dest.
@@ -279,7 +243,6 @@ static int parsemoof(Box* root)
 static int parsemfhd(Box* root)
 {
 	signedlenght boxsize = root->size;
-
 	count tmp;
 	if(!readbox(&tmp, sizeof(tmp), root)) return FRAGMENT_IO_ERROR;
 	root->f->ordinal = (count) be32toh(tmp);
@@ -339,7 +302,6 @@ static int parsetfhd(Box* root)
 {
 	signedlenght boxsize = root->size;
 	flags boxflags;
-
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 	boxsize -= sizeof(boxflags);
 
@@ -500,8 +462,10 @@ static int parseuuid(Box* root)
 /* UUIDBoxUUID | UUIDBoxData  *
  * BYTE[16]    | *BYTE        */
 // aggiungere un campo type.
-// fseek(root->stream, sizeof(encryptionuuid), SEEK_CUR);
+// fseek(root->stream, sizeof(word), SEEK_CUR);
 /* skip signature */
+//	fseek(root->stream, sizeof(word)-1, SEEK_CUR); boxsize -= sizeof(word); //HORRIBLETEST
+
 	return FRAGMENT_SUCCESS;
 }
 

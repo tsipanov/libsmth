@@ -29,6 +29,7 @@
  * \date   27th June 2010
  */
 
+#include <endian.h>
 #include <stdbool.h>
 #include <smth-fragment-parser.h>
 #include <smth-common-defs.h>
@@ -121,6 +122,46 @@ typedef struct
 			return FRAGMENT_IO_ERROR; \
 		boxsize -= sizeof(target); \
 	}
+
+/** Version of the TFHD box structure */
+static const byte tfhdVersion = 0x00;
+
+/** Version of the SampleEncryption box structure */
+static const byte encryptionVersion = 0x00;
+
+/** The signature of a SampleEncryptionBox, namely a specific UUIDBox */
+static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
+                                         0x5a, 0x9b, 0x4f, 0x14,
+                                         0xa2, 0x44, 0x6c, 0x42,
+                                         0x7c, 0x64, 0x8d, 0xf4 };
+
+/************************START ENDIAN DEPENDENT SECTION*************************
+ * All data is initialised with as little endian, as most people using this
+ * library will compile it on a x86 platform. Anyway, it should not change
+ * much if using a big endian CPU, only a few assembler istructions more...
+ ******************************************************************************/
+
+/** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
+static const word boxishuge = le32toh(0x01000000);
+
+/** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
+
+/*  Used this Python snippet to build each row:
+ *		for c in namestring: print '%x' % ord(c)
+ */
+static const word BoxTypeMask[7] = { le32toh(0x666f6f6d), /**< "moof" */
+									 le32toh(0x6468666d), /**< "mfhd" */
+								   	 le32toh(0x66617274), /**< "traf" */
+								     le32toh(0x64697575), /**< "uuid" */
+								     le32toh(0x64686674), /**< "tfhd" */
+								     le32toh(0x6e757274), /**< "trun" */
+								     le32toh(0x7461646d)  /**< "mdat" */ };
+
+/** The signature of different encryption methods. [First byte is keysize] */
+static const word EncryptionTypeMask[2] = { le32toh(0x00010000),   /**< AES 128-bit CTR */
+                                            le32toh(0x00020000)};  /**< AES 128-bit CBC */
+
+/*************************END ENDIAN DEPENDED SECTION**************************/
 
 static  int  parsebox(Box* root);
 static  int parsemoof(Box* root);
