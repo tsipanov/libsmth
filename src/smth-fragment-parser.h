@@ -63,7 +63,9 @@ typedef struct
 	 */
 	byte* vectors;
 } Encryption; // MUST BE FREED.
+
 //TODO cerchiamo di unificare le due strutture sottostanti
+
 /** \brief Holds the default sample metadata parsed from the TfhdBox */
 typedef struct
 {	/** The offset, in bytes, from the beginning of the MdatBox field to the

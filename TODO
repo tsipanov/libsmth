@@ -1,4 +1,5 @@
 //
+Aggiungere una _t alla fine del nome dei tipi.
 #if 0
 FIXME preparare il parser dei flag
 /* used by TRUN and TFHD */
