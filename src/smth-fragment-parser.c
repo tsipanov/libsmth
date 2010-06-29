@@ -19,7 +19,7 @@
 /**
  * \internal
  * \file   smth-fragment-parser.c
- * \brief  Parses binary Fragments
+ * \brief  Binary Fragments parser
  * \author Stefano Sanfilippo
  * \date   27th June 2010
  */
@@ -54,8 +54,8 @@ int parsefragment(SmoothStream *stream, Fragment *f)
 	if(result != FRAGMENT_SUCCESS) return result;
 	result = parsemdat(&root);
 	if(result != FRAGMENT_SUCCESS) return result;
-
-	return FRAGMENT_SUCCESS; //FIXME se il file non e` finito, UUIDBox
+//	while(!feof(stream)) FIXME se il file non e` finito, UUIDBox
+	return FRAGMENT_SUCCESS;
 }
 
 /**
@@ -397,6 +397,33 @@ static int parsetrun(Box* root)
 }
 
 /**
+ * \brief MdatBox (data container) parser
+ *
+ * A MdatBox has no children (not even a UUIDBox) and no fields: simply reads
+ * it in Fragment::data. There may be only one per fragment, so we do not
+ * worry about data concatenation.
+ * Sample boundaries in the MdatBox are defined by the values of the
+ * TrunBox::DefaultSampleSize and TrunBox::SampleSize fields. Individual sample
+ * sizes are stored into SampleFields::size and the overall number of samples
+ * in Fragment::sampleno.
+ *
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
+ *             code.
+ */
+static int parsemdat(Box* root)
+{
+	byte* tmp = malloc(root->size);
+	if(!tmp) return FRAGMENT_NO_MEMORY;
+	if(!readbox(tmp, root->size, root))
+	{   free(tmp);
+		return FRAGMENT_IO_ERROR;
+	}
+	root->f->data = tmp;
+	return FRAGMENT_SUCCESS;
+}
+
+/**
  * \brief SampleEncryptionBox (content protection metadata) parser
  *
  * A SampleEncryptionBox is a particularly crafted VendorUUIDBox, no
@@ -447,33 +474,6 @@ static int parseencr(Box* root)
 	boxsize -= vectorlenght;
 
 	LOOK_FOR_UUIDBOXES_AND_RETURN;
-}
-
-/**
- * \brief MdatBox (data container) parser
- *
- * A MdatBox has no children (not even a UUIDBox) and no fields: simply reads
- * it in Fragment::data. There may be only one per fragment, so we do not
- * worry about data concatenation.
- * Sample boundaries in the MdatBox are defined by the values of the
- * TrunBox::DefaultSampleSize and TrunBox::SampleSize fields. Individual sample
- * sizes are stored into SampleFields::size and the overall number of samples
- * in Fragment::sampleno.
- *
- * \param root pointer to the Box structure to be parsed
- * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
- *             code.
- */
-static int parsemdat(Box* root)
-{
-	byte* tmp = malloc(root->size);
-	if(!tmp) return FRAGMENT_NO_MEMORY;
-	if(!readbox(tmp, root->size, root))
-	{   free(tmp);
-		return FRAGMENT_IO_ERROR;
-	}
-	root->f->data = tmp;
-	return FRAGMENT_SUCCESS;
 }
 
 /**
