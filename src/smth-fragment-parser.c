@@ -129,7 +129,7 @@ static const byte encryptionuuid[16] = { 0xa2, 0x39, 0x4f, 0x52,
                                          0x7c, 0x64, 0x8d, 0xf4 };
 
 /************************START ENDIAN DEPENDENT SECTION************************/
-//FIXME rendere indipendente: le32toh
+
 /** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
 static const word boxishuge = 0x01000000;
 
@@ -146,7 +146,7 @@ static const word BoxTypeMask[7] = { 0x666f6f6d, /**< "moof" */
 								     0x6e757274, /**< "trun" */
 								     0x7461646d  /**< "mdat" */ };
 
-/** The signature of different encryption methods. [Last byte is keysize] */
+/** The signature of different encryption methods. [First byte is keysize] */
 static const word EncryptionTypeMask[3] = { 0x00010000,   /**< AES 128-bit CTR */
                                             0x00020000};  /**< AES 128-bit CBC */
 
@@ -187,7 +187,7 @@ static bool isencrbox(Box* root)
  */
 static bool getflags(flags *defaultflags, Box *root)
 {	if(!readbox(defaultflags, sizeof(flags), root)) return false;
-	*defaultflags = (flags) be64toh(*defaultflags); /* endian-safe */
+	*defaultflags = (flags) be32toh(*defaultflags); /* endian-safe */
 	return true;
 }
 
@@ -294,10 +294,10 @@ static int parsemoof(Box* root)
 static int parsemfhd(Box* root)
 {
 	signedlenght boxsize = root->size;
-//FIXME restore me!! count + 32<>64
-	tick tmp;
+
+	count tmp;
 	if(!readbox(&tmp, sizeof(tmp), root)) return FRAGMENT_IO_ERROR;
-	root->f->ordinal = (count)be64toh(tmp);
+	root->f->ordinal = (count)be32toh(tmp);
 
 	if(boxsize > sizeof(tmp)) /* if there is something more */
 	{	int result = parseuuid(root);
@@ -383,6 +383,7 @@ static int parsetfhd(Box* root)
 	flags boxflags;
 
 	if(!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
+	boxsize -= sizeof(boxflags);
 
 	SETBYFLAG(root->f->defaults.dataoffset, TFHD_BASE_DATA_OFFSET_PRESENT);
 	SETBYFLAG(root->f->defaults.index, TFHD_SAMPLE_DESCRIPTION_INDEX_PRESENT);
@@ -551,27 +552,9 @@ static int parseuuid(Box* root)
 {	byte discarded[root->size];
 	printf("mi hai chiamato\n"); //DEBUG
 	readbox(discarded, root->size, root);
-/* |Fields   | UUIDBoxUUID   |BYTE[16]
- * |         | UUIDBoxData   | *BYTE */
+/* UUIDBoxUUID | UUIDBoxData  *
+ * BYTE[16]    | *BYTE        */
 	return FRAGMENT_SUCCESS;
 }
-
-///////////////////////////////////////FIXME////////////////////////////////////
-// questo must mi preoccupa: devo controllare le dimensioni??
-// Ma la dimensione include anche quella dei figli??
-// delle UUID facciamo un arrray, e il tipo == il tipo dell'enum
-// controllare che la parsetfhd non possa essere semplificata
-// scrivere che se fallisce l'analisi, lo stato del fragment potrebbe essere
-// indefinito
-//FIXME controllare che non ci voglia +1
-// sostituire i for sulle enumerazioni con un &. togliere max e mettere < UNKNOWN
-// attenzione alla deallocazione dinamica (al top-level)
-// inizializzare tutti i campi del Frammento a zero.
-// aggiungere le strutture per uuiddata
-// * il test per boxsize < 0 fallisce: lenght è uint!!
-// FIXME controllare che il salto con fseek sia ok
-// Sostituire la ricerca finale di una UUID box con una macro.
-//
-// FIXME possibile memory leak attorno alla linea 423!! torna senza liberare
 
 /* vim: set ts=4 sw=4 tw=0: */

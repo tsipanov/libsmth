@@ -1,0 +1,21 @@
+///////////////////////////////////////FIXME////////////////////////////////////
+// questo must mi preoccupa: devo controllare le dimensioni??
+// Ma la dimensione include anche quella dei figli??
+// delle UUID facciamo un arrray, e il tipo == il tipo dell'enum
+// controllare che la parsetfhd non possa essere semplificata
+// scrivere che se fallisce l'analisi, lo stato del fragment potrebbe essere
+// indefinito
+//FIXME controllare che non ci voglia +1
+// sostituire i for sulle enumerazioni con un &. togliere max e mettere < UNKNOWN
+// attenzione alla deallocazione dinamica (al top-level)
+// inizializzare tutti i campi del Frammento a zero.
+// aggiungere le strutture per uuiddata
+// * il test per boxsize < 0 fallisce: lenght è uint!!
+// FIXME controllare che il salto con fseek sia ok
+// Sostituire la ricerca finale di una UUID box con una macro.
+//
+// FIXME possibile memory leak attorno alla linea 423!! torna senza liberare
+// Il numero delle UUIDBox deve essere variabile (ciclo for)
+//FIXME rendere endian indipendente le maschere e gli array: le32toh
+//FIXME in parsemfhd: restore me!! count + 32<>64 (che cacchio servono i 4byte+?
+
