@@ -139,8 +139,7 @@ typedef struct
 	{   if (!readbox(&(target), sizeof (target), root)) \
 			return FRAGMENT_IO_ERROR; \
 		boxsize -= sizeof (target); \
-	} \
-	else target = 0;
+	}
 
 /** Version of the TFHD box structure */
 static const byte_t tfhdVersion = 0x00;

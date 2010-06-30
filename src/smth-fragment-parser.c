@@ -45,6 +45,8 @@ error_t parsefragment(SmoothStream *stream, Fragment *f)
 	root.stream = stream;
 	root.f = f;
 
+	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
+
 	result = parsebox(&root);
 	if (result != FRAGMENT_SUCCESS) return result;
 	result = parsemoof(&root);
@@ -458,13 +460,6 @@ static error_t parseencr(Box* root)
 			return FRAGMENT_IO_ERROR;
 		/* WARNING: if you change type size, it will break!! */
 		boxsize -= sizeof (flags_t) + sizeof (byte_t) + sizeof (uuid_t); 
-	}
-	else
-	{
-		root->f->armor.type = UNSET;
-		memset(root->f->armor.id, 0, sizeof(uuid_t));
-		root->f->armor.vectorsize = (byte_t) 0;
-		root->f->armor.vectors    = NULL; // no vectors if no vectorsize?
 	}
 
 	if (!readbox(&root->f->armor.vectorno, sizeof(count_t), root))
