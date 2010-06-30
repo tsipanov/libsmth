@@ -68,11 +68,13 @@ error_t parsefragment(SmoothStream *stream, Fragment *f)
  */
 void disposefragment(Fragment *f)
 {
-	free(f->data);
-	free(f->samples);
+	if (f->data) free(f->data);
+	if (f->samples) free(f->samples);
+	if (f->armor.vectors) free(f->armor.vectors);
 	/* destroy even the reference */
 	f->data = NULL;
 	f->samples = NULL;
+	f->armor.vectors = NULL;
 }
 
 /*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
@@ -435,6 +437,19 @@ static error_t parseencr(Box* root)
 }
 
 /**
+ * \brief      Unknown SdtpBox: skip it... So sad :( [STUB]
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
+ *             code.
+ */
+static error_t parsesdtp(Box* root)
+{
+	fprintf(stderr, "parsesdtp: unknown box (aka what the hell am I?)\n");
+	fseek(root->stream, root->bsize, SEEK_CUR);
+	return FRAGMENT_SUCCESS;
+}
+
+/**
  * \brief VendorExtensionUUIDBox (variable content) box.
  *
  * Parses a 16byte UUID and a bytestream content to a Variable structure, and
@@ -450,31 +465,30 @@ static error_t parseuuid(Box* root)
 {
 	uuid_t uuid;
 	error_t result;
-///////////////////////////////////////TODO/////////////////////////////////////
-	fprintf(stderr, "parseuuid: just a working stub.\n"); //STUB
-	fseek(root->stream, root->bsize, SEEK_CUR);
-//	if (!readbox(uuid, sizeof (uuid), root)) return FRAGMENT_IO_ERROR;
-//	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
-//		result = parseencr(root);
-/* UUIDBoxUUID | UUIDBoxData  *
- * BYTE[16]    | *BYTE        */
-// aggiungere un campo type.
-// fseek(root->stream, sizeof(word), SEEK_CUR);
-/* skip signature */
-// fseek(root->stream, sizeof(word)-1, SEEK_CUR); boxsize -= sizeof(word); //HORRIBLETEST
-	return FRAGMENT_SUCCESS;
-}
 
-/**
- * \brief      Unknown Box: skip it... So sad :( [STUB]
- * \param root pointer to the Box structure to be parsed
- * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
- *             code.
- */
-static error_t parsesdtp(Box* root)
-{
-	fprintf(stderr, "parsesdtp: what the hell am I?\n"); //STUB
-	fseek(root->stream, root->bsize, SEEK_CUR); //TODO
+	if (!readbox(uuid, sizeof (uuid_t), root)) return FRAGMENT_IO_ERROR;
+	/* If it is a SampleEncryptionBox */
+	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
+	{	result = parseencr(root);
+		if(result != FRAGMENT_SUCCESS) return result;
+		return FRAGMENT_SUCCESS;
+	}
+	/* If it is an ordinary UUIDBox   */
+	Extension *tmp = malloc(sizeof (Extension));
+	if (!tmp) return FRAGMENT_NO_MEMORY;
+
+	tmp->size = ((lenght_t) root->bsize) - sizeof(uuid_t);
+	if(!memcpy(uuid, tmp->uuid, sizeof(uuid_t)))
+	{   free(tmp);
+		return FRAGMENT_IO_ERROR;
+	}
+
+///////////////////////////////////////TODO/////////////////////////////////////
+//  riempire con i dati + posizionare nell'array
+	fseek(root->stream, root->bsize - sizeof (uuid_t), SEEK_CUR);
+//	byte_t *data;   /**< The body of the Box				*/
+	free(tmp);
+////////////////////////////////////////////////////////////////////////////////
 	return FRAGMENT_SUCCESS;
 }
 

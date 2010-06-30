@@ -39,6 +39,13 @@ typedef enum {  NONE,    /**< non encrypted sample							  */
 				UNSET	 /**< Unknown encryption method. MUST be the last one */
 			 } EncryptionType ;
 
+/** \brief Holds the extension data parsed from UUIDBoxes */
+typedef struct
+{   uuid_t  uuid;   /**< The UUID of the extension block	*/
+	byte_t *data;   /**< The body of the Box				*/
+	lenght_t size;  /**< The size of the Box				*/
+} Extension;
+
 /** \brief Holds the encryption metadata for the samples
  *  parsed from SampleEncryptionBox.
  */
