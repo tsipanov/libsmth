@@ -467,6 +467,7 @@ static error_t parseuuid(Box* root)
 	error_t result;
 
 	if (!readbox(uuid, sizeof (uuid_t), root)) return FRAGMENT_IO_ERROR;
+
 	/* If it is a SampleEncryptionBox */
 	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
 	{	result = parseencr(root);
@@ -483,10 +484,16 @@ static error_t parseuuid(Box* root)
 		return FRAGMENT_IO_ERROR;
 	}
 
+	byte_t *tmpdata = malloc(tmp->size);
+	if (!readbox(tmpdata, tmp->size, root))
+	{   free(tmp);
+		free(tmpdata);
+		return FRAGMENT_IO_ERROR;
+	}
+	tmp->data = tmpdata;
 ///////////////////////////////////////TODO/////////////////////////////////////
-//  riempire con i dati + posizionare nell'array
-	fseek(root->stream, root->bsize - sizeof (uuid_t), SEEK_CUR);
-//	byte_t *data;   /**< The body of the Box				*/
+//  posizionare nell'array
+	free(tmpdata);
 	free(tmp);
 ////////////////////////////////////////////////////////////////////////////////
 	return FRAGMENT_SUCCESS;
