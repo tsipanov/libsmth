@@ -153,6 +153,8 @@ typedef struct
 	SampleDefaultFields defaults;
 	/** Per-field settings from TrunBox, repeated exactly SampleCount times. */
 	SampleFields *samples;
+	/** Vendor-specific boxes, as a NULL terminated array */
+	Extension *extensions;
 	/** The size of the allocated data block [synthetic] */
 	lenght_t size;
 	/** The fragment data. Sample boundaries in the MdatBox are defined
