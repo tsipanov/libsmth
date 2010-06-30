@@ -45,24 +45,32 @@
  *   +The XML Elements specified in this document do not use XML Namespaces.
  */
 
-#define MANIFEST_STREAM_ELEMENT			 ("SmoothStreamingMedia")
-	#define MANIFEST_MEDIA_TIME_SCALE		 ("TimeScale")
-	#define MANIFEST_MEDIA_DURATION			 ("Duration")
-	#define MANIFEST_MEDIA_IS_LIVE			 ("IsLive")
-	#define MANIFEST_MEDIA_LOOKAHEAD		 ("LookaheadCount")
-	#define MANIFEST_MEDIA_MAJOR_VERSION	 ("MajorVersion")
-	#define MANIFEST_MEDIA_MINOR_VERSION	 ("MinorVersion")
-	#define MANIFEST_MEDIA_DVR_WINDOW	     ("DVRWindowLength")
-#define MANIFEST_ARMOR_ELEMENT			 ("Protection")
-	#define MANIFEST_PROTECTION_ID			 ("SystemID")
-
+/** The xml tag identifying a SmoothStream (root) section					  */
+#define MANIFEST_STREAM_ELEMENT			("SmoothStreamingMedia")
+/** The xml attribute representing number of ticks per second				  */
+	#define MANIFEST_MEDIA_TIME_SCALE	   ("TimeScale")
+/** The xml attribute representing media duration							  */
+	#define MANIFEST_MEDIA_DURATION			("Duration")
+/** The xml attribute signaling whether the fragment is part of live content  */
+	#define MANIFEST_MEDIA_IS_LIVE			("IsLive")
+/** The xml attribute representing server cache size in Fragments			  */
+	#define MANIFEST_MEDIA_LOOKAHEAD		("LookaheadCount")
+/** The xml attribute representing the major version of the Manifest		  */
+	#define MANIFEST_MEDIA_MAJOR_VERSION	("MajorVersion")
+/** The xml attribute representing the minor version of the Manifest		  */
+	#define MANIFEST_MEDIA_MINOR_VERSION	("MinorVersion")
+/** The xml attribute representing the size of the DVR window				  */
+	#define MANIFEST_MEDIA_DVR_WINDOW	    ("DVRWindowLength")
+/** The xml tag identifying a Protection (sub)section						  */
+#define MANIFEST_ARMOR_ELEMENT			("Protection")
+/** The xml attribute marking a 16bytes UUID								  */
+	#define MANIFEST_PROTECTION_ID			("SystemID")
+/** Default number of ticks per minute										  */
 #define MANIFEST_MEDIA_DEFAULT_TICKS	 (10000000)
+/** Major version number for the Manifest									  */
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	 ("2")
+/** Minor version number for the Manifest									  */
 #define MANIFEST_MEDIA_DEFAULT_MINOR	 ("0")
-
-#define MANIFEST_SUCCESS				 ( 0)
-#define MANIFEST_WRONG_VERSION			 (-1)
-#define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-2)
 
 static error_t parsemedia(Manifest *m, const char **attr);
 static error_t parsearmor(Manifest *m, const char **attr);

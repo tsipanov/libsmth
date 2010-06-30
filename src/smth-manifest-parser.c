@@ -128,8 +128,13 @@ static error_t parsearmor(Manifest *m, const char **attr)
 {
 	if(strcmp(attr[0], MANIFEST_PROTECTION_ID))
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
-	m->armorID = 0; // attr[1]; FIXME (4-2-2-8)
+	//m->armorID = ; // attr[1]; FIXME (4-2-2-8)
 	//ProtectionHeaderContent = STRING_BASE64 TODO char handler
+}
+
+static error_t parseelement(Manifest *m, const char **attr)
+{
+	
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

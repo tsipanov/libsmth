@@ -62,6 +62,10 @@ typedef struct
 	base64data *armor;
 } Manifest;
 
+#define MANIFEST_SUCCESS				 ( 0)
+#define MANIFEST_WRONG_VERSION			 (-1)
+#define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-2)
+
 #endif /* __SMTH_MANIFEST_PARSER_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
