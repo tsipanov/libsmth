@@ -54,7 +54,7 @@ typedef struct
 	SmoothStream *stream;	/**< input stream								*/
 	Fragment *f;			/**< Fragment to be filled with extracted data  */
 } Box;
-//FIXME attenzione all'endianess dei flag
+
 /** The tfhd Box has a BaseDataOffset field			*/
 #define TFHD_BASE_DATA_OFFSET_PRESENT						(1<<0)
 /** The tfhd Box has a SampleDescriptionIndex field */
@@ -135,7 +135,7 @@ typedef struct
  * \param mask   The mask to select the appropriate flag bit
  */
 #define GET_IF_FLAG_SET(target, mask) \
-	if (boxflags & (mask)) \
+	if (boxflags & le32toh(mask)) /* Flags are hard coded as little endian */ \
 	{   if (!readbox(&(target), sizeof (target), root)) \
 			return FRAGMENT_IO_ERROR; \
 		boxsize -= sizeof (target); \

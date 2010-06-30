@@ -427,6 +427,8 @@ static error_t parseencr(Box* root)
 	{   free(tmp);
 		return FRAGMENT_IO_ERROR;
 	}
+
+	root->f->armor.vectors = tmp;
 	boxsize -= vectorlenght;
 
 	LOOK_FOR_UUIDBOXES_AND_RETURN;
@@ -449,7 +451,7 @@ static error_t parseuuid(Box* root)
 	uuid_t uuid;
 	error_t result;
 ///////////////////////////////////////TODO/////////////////////////////////////
-	fprintf(stderr, "parseuuid: just a working stub.\n"); //DEBUG
+	fprintf(stderr, "parseuuid: just a working stub.\n"); //STUB
 	fseek(root->stream, root->bsize, SEEK_CUR);
 //	if (!readbox(uuid, sizeof (uuid), root)) return FRAGMENT_IO_ERROR;
 //	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
@@ -464,14 +466,14 @@ static error_t parseuuid(Box* root)
 }
 
 /**
- * \brief      Unknown Box: skip it... So sad :(
+ * \brief      Unknown Box: skip it... So sad :( [STUB]
  * \param root pointer to the Box structure to be parsed
  * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
  *             code.
  */
 static error_t parsesdtp(Box* root)
 {
-	fprintf(stderr, "parsesdtp: what the hell am I?\n"); //DEBUG
+	fprintf(stderr, "parsesdtp: what the hell am I?\n"); //STUB
 	fseek(root->stream, root->bsize, SEEK_CUR); //TODO
 	return FRAGMENT_SUCCESS;
 }
