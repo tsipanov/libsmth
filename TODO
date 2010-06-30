@@ -2,7 +2,8 @@
 
 * Muovere l'azzeramento dell'armatura all'inizio, o metterla dinamica (sostituire se ce ne sono 2)
 * Controllare che i flag in parseencr funzionino a dovere
-
+* Controllare che il riempimento di Fragment::samples funzioni a dovere (sono tutti uguali...)
+//TODO cerchiamo di unificare Sample e DefaultSample
 
 FIXME preparare il parser dei flag
 /* used by TRUN and TFHD */

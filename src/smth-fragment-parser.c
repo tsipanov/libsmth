@@ -21,7 +21,7 @@
  * \file   smth-fragment-parser.c
  * \brief  Binary Fragments parser
  * \author Stefano Sanfilippo
- * \date   27th June 2010
+ * \date   27th-30th June 2010
  */
 
 #include <stdlib.h>
@@ -140,6 +140,7 @@ static error_t parsebox(Box* root)
 	}
 	/* if it is still unknown */
 	if (root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
+	/* if it is a huge box */
 	if (tmpsize == le32toh(boxishuge))
 	{
 		if (!readbox(&root->bsize, sizeof (root->bsize), root)) return FRAGMENT_IO_ERROR;
@@ -209,13 +210,13 @@ static error_t parsemoof(Box* root)
 static error_t parsemfhd(Box* root)
 {
 	signedlenght_t boxsize = root->bsize;
-	count_t tmp;
+	count_t tmpsize;
 
 	XXX_SKIP_4B_QUIRK;
 
-	if (!readbox(&tmp, sizeof (tmp), root)) return FRAGMENT_IO_ERROR;
-	root->f->ordinal = (count_t) be32toh(tmp);
-	boxsize -= sizeof (tmp);
+	if (!readbox(&tmpsize, sizeof (tmpsize), root)) return FRAGMENT_IO_ERROR;
+	root->f->ordinal = (count_t) be32toh(tmpsize);
+	boxsize -= sizeof (tmpsize);
 
 	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
@@ -332,7 +333,7 @@ static error_t parsetrun(Box* root)
 	{	
 		count_t i;
 		uint32_t singleword;
-		SampleFields* tmp = malloc(root->f->sampleno * sizeof (SampleFields));
+		Sample* tmp = calloc(root->f->sampleno, sizeof (Sample));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
 		for( i = 0; i < root->f->sampleno; i++)
 		{
@@ -382,7 +383,7 @@ static error_t parsemdat(Box* root)
 /**
  * \brief SampleEncryptionBox (content protection metadata) parser
  *
- * A SampleEncryptionBox is a particularly crafted VendorUUIDBox, no
+ * A SampleEncryptionBox is a particularly crafted VendorUUIDBox, with no
  * compulsory children and a few optional fields, whose presence is determined
  * using a flag field. It assumes that the signature has already been stripped
  * by a call to parseuuid.
@@ -479,13 +480,13 @@ static error_t parseuuid(Box* root)
 	/* If it is an ordinary UUIDBox   */
 	Extension *tmp = malloc(sizeof (Extension));
 	if (!tmp) return FRAGMENT_NO_MEMORY;
-
+	/* Data size */
 	tmp->size = ((lenght_t) root->bsize) - sizeof(uuid_t);
 	if(!memcpy(uuid, tmp->uuid, sizeof(uuid_t)))
 	{   free(tmp);
 		return FRAGMENT_IO_ERROR;
 	}
-
+	/* Data body */
 	byte_t *tmpdata = malloc(tmp->size);
 	if (!readbox(tmpdata, tmp->size, root))
 	{   free(tmp);

@@ -26,7 +26,7 @@
  * \file   smth-fragment-defs.h
  * \brief  private header for smth-fragment-parser.c
  * \author Stefano Sanfilippo
- * \date   27th June 2010
+ * \date   27th-30th June 2010
  */
 
 #include <endian.h>
@@ -127,9 +127,10 @@ typedef struct
 /**
  * \brief        Sets target reading an appropriate number of bytes from stream
  *
- * If flag marked by mask is set and decrements boxsize accordingly, or
- * initialises target to 0. This macro is intended for internal use only, and
- * implemention may vary without notice.
+ * If flag marked by mask is set, target is set reading sizeof (target) bytes
+ * from the stream and decrements boxsize accordingly.
+ * This macro is intended for internal use only, and implemention may vary
+ * without notice.
  *
  * \param target The target to be set
  * \param mask   The mask to select the appropriate flag bit

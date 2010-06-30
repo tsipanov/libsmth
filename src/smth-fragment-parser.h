@@ -26,7 +26,7 @@
  * \file   smth-fragment-parser.h
  * \brief  Exported definitions for smth-fragment-parser.c
  * \author Stefano Sanfilippo
- * \date   27th June 2010
+ * \date   27th-30th June 2010
  */
 
 #include <smth-common-defs.h>
@@ -71,8 +71,6 @@ typedef struct
 	byte_t *vectors;
 } Encryption; // MUST BE FREED.
 
-//TODO cerchiamo di unificare le due strutture sottostanti
-
 /** \brief Holds the default sample metadata parsed from the TfhdBox */
 typedef struct
 {	/** The offset, in bytes, from the beginning of the MdatBox field to the
@@ -96,10 +94,10 @@ typedef struct
 	 *  DefaultSampleFlags field.
 	 */
 	flags_t settings;
-} SampleDefaultFields;
+} SampleDefault;
 
 /** Note that the first three fields are equal to the ones in
- *  SampleDefaultFields */
+ *  SampleDefault */
 typedef struct
 {	/** The duration of each Sample, in increments defined by the TimeScale
 	 *  for the Track. If this field is not present, its implicit value is
@@ -129,9 +127,9 @@ typedef struct
 	 * SampleCompositionTimeOffset field.
 	 */
 	bitrate_t timeoffset;
-} SampleFields;
+} Sample;
 
-/** \brief Fragment will hold the parsed fragment data */
+/** \brief Will hold the parsed fragment data */
 typedef struct
 {   /** \brief An ordinal number for the Fragment in the Track timeline.
 	 *
@@ -150,9 +148,9 @@ typedef struct
 	/** The encryption data for ciphered streams */
 	Encryption armor;
 	/** The default metadata for samples in the stream */
-	SampleDefaultFields defaults;
+	SampleDefault defaults;
 	/** Per-field settings from TrunBox, repeated exactly SampleCount times. */
-	SampleFields *samples;
+	Sample *samples;
 	/** Vendor-specific boxes, as a NULL terminated array */
 	Extension *extensions;
 	/** The size of the allocated data block [synthetic] */
