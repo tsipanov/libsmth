@@ -414,8 +414,8 @@ static error_t parseencr(Box* root)
 		}
 		else root->f->armor.type = NONE;
 
-		root->f->armor.vectorsize = (byte_t)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
-		
+		root->f->armor.vectorsize = (byte_t)(boxflags & ENCRYPTION_KEY_SIZE_MASK); //FIXME endianess
+
 		if (!readbox(&root->f->armor.id, sizeof(uuid_t), root))
 			return FRAGMENT_IO_ERROR;
 		/* WARNING: if you change type size, it will break!! */
