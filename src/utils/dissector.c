@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
 	Fragment vc;
 
-	error_t exitcode = parsefragment(input, &vc);
+	error_t exitcode = parsefragment(&vc, input);
 	if (exitcode != FRAGMENT_SUCCESS)
 	{	printf("Error no.%d!\n", exitcode);
 		return 1;

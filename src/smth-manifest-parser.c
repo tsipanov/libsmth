@@ -24,6 +24,34 @@
  * \date   30th June 2010
  */
 
+#include <expat.h>
 
+void XMLCALL startblock(void *data, const char *el, const char **attr) //alternati nome valore
+{
+  int i;
+
+  for (i = 0; i < Depth; i++)
+    printf("  ");
+
+  printf("%s", el);
+
+  for (i = 0; attr[i]; i += 2) {
+    printf(" %s='%s'", attr[i], attr[i + 1]);
+  }
+
+  printf("\n");
+  Depth++;
+}
+
+void XMLCALL endblock(void *data, const char *el)
+{
+	Depth--;
+}
+
+void XMLCALL textblock(void *data, const char *text, int lenght)
+{
+  printf("\n%4d: Text - ", Eventcnt++);
+  fwrite(txt, txtlen, sizeof(char), stdout);
+}
 
 /* vim: set ts=4 sw=4 tw=0: */

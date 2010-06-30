@@ -51,7 +51,7 @@ typedef struct
 {   signedlenght_t bsize;	/**< size of the incoming block	body			*/
 	signedlenght_t tsize;	/**< size of the incoming block (total)			*/
 	BoxType  type;			/**< type of the incoming block					*/
-	SmoothStream *stream;	/**< input stream								*/
+	FILE *stream;			/**< input stream								*/
 	Fragment *f;			/**< Fragment to be filled with extracted data  */
 } Box;
 

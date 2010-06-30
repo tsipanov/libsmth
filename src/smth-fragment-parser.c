@@ -31,7 +31,7 @@
 #include <smth-fragment-defs.h>
 
 /**
- * \brief        Parses a fragment opened as SmoothStream and fills all the 
+ * \brief        Parses a fragment opened as FILE and fills all the 
  *               details in a Fragment structure.
  * \param stream pointer to the stream from which to read the fragment.
  * \param f      pointer to the Fragment structure to be filled with data
@@ -39,7 +39,7 @@
  * \return       FRAGMENT_SUCCESS on successful parse, or an appropriate error
  *               code.
  */
-error_t parsefragment(SmoothStream *stream, Fragment *f)
+error_t parsefragment(Fragment *f, FILE *stream)
 {   Box root;
 	error_t result;
 	root.stream = stream;

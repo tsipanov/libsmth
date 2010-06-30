@@ -180,7 +180,7 @@ typedef struct
 /** There are trailing bytes after a MdatBox that will not be parsed */
 #define FRAGMENT_BIGGER_THAN_DECLARED (-8)
 
-int parsefragment(SmoothStream *stream, Fragment *f);
+int parsefragment(Fragment *f, FILE *stream);
 void disposefragment(Fragment *f);
 
 #endif /* __SMTH_FRAGMENT_PARSER__ */
