@@ -27,7 +27,38 @@
 #ifndef __SMTH_MANIFEST_PARSER_H__
 #define __SMTH_MANIFEST_PARSER_H__
 
-
+typedef struct
+{
+	/** The duration of the content, measured in ticks, as indicated by the
+	 *  value of the Manifest::tick field.
+	 */
+	tick_t duration;
+	/** The time scale of the Manifest::duration attribute, specified as the
+	 *  number of increments per second. The default value is 10000000.
+	 */
+	tick_t tick;
+	/** Whether the presentation is a live streaming or an on-demand. */
+	bool islive;
+	/** Size of the server buffer, in number of fragments.
+	 *  This field is set to 0 for on-demand content.
+	 */
+	count_t lookahead;
+	/** The length of the DVR window, measured in ticks. If this field is
+	 *  omitted for a live presentation or set to 0, the DVR window is
+	 *  effectively infinite.
+	 *  This field MUST be omitted for on-demand presentations.
+	 */
+	lenght_t dvrwindow;
+	/** A UUID that uniquely identifies the Content Protection System to
+	 *  which this ProtectionElement pertains.
+	 */
+	uuid_t armorID;
+	/** Opaque data that the Content Protection System identified in the
+	 *  Manifest::armorid field can use to enable playback for authorized
+	 *  users, encoded using Base64.
+	 */
+	base64data *armor;
+} Manifest;
 
 #endif /* __SMTH_MANIFEST_PARSER_H__ */
 

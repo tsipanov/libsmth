@@ -1,8 +1,7 @@
 /*
  * Copyright (C) 2010 Stefano Sanfilippo
  *
- * -- smth-manifest-defs.h --
- * Defines all types needed to represent a [smth] Manifest
+ * smth-manifest-defs.h: Parses SMTH xml Manifests (private header)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -22,10 +21,19 @@
 #ifndef __SMTH_MANIFEST_DEFS_H__
 #define __SMTH_MANIFEST_DEFS_H__
 
+/**
+ * \internal
+ * \file   smth-manifest-parser.h
+ * \brief  XML manifest parser (private header)
+ * \author Stefano Sanfilippo
+ * \date   30th June 2010
+ */
+
 #include <smth-common-defs.h>
+#include <smth-manifest-parser.h>
 
 /**
- *  \brief Manifest Response (chapter 2.2.2)
+ *  \brief Manifest Response (see chapter 2.2.2 of specification)
  *
  *  According to the specifications, the Manifest MUST be a Well-Formed XML
  *  Document [XML] subject to the following constraints:
@@ -37,6 +45,27 @@
  *    +The XML Elements specified in this document do not use XML Namespaces.
  */
 
+#define MANIFEST_MEDIA_TIME_SCALE		 ("TimeScale")
+#define MANIFEST_MEDIA_DURATION			 ("Duration")
+#define MANIFEST_MEDIA_IS_LIVE			 ("IsLive")
+#define MANIFEST_MEDIA_LOOKAHEAD		 ("LookaheadCount")
+#define MANIFEST_MEDIA_MAJOR_VERSION	 ("MajorVersion")
+#define MANIFEST_MEDIA_MINOR_VERSION	 ("MinorVersion")
+#define MANIFEST_MEDIA_DVR_WINDOW	     ("DVRWindowLength")
+#define MANIFEST_PROTECTION_ID			 ("SystemID")
+
+#define MANIFEST_MEDIA_DEFAULT_TICKS	 (10000000)
+#define MANIFEST_MEDIA_DEFAULT_MAJOR	 ("2")
+#define MANIFEST_MEDIA_DEFAULT_MINOR	 ("0")
+
+#define MANIFEST_SUCCESS				 ( 0)
+#define MANIFEST_WRONG_VERSION			 (-1)
+#define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-2)
+
+static error_t parsemedia(Manifest *m, const char **attr);
+static error_t parsearmor(Manifest *m, const char **attr);
+
+#if 0
 typedef enum {VIDEO, AUDIO, TEXT} Type;
 char TypeNames[3][6] = {"video", "audio", "text"};
 
@@ -306,6 +335,7 @@ typedef struct
 	ProtectionHeaderElement *ProtectionHeader;
 	StreamIndexElement *StreamIndex;
 } SmoothStreamingMedia;
+#endif
 
 #endif /* __SMTH_MANIFEST_DEFS_H__ */
 
