@@ -38,7 +38,7 @@
  *  + `Length`     is the lenght of the box in bytes, encoded in network format.
  *                 If the value of the field is "\0\0\0\1", the BoxLongLength
  *                 field must be present. Otherwise, we assert that it is not
- *                 present.
+ *                 present. Size includes all the fields, even BoxLenght itself.
  *  + `Name`       is a 4B non null-terminated string identifying the type of
  *                 the block. There are seven different types, as it will be
  *                 explained in the appropriate section.

@@ -70,10 +70,12 @@ void disposefragment(Fragment *f)
 {
 	if (f->data) free(f->data);
 	if (f->samples) free(f->samples);
+	if (f->extensions) free(f->extensions);
 	if (f->armor.vectors) free(f->armor.vectors);
 	/* destroy even the reference */
 	f->data = NULL;
 	f->samples = NULL;
+	f->extensions = NULL;
 	f->armor.vectors = NULL;
 }
 
@@ -491,11 +493,11 @@ static error_t parseuuid(Box* root)
 		return FRAGMENT_IO_ERROR;
 	}
 	tmp->data = tmpdata;
-///////////////////////////////////////TODO/////////////////////////////////////
-//  posizionare nell'array...
+
+	//TODO posizionare nell'array... (ed eliminare i due free sotto)
 	free(tmpdata);
 	free(tmp);
-////////////////////////////////////////////////////////////////////////////////
+
 	return FRAGMENT_SUCCESS;
 }
 

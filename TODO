@@ -1,24 +1,11 @@
-//
-Aggiungere una _t alla fine del nome dei tipi.
-i flag sono gia` in little-endian
+//////////////////////////////////////TODO//////////////////////////////////////
 
-inserire un while, con SPECIAL all'interno del corpo principale (che risparmiamo anche spazio....)
+* Muovere l'azzeramento dell'armatura all'inizio, o metterla dinamica (sostituire se ce ne sono 2)
+* Controllare che i flag in parseencr funzionino a dovere
 
-Il sdtp e` nella sezione sbagliata
-Muovere l'azzeramento dell'armatura all'inizio, o metterla dinamica (sostituire se ce ne sono 2)
 
-alla linea 381
-
-mettere dei while al posto dei due FOR...
-
-fprintf(stderr, "size: 0x%04lx (0x%04lx)\n", root->tsize, root->bsize); //DEBUG
-
-controllare che i flag in parseencr funzionino a dovere
-
-#if 0
 FIXME preparare il parser dei flag
 /* used by TRUN and TFHD */
-
 /** ExtendedSampleFlags (4 bytes): A comprehensive Sample flags field. */
 /** non ci mascheriamo na cippa perche` possono essere anche nulli e avere senso */
 ExtendedSampleFlags =
@@ -83,5 +70,3 @@ RESERVED_UNSIGNED_INT32 = %x00 %x00 %x00 %x00
 RESERVED_UNSIGNED_INT16 = %x00 %x00
 RESERVED_BYTE			= %x00
 RESERVED_BIT			= %b0
-#endif
-
