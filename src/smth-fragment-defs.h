@@ -48,7 +48,8 @@ typedef enum {  MOOF,    /**< main metadata container                */
 
 /** Holds the stream and metadata of currently parsed Box */
 typedef struct
-{   lenght_t size;			/**< size of the incoming block					*/
+{   signedlenght_t bsize;	/**< size of the incoming block	body			*/
+	signedlenght_t tsize;	/**< size of the incoming block (total)			*/
 	BoxType  type;			/**< type of the incoming block					*/
 	SmoothStream *stream;	/**< input stream								*/
 	Fragment *f;			/**< Fragment to be filled with extracted data  */
@@ -115,10 +116,10 @@ typedef struct
 	while (boxsize > 0) \
 	{   error_t result = parsebox(root);\
 		if (result != FRAGMENT_SUCCESS) return result; \
+		boxsize -= root->tsize; \
 		if (root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE; \
 		result = parseuuid(root); \
 		if (result != FRAGMENT_SUCCESS) return result; \
-		boxsize -= root->size; \
 	} \
 	if (boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; \
 	return FRAGMENT_SUCCESS;
@@ -169,18 +170,18 @@ static const word_t boxishuge = le32toh(0x01000000);
 /*  Used this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word_t BoxTypeMask[] = {   le32toh(0x666f6f6d), /**< "moof" */
-										le32toh(0x6468666d), /**< "mfhd" */
-								   		le32toh(0x66617274), /**< "traf" */
-								 		le32toh(0x64697575), /**< "uuid" */
-								 		le32toh(0x64686674), /**< "tfhd" */
-								 		le32toh(0x6e757274), /**< "trun" */
-								 		le32toh(0x7461646d), /**< "mdat" */
-										le32toh(0x70746473)  /**< "sdtp" */ };
+static const word_t BoxTypeMask[] = { 0x666f6f6d, /**< "moof" */
+									  0x6468666d, /**< "mfhd" */
+								   	  0x66617274, /**< "traf" */
+								 	  0x64697575, /**< "uuid" */
+								 	  0x64686674, /**< "tfhd" */
+								 	  0x6e757274, /**< "trun" */
+								 	  0x7461646d, /**< "mdat" */
+									  0x70746473  /**< "sdtp" */ };
 
 /** The signature of different encryption methods. [First byte is keysize] */
-static const word_t EncryptionTypeMask[] = { le32toh(0x00010000),   /**< AES 128-bit CTR */
-               		                         le32toh(0x00020000)};  /**< AES 128-bit CBC */
+static const word_t EncryptionTypeMask[] = { 0x00010000,   /**< AES 128-bit CTR */
+               		                         0x00020000};  /**< AES 128-bit CBC */
 
 /*************************END ENDIAN DEPENDED SECTION**************************/
 

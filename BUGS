@@ -30,3 +30,5 @@ Delle varie:
 	*moof funziona correttamente
 	*le dimensioni del blocco comprendono anche il nome e la dimensione.
 	*parsebox funziona correttamente: il file presenta dei campi non documentati
+
+	*il trun ha dei problemi a interpretare gli uuid

@@ -40,6 +40,8 @@
 typedef uint64_t tick_t;			/**< A time interval					*/
 typedef uint64_t offset_t;			/**< A memory offset					*/
 typedef uint64_t lenght_t;			/**< A memory lenght					*/
+typedef  int64_t signedlenght_t;	/**< A lenght that can be negative. Used
+									 **  for overflow check.				*/
 typedef uint32_t shortlenght_t;	    /**< Short memory lenght				*/
 typedef uint32_t count_t;		    /**< An ordinal number					*/
 typedef uint32_t bitrate_t;		    /**< A bitrate or a samplerate			*/
@@ -48,8 +50,6 @@ typedef uint32_t tag_t;				/**< A numeric code that identifier		*/
 typedef uint32_t word_t;			/**< A 32bit word						*/
 typedef uint32_t flags_t;			/**< Flags bitfield						*/
 typedef uint16_t unit_t;			/**< An atomic unit						*/
-typedef  int32_t signedlenght_t;	/**< A lenght that can be negative. Used
-									 **  for overflow check.				*/
 typedef int error_t;				/**< An error type (returned by parser  */
 typedef char byte_t;				/**< A byte (obviously)					*/
 typedef char uuid_t[16];			/**< A unique id						*/

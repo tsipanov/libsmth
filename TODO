@@ -3,6 +3,14 @@ Aggiungere una _t alla fine del nome dei tipi.
 i flag sono gia` in little-endian
 
 Il sdtp e` nella sezione sbagliata
+Muovere l'azzeramento dell'armatura all'inizio, o metterla dinamica (sostituire se ce ne sono 2)
+
+alla linea 381
+
+mettere dei while al posto dei due FOR...
+
+fprintf(stderr, "size: 0x%04lx (0x%04lx)\n", root->tsize, root->bsize); //DEBUG
+
 #if 0
 FIXME preparare il parser dei flag
 /* used by TRUN and TFHD */

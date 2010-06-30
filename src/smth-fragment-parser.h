@@ -155,7 +155,7 @@ typedef struct
 } Fragment;
 
 /** The fragment was successfully parsed */
-#define FRAGMENT_SUCCESS			  ( 1)
+#define FRAGMENT_SUCCESS			  ( 0)
 /** The parser encountered an i/o error on the SmoothStream */
 #define FRAGMENT_IO_ERROR			  (-1)
 /** An unknown Box was encountered */
