@@ -24,8 +24,8 @@
 
 #include <smth-common-defs.h>
 
-/*
- *  Manifest Response (chapter 2.2.2)
+/**
+ *  \brief Manifest Response (chapter 2.2.2)
  *
  *  According to the specifications, the Manifest MUST be a Well-Formed XML
  *  Document [XML] subject to the following constraints:

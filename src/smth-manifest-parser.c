@@ -1,99 +1,29 @@
+/*
+ * Copyright (C) 2010 Stefano Sanfilippo
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+
+/**
+ * \internal
+ * \file   smth-fragment-parser.c
+ * \brief  XML manifest parser
+ * \author Stefano Sanfilippo
+ * \date   30th June 2010
+ */
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <assert.h>
-
-#include <libxml/tree.h>
-#include <libxml/parser.h>
-#include <libxml/xpath.h>
-#include <libxml/xpathInternals.h>
-
-#if defined(LIBXML_XPATH_ENABLED) && defined(LIBXML_SAX1_ENABLED) && \
-    defined(LIBXML_OUTPUT_ENABLED)
-
-static int 
-example4(const char* filename, const xmlChar* xpathExpr, const xmlChar* value) {
-    xmlDocPtr doc;
-    xmlXPathContextPtr xpathCtx; 
-    xmlXPathObjectPtr xpathObj; 
-    
-    assert(filename);
-    assert(xpathExpr);
-    assert(value);
-
-    /* Load XML document */
-    doc = xmlParseFile(filename);
-    if (doc == NULL) {
-	fprintf(stderr, "Error: unable to parse file \"%s\"\n", filename);
-	return(-1);
-    }
-
-    /* Create xpath evaluation context */
-    xpathCtx = xmlXPathNewContext(doc);
-    if(xpathCtx == NULL) {
-        fprintf(stderr,"Error: unable to create new XPath context\n");
-        xmlFreeDoc(doc); 
-        return(-1);
-    }
-    
-    /* Evaluate xpath expression */
-    xpathObj = xmlXPathEvalExpression(xpathExpr, xpathCtx);
-    if(xpathObj == NULL) {
-        fprintf(stderr,"Error: unable to evaluate xpath expression \"%s\"\n", xpathExpr);
-        xmlXPathFreeContext(xpathCtx); 
-        xmlFreeDoc(doc); 
-        return(-1);
-    }
-
-    /* update selected nodes */
-    update_xpath_nodes(xpathObj->nodesetval, value);
-
-    
-    /* Cleanup of XPath data */
-    xmlXPathFreeObject(xpathObj);
-    xmlXPathFreeContext(xpathCtx); 
-
-    /* dump the resulting document */
-    xmlDocDump(stdout, doc);
-
-
-    /* free the document */
-    xmlFreeDoc(doc); 
-    
-    return(0);
-}
-
-#endif
+/* vim: set ts=4 sw=4 tw=0: */
