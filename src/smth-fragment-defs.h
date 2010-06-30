@@ -95,7 +95,7 @@ typedef struct
  * and should been removed as soon as the function of undocumented fields is
  * discovered.
  */
-#define XXX_SKIP_TRAILING_QUIRK \
+#define XXX_SKIP_4B_QUIRK \
 	if (boxsize < 9) \
 	{   fseek(root->stream, sizeof(word_t), SEEK_CUR); \
 		boxsize -= sizeof(word_t); \
@@ -160,10 +160,11 @@ static const uuid_t emptyuuid = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
  * All data is initialised with little endian values, as most people using this
  * library will compile it on a x86 platform. Anyway, it should not change
  * much if using a big endian CPU, only a few assembler istructions more...
+ * The code is packed with le32toh.
  ******************************************************************************/
 
 /** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
-static const word_t boxishuge = le32toh(0x01000000);
+static const word_t boxishuge = 0x01000000;
 
 /** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
 

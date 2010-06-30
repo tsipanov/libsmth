@@ -2,6 +2,8 @@
 Aggiungere una _t alla fine del nome dei tipi.
 i flag sono gia` in little-endian
 
+inserire un while, con SPECIAL all'interno del corpo principale (che risparmiamo anche spazio....)
+
 Il sdtp e` nella sezione sbagliata
 Muovere l'azzeramento dell'armatura all'inizio, o metterla dinamica (sostituire se ce ne sono 2)
 
@@ -10,6 +12,8 @@ alla linea 381
 mettere dei while al posto dei due FOR...
 
 fprintf(stderr, "size: 0x%04lx (0x%04lx)\n", root->tsize, root->bsize); //DEBUG
+
+controllare che i flag in parseencr funzionino a dovere
 
 #if 0
 FIXME preparare il parser dei flag

@@ -53,7 +53,7 @@ error_t parsefragment(SmoothStream *stream, Fragment *f)
 	if (result != FRAGMENT_SUCCESS) return result;
 	result = parsemdat(&root);
 	if (result != FRAGMENT_SUCCESS) return result;
-//	if (!feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED; FIXME
+	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED; /* if it is not EOF */
 	return FRAGMENT_SUCCESS;
 }
 
@@ -179,7 +179,7 @@ static error_t parsebox(Box* root)
 	}
 	/* if it is still unknown */
 	if (root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
-	if (tmpsize == boxishuge)
+	if (tmpsize == le32toh(boxishuge))
 	{
 		if (!readbox(&root->bsize, sizeof (root->bsize), root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof (root->bsize);
@@ -209,11 +209,10 @@ static error_t parsebox(Box* root)
 
 static error_t parsemoof(Box* root)
 {
-	int i;
 	error_t result;
 	signedlenght_t boxsize = root->bsize;
 
-	for ( i = 0; i < 2; i++)
+	while (boxsize > 0)
 	{   
 		result = parsebox(root);
 		if (result == FRAGMENT_SUCCESS)
@@ -222,14 +221,16 @@ static error_t parsemoof(Box* root)
 			switch (root->type)
 			{	case MFHD: result = parsemfhd(root); break;
 				case TRAF: result = parsetraf(root); break;
+				case SPECIAL: result = parseuuid(root); break;
 				default: return FRAGMENT_INAPPROPRIATE;
 			}
 			if (result != FRAGMENT_SUCCESS) return result;
 		}
 		else return result;
 	}
-
-	LOOK_FOR_UUIDBOXES_AND_RETURN;
+			
+	if (boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS;
+	return FRAGMENT_SUCCESS;
 }
 
 /**
@@ -249,7 +250,7 @@ static error_t parsemfhd(Box* root)
 	signedlenght_t boxsize = root->bsize;
 	count_t tmp;
 
-	XXX_SKIP_TRAILING_QUIRK;
+	XXX_SKIP_4B_QUIRK;
 
 	if (!readbox(&tmp, sizeof (tmp), root)) return FRAGMENT_IO_ERROR;
 	root->f->ordinal = (count_t) be32toh(tmp);
@@ -272,11 +273,10 @@ static error_t parsemfhd(Box* root)
  */
 static error_t parsetraf(Box* root)
 {
-	int i;
 	error_t result;
 	signedlenght_t boxsize = root->bsize;
 
-	for ( i = 0; i < 3; i++) //FIXME torniamo a due
+	while (boxsize > 0)
 	{   
 		result = parsebox(root);
 		if (result == FRAGMENT_SUCCESS)
@@ -286,6 +286,7 @@ static error_t parsetraf(Box* root)
 			{	case TFHD: result = parsetfhd(root); break;
 				case TRUN: result = parsetrun(root); break;
 				case SDTP: result = parsesdtp(root); break;
+				case SPECIAL: result = parseuuid(root); break;
 				default: return FRAGMENT_INAPPROPRIATE;
 			}
 			if (result != FRAGMENT_SUCCESS) return result;
@@ -293,7 +294,8 @@ static error_t parsetraf(Box* root)
 		else return result;
 	}
 
-	LOOK_FOR_UUIDBOXES_AND_RETURN;
+	if (boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS;
+	return FRAGMENT_SUCCESS;
 }
 
 /**
@@ -333,7 +335,7 @@ static error_t parsetfhd(Box* root)
 	GET_IF_FLAG_SET(singleword, TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT);
 	root->f->defaults.settings = (flags_t) be32toh(singleword);
 
-	XXX_SKIP_TRAILING_QUIRK;
+	XXX_SKIP_4B_QUIRK;
 
 	LOOK_FOR_UUIDBOXES_AND_RETURN;
 }
@@ -367,7 +369,7 @@ static error_t parsetrun(Box* root)
 
 	if(root->f->sampleno > 0)
 	{	
-		int i;
+		count_t i;
 		uint32_t singleword;
 		SampleFields* tmp = malloc(root->f->sampleno * sizeof (SampleFields));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
@@ -442,7 +444,7 @@ static error_t parseencr(Box* root)
 		boxflags = (flags_t) be32toh(boxflags); /* endian-safe */
 		if(boxflags & ENCRYPTION_KEY_TYPE_MASK) /* if it is encrypted */
 		{	for (enc = AES_CTR, root->f->armor.type = UNSET; enc < UNSET; enc++)
-				if (htole32(boxflags) & EncryptionTypeMask[enc])
+				if (boxflags & EncryptionTypeMask[enc])
 				{   root->f->armor.type = enc;
 					break;
 				}
@@ -492,13 +494,13 @@ static error_t parseencr(Box* root)
  *             code.
  * \sa         parseencr
  */
-///////////////////////////////////////TODO/////////////////////////////////////
 static error_t parseuuid(Box* root)
 {
 	uuid_t uuid;
 	error_t result;
+///////////////////////////////////////TODO/////////////////////////////////////
 	fprintf(stderr, "parseuuid: just a working stub.\n"); //DEBUG
-	fseek(root->stream, root->bsize, SEEK_CUR); //TODO
+	fseek(root->stream, root->bsize, SEEK_CUR);
 //	if (!readbox(uuid, sizeof (uuid), root)) return FRAGMENT_IO_ERROR;
 //	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
 //		result = parseencr(root);
@@ -519,6 +521,7 @@ static error_t parseuuid(Box* root)
  */
 static error_t parsesdtp(Box* root)
 {
+	fprintf(stderr, "parsesdtp: what the hell am I?\n"); //DEBUG
 	fseek(root->stream, root->bsize, SEEK_CUR); //TODO
 	return FRAGMENT_SUCCESS;
 }
