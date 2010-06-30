@@ -33,26 +33,28 @@
 #include <smth-manifest-parser.h>
 
 /**
- *  \brief Manifest Response (see chapter 2.2.2 of specification)
+ * \brief Manifest Response (see chapter 2.2.2 of specification)
  *
- *  According to the specifications, the Manifest MUST be a Well-Formed XML
- *  Document [XML] subject to the following constraints:
+ * According to the specifications, the Manifest MUST be a Well-Formed XML
+ * Document [XML] subject to the following constraints:
  *
- *    +The Document's XML Declaration's major version is 1.
- *    +The Document’s XML Declaration's minor version is 0.
- *    +The Document does not use a Document Type Definition (DTD).
- *    +The Document uses an encoding that is supported by the Client.
- *    +The XML Elements specified in this document do not use XML Namespaces.
+ *   +The Document's XML Declaration's major version is 1.
+ *   +The Document’s XML Declaration's minor version is 0.
+ *   +The Document does not use a Document Type Definition (DTD).
+ *   +The Document uses an encoding that is supported by the Client.
+ *   +The XML Elements specified in this document do not use XML Namespaces.
  */
 
-#define MANIFEST_MEDIA_TIME_SCALE		 ("TimeScale")
-#define MANIFEST_MEDIA_DURATION			 ("Duration")
-#define MANIFEST_MEDIA_IS_LIVE			 ("IsLive")
-#define MANIFEST_MEDIA_LOOKAHEAD		 ("LookaheadCount")
-#define MANIFEST_MEDIA_MAJOR_VERSION	 ("MajorVersion")
-#define MANIFEST_MEDIA_MINOR_VERSION	 ("MinorVersion")
-#define MANIFEST_MEDIA_DVR_WINDOW	     ("DVRWindowLength")
-#define MANIFEST_PROTECTION_ID			 ("SystemID")
+#define MANIFEST_STREAM_ELEMENT			 ("SmoothStreamingMedia")
+	#define MANIFEST_MEDIA_TIME_SCALE		 ("TimeScale")
+	#define MANIFEST_MEDIA_DURATION			 ("Duration")
+	#define MANIFEST_MEDIA_IS_LIVE			 ("IsLive")
+	#define MANIFEST_MEDIA_LOOKAHEAD		 ("LookaheadCount")
+	#define MANIFEST_MEDIA_MAJOR_VERSION	 ("MajorVersion")
+	#define MANIFEST_MEDIA_MINOR_VERSION	 ("MinorVersion")
+	#define MANIFEST_MEDIA_DVR_WINDOW	     ("DVRWindowLength")
+#define MANIFEST_ARMOR_ELEMENT			 ("Protection")
+	#define MANIFEST_PROTECTION_ID			 ("SystemID")
 
 #define MANIFEST_MEDIA_DEFAULT_TICKS	 (10000000)
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	 ("2")
@@ -290,51 +292,6 @@ typedef struct
 	StreamFragmentElement *StreamFragment;
 } StreamIndexElement;
 
-/*
- * /SmoothStreamingMedia/ProtectionHeaderElement
- *
- * encapsulates content protection metadata for a specific
- * content protection system.
- */
-typedef struct
-{	/* A UUID that uniquely identifies the Content Protection System
-	 * to which this ProtectionElement pertains.
-	 *
-	 * For instance: {9A04F079-9840-4286-AB92E65BE0885F95} */
-	uuid SystemID;
-	/* Opaque data that the Content Protection System identified
-	 * in the SystemID field can use to enable playback for
-	 * authorized users, encoded using Base64 */
-	base64data *Data;
-
-} ProtectionHeaderElement;
-
-/*
- * /SmoothStreamingMedia
- *
- * encapsulate metadata required to play the Presentation.
- *
- * MUST contain: MajorVersion, MinorVersion, Duration
- */
-typedef struct
-{	
-#if 0
-	/* The major version of the Manifest Response message. */ 
-	count MajorVersion; /* MUST be 2 */
-	/* The minor version of the Manifest Response message. */
-	count MinorVersion; /* MUST be 0 */
-#endif
-	/* The duration of the presentation, specified as the number
-     * of time increments indicated by the value of the TimeScale field. */
-	tick Duration;
-	/* The time scale of the Duration attribute, specified as the
-	 * number of increments in one second. The default value is 10000000. */
-	tick TimeScale;
-	/* child nodes: though there may be only one, using pointers
-	 * enables a quick expansion if MS will modify the standard */
-	ProtectionHeaderElement *ProtectionHeader;
-	StreamIndexElement *StreamIndex;
-} SmoothStreamingMedia;
 #endif
 
 #endif /* __SMTH_MANIFEST_DEFS_H__ */

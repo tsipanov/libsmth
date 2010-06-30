@@ -37,7 +37,6 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	for (i = 0; attr[i]; i += 2) printf(" %s ='%s'", attr[i], attr[i + 1]);
 	printf("\n");
 	Depth++;
-	//"SmoothStreamingMedia"
 }
 
 static void XMLCALL endblock(void *data, const char *el)

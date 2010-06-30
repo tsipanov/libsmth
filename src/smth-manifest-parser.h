@@ -51,6 +51,8 @@ typedef struct
 	lenght_t dvrwindow;
 	/** A UUID that uniquely identifies the Content Protection System to
 	 *  which this ProtectionElement pertains.
+	 *
+	 *  For instance: {9A04F079-9840-4286-AB92E65BE0885F95}
 	 */
 	uuid_t armorID;
 	/** Opaque data that the Content Protection System identified in the
