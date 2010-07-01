@@ -3,9 +3,8 @@
  controllare che la parsetfhd non possa essere semplificata
  scrivere che se fallisce l'analisi, lo stato del fragment potrebbe essere indefinito
  attenzione alla deallocazione dinamica (al top-level)
+ rendere endian indipendente le maschere e gli array: le32toh... funziona?
 
  possibile memory leak attorno alla linea 423!! torna senza liberare
- rendere endian indipendente le maschere e gli array: le32toh... funziona?
  rimuovere XXX_SKIP_4B_QUIRK
-
  gli ultimi 3B della firma, continuano a cambiare....

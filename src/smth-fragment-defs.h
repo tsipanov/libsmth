@@ -87,61 +87,6 @@ typedef struct
  *  and KeySizeValue. Beware of endianess */
 #define ENCRYPTION_KEY_SIZE_MASK (0x000000ff)
 
-/**
- * \brief If there are less than 8 bytes remaining in the Box, skips 4B.
- *
- * They are certainly trailing or unknown bytes (no box is shorter than 9B).
- * This is an orrible quirk, specifically crafted for parsemfhd and parsetfhd,
- * and should been removed as soon as the function of undocumented fields is
- * discovered.
- */
-#define XXX_SKIP_4B_QUIRK \
-	if (boxsize < 9) \
-	{   fseek(root->stream, sizeof(word_t), SEEK_CUR); \
-		boxsize -= sizeof(word_t); \
-	}
-
-/**
- * \brief  If total size of extracted elements is smaller than Box size, it
- *         means that there is one or more UUIDBoxes awaiting at the end of
- *         the Box: try to parse them, and if they are not UUIDBoxes, return
- *         an error. This macro depends on boxsize and root, which have to
- *		   be properly declared into function body.
- * \return If buffer was overflowed (read size is bigger than Box size) returns
- *         FRAGMENT_OUT_OF_BOUNDS (it should never happen), else
- *         FRAGMENT_INAPPROPRIATE if an out-of-context Box was parsed, or
- *         or FRAGMENT_SUCCESS on successful parse.
- */
-#define LOOK_FOR_UUIDBOXES_AND_RETURN \
-	while (boxsize > 0) \
-	{   error_t result = parsebox(root);\
-		if (result != FRAGMENT_SUCCESS) return result; \
-		boxsize -= root->tsize; \
-		if (root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE; \
-		result = parseuuid(root); \
-		if (result != FRAGMENT_SUCCESS) return result; \
-	} \
-	if (boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS; \
-	return FRAGMENT_SUCCESS;
-
-/**
- * \brief        Sets target reading an appropriate number of bytes from stream
- *
- * If flag marked by mask is set, target is set reading sizeof (target) bytes
- * from the stream and decrements boxsize accordingly.
- * This macro is intended for internal use only, and implemention may vary
- * without notice.
- *
- * \param target The target to be set
- * \param mask   The mask to select the appropriate flag bit
- */
-#define GET_IF_FLAG_SET(target, mask) \
-	if (boxflags & le32toh(mask)) /* Flags are hard coded as little endian */ \
-	{   if (!readbox(&(target), sizeof (target), root)) \
-			return FRAGMENT_IO_ERROR; \
-		boxsize -= sizeof (target); \
-	}
-
 /** Version of the TFHD box structure */
 static const byte_t tfhdVersion = 0x00;
 
@@ -196,8 +141,23 @@ static error_t parsetrun(Box* root);
 static error_t parseuuid(Box* root);
 static error_t parseencr(Box* root);
 static error_t parsesdtp(Box* root);
+static error_t  scanuuid(Box* root, signedlenght_t boxsize);
 static bool isencrbox(Box* root);
 static bool readbox(void *dest, size_t size, Box* root);
+
+/**
+ * \brief If there are less than 8 bytes remaining in the Box, skips 4B.
+ *
+ * They are certainly trailing or unknown bytes (no box is shorter than 9B).
+ * This is an orrible quirk, specifically crafted for parsemfhd and parsetfhd,
+ * and should been removed as soon as the function of undocumented fields is
+ * discovered.
+ */
+#define XXX_SKIP_4B_QUIRK \
+	if (boxsize < 9) \
+	{   fseek(root->stream, sizeof(word_t), SEEK_CUR); \
+		boxsize -= sizeof(word_t); \
+	}
 
 #endif /* __SMTH_MANIFEST_FRAGMENT_H__ */
 

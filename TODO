@@ -1,11 +1,12 @@
 //////////////////////////////////////TODO//////////////////////////////////////
 
-* Muovere l'azzeramento dell'armatura all'inizio, o metterla dinamica (sostituire se ce ne sono 2)
 * Controllare che i flag in parseencr funzionino a dovere
 * Controllare che il riempimento di Fragment::samples funzioni a dovere (sono tutti uguali...)
 //TODO cerchiamo di unificare Sample e DefaultSample
+* Trasformare i diecimila return in parsefragment in un solo enunciato
+* forse ce la caviamo con un goto
 
-FIXME preparare il parser dei flag
+preparare il parser dei flag
 /* used by TRUN and TFHD */
 /** ExtendedSampleFlags (4 bytes): A comprehensive Sample flags field. */
 /** non ci mascheriamo na cippa perche` possono essere anche nulli e avere senso */

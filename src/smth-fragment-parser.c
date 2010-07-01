@@ -48,13 +48,26 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
 
 	result = parsebox(&root);
-	if (result != FRAGMENT_SUCCESS) return result;
+	if (result != FRAGMENT_SUCCESS)
+	{   return result;
+	}
 	result = parsemoof(&root);
-	if (result != FRAGMENT_SUCCESS) return result;
+	if (result != FRAGMENT_SUCCESS)
+	{   disposefragment(root.f);
+		return result;
+	}
+
 	result = parsebox(&root);
-	if (result != FRAGMENT_SUCCESS) return result;
+	if (result != FRAGMENT_SUCCESS)
+	{   disposefragment(root.f);
+		return result;
+	}
 	result = parsemdat(&root);
-	if (result != FRAGMENT_SUCCESS) return result;
+	if (result != FRAGMENT_SUCCESS)
+	{   disposefragment(root.f);
+		return result;
+	}
+
 	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED; /* if it is not EOF */
 	return FRAGMENT_SUCCESS;
 }
@@ -81,6 +94,24 @@ void disposefragment(Fragment *f)
 
 /*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
 
+/** FIXME
+ * \brief        Sets target reading an appropriate number of bytes from stream
+ *
+ * If flag marked by mask is set, target is set reading sizeof (target) bytes
+ * from the stream and decrements boxsize accordingly.
+ * This macro is intended for internal use only, and implemention may vary
+ * without notice.
+ *
+ * \param target The target to be set
+ * \param mask   The mask to select the appropriate flag bit
+ */
+#define GET_IF_FLAG_SET(target, mask) \
+	if (boxflags & le32toh(mask)) /* Flags are hard coded as little endian */ \
+	{   if (!readbox(&(target), sizeof (target), root)) \
+			return FRAGMENT_IO_ERROR; \
+		boxsize -= sizeof (target); \
+	}
+
 /**
  * \brief      Read size bytes from root->stream, and stores them into dest.
  * \param dest Pointer to the destination buffer. Note that readbox will not
@@ -91,10 +122,8 @@ void disposefragment(Fragment *f)
  */
 static bool readbox(void *dest, size_t size, Box* root)
 {
-	if ((fread(dest, sizeof (byte_t), size, root->stream) < (size*sizeof (byte_t))) &&
-	   (feof(root->stream) || ferror(root->stream)))
-		return false;
-	return true;
+	return !((fread(dest, sizeof (byte_t), size, root->stream) < (size*sizeof (byte_t))) &&
+	   (feof(root->stream) || ferror(root->stream)));
 }
 
 /**
@@ -106,6 +135,30 @@ static bool getflags(flags_t *defaultflags, Box *root)
 {	if (!readbox(defaultflags, sizeof (flags_t), root)) return false;
 	*defaultflags = (flags_t) be32toh(*defaultflags); /* endian-safe */
 	return true;
+}
+
+/**
+ * \brief  If total size of extracted elements is smaller than Box size, it
+ *         means that there is one or more UUIDBoxes awaiting at the end of
+ *         the Box: try to parse them, and if they are not UUIDBoxes, return
+ *         an error.
+ * \return If buffer was overflowed (read size is bigger than Box size) returns
+ *         FRAGMENT_OUT_OF_BOUNDS (it should never happen), else
+ *         FRAGMENT_INAPPROPRIATE if an out-of-context Box was parsed, or
+ *         or FRAGMENT_SUCCESS on successful parse.
+ */
+static error_t scanuuid(Box* root, signedlenght_t boxsize)
+{
+	while (boxsize > 0)
+	{   error_t result = parsebox(root);
+		if (result != FRAGMENT_SUCCESS) return result;
+		boxsize -= root->tsize;
+		if (root->type != SPECIAL) return FRAGMENT_INAPPROPRIATE;
+		result = parseuuid(root);
+		if (result != FRAGMENT_SUCCESS) return result;
+	}
+	if (boxsize < 0) return FRAGMENT_OUT_OF_BOUNDS;
+	return FRAGMENT_SUCCESS;
 }
 
 /**
@@ -218,7 +271,7 @@ static error_t parsemfhd(Box* root)
 	root->f->ordinal = (count_t) be32toh(tmpsize);
 	boxsize -= sizeof (tmpsize);
 
-	LOOK_FOR_UUIDBOXES_AND_RETURN;
+	return scanuuid(root, boxsize);
 }
 
 /**
@@ -299,7 +352,7 @@ static error_t parsetfhd(Box* root)
 
 	XXX_SKIP_4B_QUIRK;
 
-	LOOK_FOR_UUIDBOXES_AND_RETURN;
+	return scanuuid(root, boxsize);
 }
 
 /**
@@ -319,6 +372,8 @@ static error_t parsetrun(Box* root)
 {
 	signedlenght_t boxsize = root->bsize;
 	flags_t boxflags;
+	Sample* tmp;
+
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
 	count_t samplecount;
@@ -333,7 +388,7 @@ static error_t parsetrun(Box* root)
 	{	
 		count_t i;
 		uint32_t singleword;
-		Sample* tmp = calloc(root->f->sampleno, sizeof (Sample));
+		tmp = calloc(root->f->sampleno, sizeof (Sample));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
 		for( i = 0; i < root->f->sampleno; i++)
 		{
@@ -349,7 +404,13 @@ static error_t parsetrun(Box* root)
 		root->f->samples = tmp;
 	}
 
-	LOOK_FOR_UUIDBOXES_AND_RETURN;
+	error_t result = scanuuid(root, boxsize);
+	if(result != FRAGMENT_SUCCESS)
+	{   free(tmp);
+		return result;
+	}
+
+	return FRAGMENT_SUCCESS;
 }
 
 /**
@@ -433,10 +494,17 @@ static error_t parseencr(Box* root)
 		return FRAGMENT_IO_ERROR;
 	}
 
-	root->f->armor.vectors = tmp;
 	boxsize -= vectorlenght;
 
-	LOOK_FOR_UUIDBOXES_AND_RETURN;
+	error_t result = scanuuid(root, boxsize);
+	if(result != FRAGMENT_SUCCESS)
+	{   free(tmp);
+		return result;
+	}
+
+	root->f->armor.vectors = tmp;
+
+	return FRAGMENT_SUCCESS;
 }
 
 /**
@@ -447,7 +515,7 @@ static error_t parseencr(Box* root)
  */
 static error_t parsesdtp(Box* root)
 {
-	fprintf(stderr, "parsesdtp: unknown box (aka what the hell am I?)\n");
+	fprintf(stderr, "parsesdtp: unknown box (what the hell am I?)\n");
 	fseek(root->stream, root->bsize, SEEK_CUR);
 	return FRAGMENT_SUCCESS;
 }

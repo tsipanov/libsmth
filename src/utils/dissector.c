@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 	{	fprintf(stderr, "SMTH dissector v0.1\nusage: ismc filename\n");
 		return 0;
 	}
-
+	//TODO check if file exists
 	FILE *input  = fopen(ifile, "rb");
 
 	Fragment vc;
@@ -81,8 +81,8 @@ void examine(Fragment *vc)
 	printf(" `-samples (%d in total)\n", vc->sampleno);
 	for ( i = 0; i < vc->sampleno; i++)
 	{
-		char bar = (i == vc->sampleno - 1)? ' ': '|';
 		char corner = (i == vc->sampleno - 1)? '`': '+';
+		char bar = (i == vc->sampleno - 1)? ' ': '|';
 		printf("   %c-sample #%d\n", corner, i + 1);
 		printf("   %c +-duration: %d ticks\n", bar, vc->samples[i].duration);
 		printf("   %c +-size: %d bytes\n", bar, vc->samples[i].size);
