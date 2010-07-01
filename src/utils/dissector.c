@@ -2,7 +2,9 @@
  * Copyright (C) 2010 Stefano Sanfilippo
  *
  * dissector.c: relying on the internal API, verbosely analizes the structure
- *              of a given Fragment and dumps it to a specified file.
+ *              of a given Fragment and dumps its content to a file.
+ *
+ * 30th June 2010
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -20,13 +22,21 @@
  */
 
 #include <stdio.h>
+#include <string.h>
 #include <smth-fragment-parser.h>
 
 void examine(Fragment *vc);
 
 int main(int argc, char **argv)
-{	FILE *input  = fopen(argv[1], "rb");
-	FILE *output = fopen(argv[2], "wb");
+{
+	char* ifile = argv[1];
+
+	if(!ifile)
+	{	fprintf(stderr, "SMTH dissector v0.1\nusage: ismc filename\n");
+		return 0;
+	}
+
+	FILE *input  = fopen(ifile, "rb");
 
 	Fragment vc;
 
@@ -39,6 +49,9 @@ int main(int argc, char **argv)
 	examine(&vc);
 
 	printf("Dumping data to file...\n", vc.size);
+	char ofile[strlen(ifile)+5];
+	sprintf(ofile, "%s.wmv", ifile);
+	FILE *output = fopen(ofile, "wb");
 	fwrite(vc.data, sizeof (byte_t), vc.size, output);
 
 	disposefragment(&vc);

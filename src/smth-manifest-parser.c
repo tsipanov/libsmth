@@ -24,25 +24,13 @@
  * \date   30th June 2010
  */
 
-#include <expat.h>
 #include <stdbool.h>
+#include <expat.h>
 #include <smth-manifest-defs.h>
 
 #if 0
-static void XMLCALL startblock(void *data, const char *el, const char **attr)
-{
-	int i;
-	for (i = 0; i < Depth; i++) printf("  ");
-	printf("%s", el);
-	for (i = 0; attr[i]; i += 2) printf(" %s ='%s'", attr[i], attr[i + 1]);
-	printf("\n");
-	Depth++;
-}
-
-static void XMLCALL endblock(void *data, const char *el)
-{
-	Depth--;
-}
+static void XMLCALL startblock(void *data, const char *el, const char **attr);
+static void XMLCALL endblock(void *data, const char *el);
 
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
@@ -50,6 +38,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 	fwrite(txt, txtlen, sizeof(char), stdout);
 }
 #endif
+
 //TODO aggiungere uno stato per il parser
 /**
  * \brief Parses a SmoothStreamingMedia.
@@ -208,6 +197,9 @@ static error_t parseelement(Manifest *m, const char **attr)
 }
 
 #if 0
+FIXME nella struttura, bisogna inserire quale è il frammento attualmente in uso
+TODO  le funzioni della serie parse pensano stupidamente ad inserire i dati,
+      la funzione start controlla che sia tutto OK.
 
 Type (variable): The type of the stream: video, audio, or text.  
 StreamTimeScale (variable): The time scale for duration and time values in this stream, specified
@@ -215,9 +207,6 @@ as the number of increments in one second.
 Name (variable): The name of the stream.
 NumberOfFragments (variable): The number of fragments available for this stream.
 NumberOfTracks (variable): The number of tracks available for this stream.
-
-//StreamContent = 1*(TrackElement S?) *(StreamFragment S?)
-
 Subtype (variable): A four-character code that identifies the intended use category for each
 sample in a text track. However, the FourCC field, specified in section 2.2.2.5, is used to identify
 the media format for each sample. The following range of values is reserved, with the following
@@ -239,12 +228,36 @@ ParentStream (variable): Specifies the non-sparse stream that is used to transmi
 information for this stream. If the ParentStream field is present, it indicates that the stream
 described by the containing StreamElement field is a sparse stream. If present, the value of this
 field MUST match the value of the Name field for a non-sparse stream in the presentation.
-
 ManifestOutput (variable): Specifies whether sample data for this stream appears directly in the
 Manifest as part of the ManifestOutputSample field, specified in section 2.2.2.6.1, if this field
 contains a CASEINSENTITIVE_TRUE value. Otherwise, the ManifestOutputSample field for
 fragments that are part of this stream MUST be omitted.
 
+#endif
+
+#if 0
+The UrlPattern and related fields define a pattern that can be used by the client to make
+semantically valid Fragment Requests for the presentation.
+UrlPattern (variable): Encapsulates a pattern for constructing Fragment Requests.
+BitrateSubstitution (variable): A placeholder expression for the Bit rate of a track.
+CustomAttributesSubstitution (variable): A placeholder expression for the Attributes used to
+disambiguate a track from other tracks in the stream.
+TrackName (variable): A unique identifier that applies to all tracks in a stream.
+BitrateSubstitution (variable): A placeholder expression for the time of a fragment.
+The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
+   UrlPattern = QualityLevelsPattern "/" FragmentsPattern
+   QualityLevelsPattern = QualityLevelsNoun "(" QualityLevelsPredicatePattern ")"
+   QualityLevelsNoun = "QualityLevels"
+   QualityLevelsPredicate = BitrateSubstitution ["," CustomAttributesSubstitution ]
+   Bitrate = "{bitrate}" / "{Bitrate}"
+   CustomAttributesSubstitution = "{CustomAttributes}"
+   FragmentsPattern = FragmentsNoun "(" FragmentsPatternPredicate ")";
+   FragmentsNoun = "Fragments"
+   FragmentsPatternPredicate = TrackName "=" StartTimeSubstitution;
+   TrackName = URISAFE_IDENTIFIER_NONNUMERIC
+   StartTimeSubstitution = "{start time}" / "{start_time}"
+
+P. 20 [24]
 #endif
 
 /* vim: set ts=4 sw=4 tw=0: */
