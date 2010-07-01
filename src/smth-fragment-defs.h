@@ -146,9 +146,10 @@ static bool isencrbox(Box* root);
 static bool readbox(void *dest, size_t size, Box* root);
 
 /**
- * \brief If there are less than 8 bytes remaining in the Box, skips 4B.
+ * \brief If there are less than 8 bytes remaining in the Box, skips 4B:
+ *        they are certainly trailing or unknown bytes.
  *
- * They are certainly trailing or unknown bytes (no box is shorter than 9B).
+ * No box is shorter than 9B.
  * This is an orrible quirk, specifically crafted for parsemfhd and parsetfhd,
  * and should been removed as soon as the function of undocumented fields is
  * discovered.
