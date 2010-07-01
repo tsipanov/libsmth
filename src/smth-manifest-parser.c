@@ -50,7 +50,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 	fwrite(txt, txtlen, sizeof(char), stdout);
 }
 #endif
-
+//TODO aggiungere uno stato per il parser
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -63,12 +63,12 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
  *
  * \param m    The manifest to be filled with data parsed.
  * \param attr The attributes to parse.
- * \return     MANIFEST_SUCCESS or MANIFEST_WRONG_VERSION
+ * \return     MANIFEST_SUCCESS
  */
 static error_t parsemedia(Manifest *m, const char **attr)
 {
 	count_t i;
-	/* we rely on expat for attr to have an even element number: if a[2*i] is
+	/* we rely on expat for attr[] to have an even element number: if a[2*i] is
 	 * not NULL, we safely assume that neither a[2*i+1] is. */
 	for (i = 0; attr[i]; i += 2)
 	{
@@ -95,7 +95,7 @@ static error_t parsemedia(Manifest *m, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_IS_LIVE))
 		{   /* we can safely assume that if it is not true, it is false */
-			//m->islive = (tolower(attr[i + 1]) == "true")? true: false; FIXME
+			//m->islive = !strcmp(tolower(attr[i + 1]), "true")? true: false; FIXME
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_LOOKAHEAD))
@@ -113,7 +113,7 @@ static error_t parsemedia(Manifest *m, const char **attr)
 
 	return MANIFEST_SUCCESS;
 }
-
+//TODO controllare adeguatamente la codifica dei caratteri (o lo fa expat??)
 /**
  * \brief Parses a ProtectionElement
  *
@@ -132,9 +132,119 @@ static error_t parsearmor(Manifest *m, const char **attr)
 	//ProtectionHeaderContent = STRING_BASE64 TODO char handler
 }
 
+/**
+ * \brief A StreamElement contains all metadata needed to play a specific stream.
+ *
+ * Attributes may appear in any order, however Type must always be present.
+ * If the track is not an embedded content, also NumberOfFragments, and Url must
+ * appear. If the track carries text, also the Subtype must be present.
+ * Unless the type specified is video, StreamMaxWidth, StreamMaxHeight,
+ * DisplayWidth, and DisplayHeight must not appear.
+ *
+ * \param m    The manifest to be filled with data parsed.
+ * \param attr The attributes to parse.
+ * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
+ *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
+ */
 static error_t parseelement(Manifest *m, const char **attr)
 {
-	
+	count_t i;
+	for (i = 0; attr[i]; i += 2)
+	{
+		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE)) //"video" / "audio" / "text"
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE)) //4*4 ALPHA
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_TIME_SCALE)) //STRING_UINT64
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_NAME)) //ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_CHUNKS)) //STRING_UINT32
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_QUALITY_LEVELS)) //STRING_UINT32
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_URL)) //UrlPattern
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_WIDTH)) //STRING_UINT32
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_HEIGHT)) //STRING_UINT32
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_WIDTH)) // STRING_UINT32
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_HEIGHT)) //STRING_UINT32
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_PARENT)) //ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
+		{
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_OUTPUT)) //CASEINSENTITIVE_TRUE / CASEINSENSITIVE_FALSE
+		{
+			continue;
+		}
+		//FIXME	VendorExtensionAttribute
+	}
 }
+
+#if 0
+
+Type (variable): The type of the stream: video, audio, or text.  
+StreamTimeScale (variable): The time scale for duration and time values in this stream, specified
+as the number of increments in one second.
+Name (variable): The name of the stream.
+NumberOfFragments (variable): The number of fragments available for this stream.
+NumberOfTracks (variable): The number of tracks available for this stream.
+
+//StreamContent = 1*(TrackElement S?) *(StreamFragment S?)
+
+Subtype (variable): A four-character code that identifies the intended use category for each
+sample in a text track. However, the FourCC field, specified in section 2.2.2.5, is used to identify
+the media format for each sample. The following range of values is reserved, with the following
+semantic meanings:
+"SCMD": Triggers for actions by the higher-layer implementation on the client
+"CHAP": Chapter markers
+"SUBT": Subtitles used for foreign-language audio
+"CAPT": Closed captions for the hearing-impaired
+"DESC": Media descriptions for the hearing-impaired
+"CTRL": Events the control the application business logic
+"DATA": Application data that does not fall into any of the above categories
+Url (variable): A pattern used by the client to generate Fragment Request messages.
+SubtypeControlEvents (variable): Control events for applications on the client.
+StreamMaxWidth (variable): The maximum width of a video sample, in pixels.
+StreamMaxHeight (variable): The maximum height of a video sample, in pixels.
+DisplayWidth (variable): The suggested display width of a video sample, in pixels.
+DisplayHeight (variable): The suggested display height of a video sample, in pixels.
+ParentStream (variable): Specifies the non-sparse stream that is used to transmit timing
+information for this stream. If the ParentStream field is present, it indicates that the stream
+described by the containing StreamElement field is a sparse stream. If present, the value of this
+field MUST match the value of the Name field for a non-sparse stream in the presentation.
+
+ManifestOutput (variable): Specifies whether sample data for this stream appears directly in the
+Manifest as part of the ManifestOutputSample field, specified in section 2.2.2.6.1, if this field
+contains a CASEINSENTITIVE_TRUE value. Otherwise, the ManifestOutputSample field for
+fragments that are part of this stream MUST be omitted.
+
+#endif
 
 /* vim: set ts=4 sw=4 tw=0: */

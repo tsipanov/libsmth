@@ -32,8 +32,9 @@
 #include <smth-common-defs.h>
 #include <smth-manifest-parser.h>
 
-/**
- * \brief Manifest Response (see chapter 2.2.2 of specification)
+/*
+ * 3. Manifest Response
+ * ====================
  *
  * According to the specifications, the Manifest MUST be a Well-Formed XML
  * Document [XML] subject to the following constraints:
@@ -48,7 +49,7 @@
 /** The xml tag identifying a SmoothStream (root) section					  */
 #define MANIFEST_STREAM_ELEMENT			("SmoothStreamingMedia")
 /** The xml attribute representing number of ticks per second				  */
-	#define MANIFEST_MEDIA_TIME_SCALE	   ("TimeScale")
+	#define MANIFEST_MEDIA_TIME_SCALE		("TimeScale")
 /** The xml attribute representing media duration							  */
 	#define MANIFEST_MEDIA_DURATION			("Duration")
 /** The xml attribute signaling whether the fragment is part of live content  */
@@ -61,57 +62,59 @@
 	#define MANIFEST_MEDIA_MINOR_VERSION	("MinorVersion")
 /** The xml attribute representing the size of the DVR window				  */
 	#define MANIFEST_MEDIA_DVR_WINDOW	    ("DVRWindowLength")
-/** The xml tag identifying a Protection (sub)section						  */
+
+/** The xml tag identifying a Protection (sub)section	   */
 #define MANIFEST_ARMOR_ELEMENT			("Protection")
-/** The xml attribute marking a 16bytes UUID								  */
+/** The xml attribute marking a 16bytes UUID				*/
 	#define MANIFEST_PROTECTION_ID			("SystemID")
-/** Default number of ticks per minute										  */
+
+/**	The xml tag name for StreamElement						*/
+#define MANIFEST_STREAM_ELEMENT				("StreamIndex")
+/**	The xml attribute name for StreamElement::Type			*/
+	#define MANIFEST_STREAM_TYPE			("Type")
+/**	The xml attribute name for StreamElement::SubType		*/
+	#define MANIFEST_STREAM_SUBTYPE			("Subtype")
+/**	The xml attribute name for StreamElement::TimeScale		*/
+	#define MANIFEST_STREAM_TIME_SCALE		("TimeScale")
+/**	The xml attribute name for StreamElement::StreamName	*/
+	#define MANIFEST_STREAM_NAME			("Name")
+/**	The xml attribute name for StreamElement::StreamNumber  */
+	#define	MANIFEST_STREAM_CHUNKS			("Chunks")
+/**	The xml attribute name for StreamElement::QualityLevels */
+	#define	MANIFEST_STREAM_QUALITY_LEVELS  ("QualityLevels")
+/**	The xml attribute name for StreamElement::StreamUrl		*/
+	#define	MANIFEST_STREAM_URL				("Url")
+/**	The xml attribute name for StreamElement::MaxWidth	    */
+	#define	MANIFEST_STREAM_MAX_WIDTH		("MaxWidth")
+/**	The xml attribute name for StreamElement::MaxHeight		*/
+	#define	MANIFEST_STREAM_MAX_HEIGHT		("MaxHeight")
+/**	The xml attribute name for StreamElement::DisplayWidth  */
+	#define	MANIFEST_STREAM_DISPLAY_WIDTH   ("DisplayWidth")
+/**	The xml attribute name for StreamElement::DisplayHeight	*/
+	#define	MANIFEST_STREAM_DISPLAY_HEIGHT  ("DisplayHeight")
+/**	The xml attribute name for StreamElement::ParentStream	*/
+	#define	MANIFEST_STREAM_PARENT			("ParentStreamIndex")
+/**	The xml attribute name for StreamElement::ManifestOutput */
+	#define MANIFEST_STREAM_OUTPUT			("ManifestOutput")
+
+/** Default number of ticks per minute					*/
 #define MANIFEST_MEDIA_DEFAULT_TICKS	 (10000000)
-/** Major version number for the Manifest									  */
+/** Major version number for the Manifest				*/
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	 ("2")
-/** Minor version number for the Manifest									  */
+/** Minor version number for the Manifest				*/
 #define MANIFEST_MEDIA_DEFAULT_MINOR	 ("0")
 
-static error_t parsemedia(Manifest *m, const char **attr);
-static error_t parsearmor(Manifest *m, const char **attr);
+static char    StreamTypeNames[3][6] = { "video", "audio", "text"};
+static char     ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
+static char     CodecTypeNames[4][6] = { "353", "85", "255","65534"};
+static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",
+										 "DESC", "CTRL", "DATA" };
+
+static error_t   parsemedia(Manifest *m, const char **attr);
+static error_t   parsearmor(Manifest *m, const char **attr);
+static error_t parseelement(Manifest *m, const char **attr);
 
 #if 0
-typedef enum {VIDEO, AUDIO, TEXT} Type;
-char TypeNames[3][6] = {"video", "audio", "text"};
-
-typedef enum { 	SCMD, /* Triggers for actions by the higher-layer
-				       * implementation on the Client */
-   				CHAP, /* Chapter markers */
-  				SUBT, /* Subtitles used for foreign-language audio */
-				CAPT, /* Closed captions for the hearing-impaired */
-   				DESC, /* Media descriptions for the hearing-impaired */
- 				CTRL, /* Events the control application business logic */
-  				DATA  /* Application data that does not fall
-				       * into any of the above categories */
-} Subtype;
-char SubtypeNames[7][5] =  { "SCMD", "CHAP", "SUBT", "CAPT",
-							 "DESC", "CTRL", "DATA" };
-
-typedef enum {	PCM,  /* Linear 8 or 16 bit Pulse Code Modulation */
-				WMA,  /* +Microsoft Windows Media Audio v7, v8
-				       * and v9.x Standard (WMA Standard)
-			           * +Microsoft Windows Media Audio v9.x
-				       * and v10 Professional (WMA Professional)*/
-				MP3,  /* ISO MPEG-1 Layer III */
-				AAC,  /* ISO Advanced Audio Coding */
-				VEN   /* SYNTHETIC Vendor-extensible format. */
-} Codec;
-char CodecNames[4][6] = {"353", "85", "255","65534"};
-
-typedef enum {	H264, /* Advanced Video Coding, as specified in [AVCFF] */
-				WVC1, /* VC-1, as specified in [VC-1] */
-				AACL, /* AAC (Low Complexity), as specified in [AAC] */
-				WMAP, /* WMA Professional */
-				CUST  /* SYNTHETIC A vendor extension value containing a
-				       * registered with MPEG4-RA, as specified in [ISOFF] */
-} Container;
-char ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
-
 /*
  * /SmoothStreamingMedia/StreamIndex/c/f
  *

@@ -27,6 +27,40 @@
 #ifndef __SMTH_MANIFEST_PARSER_H__
 #define __SMTH_MANIFEST_PARSER_H__
 
+/** The Stream content type */
+typedef enum {VIDEO, AUDIO, TEXT} StreamType;
+
+/** The Stream subtype (for text streams) */
+typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
+				       *   implementation on the Client */
+   				CHAP, /**< Chapter markers */
+  				SUBT, /**< Subtitles used for foreign-language audio */
+				CAPT, /**< Closed captions for the hearing-impaired */
+   				DESC, /**< Media descriptions for the hearing-impaired */
+ 				CTRL, /**< Events the control application business logic */
+  				DATA  /**< Application data that does not fall
+				       *   into any of the above categories */
+} StreamSubtype;
+
+/** Stream codec */
+typedef enum {	PCM,  /**< Linear 8 or 16 bit Pulse Code Modulation */
+				WMA,  /**< +Microsoft Windows Media Audio v7, v8
+				       *   and v9.x Standard (WMA Standard)
+			           *   +Microsoft Windows Media Audio v9.x
+				       *   and v10 Professional (WMA Professional)*/
+				MP3,  /**< ISO MPEG-1 Layer III */
+				AAC,  /**< ISO Advanced Audio Coding */
+				VEN   /**< SYNTHETIC Vendor-extensible format. */
+} CodecType;
+
+/** Stream container type */
+typedef enum {	H264, /**< Advanced Video Coding */
+				WVC1, /**< Microsoft VC-1(R) */
+				AACL, /**< AAC (Low Complexity) */
+				WMAP, /**< WMA Professional */
+				CUST  /**< A vendor extension value registered with MPEG4-RA */
+} ContainerType;
+
 typedef struct
 {
 	/** The duration of the content, measured in ticks, as indicated by the
