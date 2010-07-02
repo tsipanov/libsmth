@@ -99,8 +99,6 @@ static const uuid_t encryptionuuid = { 0xa2, 0x39, 0x4f, 0x52,
                                        0xa2, 0x44, 0x6c, 0x42,
                                        0x7c, 0x64, 0x8d, 0xf4 };
 
-static const uuid_t emptyuuid = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
 /************************START ENDIAN DEPENDENT SECTION*************************
  * All data is initialised with little endian values, as most people using this
  * library will compile it on a x86 platform. Anyway, it should not change
@@ -109,25 +107,25 @@ static const uuid_t emptyuuid = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
  ******************************************************************************/
 
 /** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
-static const word_t boxishuge = 0x01000000;
+static const word_t boxishuge = 0x00000001;
 
 /** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
 
 /*  Used this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word_t BoxTypeMask[] = { 0x666f6f6d, /**< "moof" */
-									  0x6468666d, /**< "mfhd" */
-								   	  0x66617274, /**< "traf" */
-								 	  0x64697575, /**< "uuid" */
-								 	  0x64686674, /**< "tfhd" */
-								 	  0x6e757274, /**< "trun" */
-								 	  0x7461646d, /**< "mdat" */
-									  0x70746473  /**< "sdtp" */ };
+static const word_t BoxTypeID[] = { 0x666f6f6d, /**< "moof" */
+									0x6468666d, /**< "mfhd" */
+								   	0x66617274, /**< "traf" */
+								 	0x64697575, /**< "uuid" */
+								 	0x64686674, /**< "tfhd" */
+								 	0x6e757274, /**< "trun" */
+								 	0x7461646d, /**< "mdat" */
+									0x70746473  /**< "sdtp" */ };
 
 /** The signature of different encryption methods. [First byte is keysize] */
-static const word_t EncryptionTypeMask[] = { 0x00010000,   /**< AES 128-bit CTR */
-               		                         0x00020000};  /**< AES 128-bit CBC */
+static const word_t EncryptionTypeID[] = { 0x00000100,   /**< AES 128-bit CTR */
+               		                         0x00000200};  /**< AES 128-bit CBC */
 
 /*************************END ENDIAN DEPENDED SECTION**************************/
 

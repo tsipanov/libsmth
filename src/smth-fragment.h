@@ -1,9 +1,8 @@
 /*
  * Copyright (C) 2010 Stefano Sanfilippo
  *
- * -- smth-fragment.h --
- * synthetic type definitions: though not appearing in [smth] specifications,
- * these help clarify the meaning of many symbols
+ * smth-fragment.h: Fetches and processes fragments
+ * 
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -32,6 +31,9 @@
  */
 
 
+/** \brief State of a variable */
+typedef enum { UNDEF = 0, YES = 1, NO = 2} state_t ;
+
 /** \brief Sample settings. */
 typedef struct
 {	/** The Sample degradation priority. */ //UNSIGNED_INT16
@@ -55,7 +57,7 @@ typedef struct
 /** Sample padding values (bits 18,19 and 20)		*/
 #define SAMPLE_PADDING(S) 			(((S) >> 17) & 7)
 /** Sample redundancy (bits 21 and 22)				*/
-#define SAMPLE_REDUNDANCY_MASK(S)	(((S) >> 20) & 3)
+#define SAMPLE_REDUNDANCY(S)	(((S) >> 20) & 3)
 /** Sample is depended on (bits 23 and 24)			*/
 #define SAMPLE_IS_DEPENDED_ON(S) 	(((S) >> 22) & 3)
 /** Sample depends on others (bits 25 and 26)		*/
@@ -73,7 +75,7 @@ inline void parsesampleflags(SampleSettings *s, flags_t settings)
 	s->priority 	= (unit_t) 	SAMPLE_PRIORITY (settings);
 	s->isdifference = (bool) 	SAMPLE_IS_DIFFERENCE (settings);
 	s->padding		= (byte_t)	SAMPLE_PADDING (settings);
-	s->dependson	= (state_t)	SAMPLE_REDUNDANCY_MASK (settings);
+	s->dependson	= (state_t)	SAMPLE_REDUNDANCY (settings);
 	s->isdependedon = (state_t)	SAMPLE_IS_DEPENDED_ON (settings);
 	s->redundant	= (state_t)	SAMPLE_DEPENDS_ON (settings);
 }

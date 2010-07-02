@@ -74,8 +74,9 @@ void examine(Fragment *vc)
 	printf(" +-first settings: 0x%08lx\n", vc->settings);
 	printf(" +-armor\n");
 	printf(" | +-type: %d (0 = NONE)\n", vc->armor.type);
-	printf(" | +-id: 0x%032lx\n", vc->armor.id);
-	printf(" | +-size of init vectors: %x\n", vc->armor.vectorsize);
+	printf(" | +-id: ");
+	fwrite(vc->armor.id, sizeof(byte_t), sizeof(uuid_t), stdout);
+	printf("\n | +-size of init vectors: %x\n", vc->armor.vectorsize);
 	printf(" | `-number of init vectors: %d\n", vc->armor.vectorno);
 	printf(" +-fragment defaults\n");
 	printf(" | +-offset: 0x%x\n", vc->defaults.dataoffset);

@@ -188,7 +188,7 @@ static error_t parsebox(Box* root)
 	if (!readbox(&tmpsize, sizeof (shortlenght_t), root)) return FRAGMENT_IO_ERROR;
 	if (!readbox(&name, sizeof (name), root)) return FRAGMENT_IO_ERROR;
 	for (element = 0, root->type = UNKNOWN; element < UNKNOWN; element++)
-	{	if (htole32(name) == BoxTypeMask[element])
+	{	if (htole32(name) == BoxTypeID[element])
 		{   root->type = element;
 			break;
 		}
@@ -196,7 +196,7 @@ static error_t parsebox(Box* root)
 	/* if it is still unknown */
 	if (root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
 	/* if it is a huge box */
-	if (tmpsize == le32toh(boxishuge))
+	if (tmpsize == htobe32(boxishuge))
 	{
 		if (!readbox(&root->bsize, sizeof (root->bsize), root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof (root->bsize);
@@ -460,15 +460,16 @@ static error_t parseencr(Box* root)
 {
 	EncryptionType enc;
 	signedlenght_t boxsize = root->bsize;
-	flags_t boxflags; /* first used to retrieve box flags, then crypt flags */
+	flags_t boxflags; /* first used to retrieve box flags, then encryption flags */
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
 	if (boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
 		if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
-		if (boxflags & ENCRYPTION_KEY_TYPE_MASK) /* if it is encrypted */
+		flags_t keytype = (flags_t) (boxflags & ENCRYPTION_KEY_TYPE_MASK);
+		if (keytype) /* if it is encrypted */
 		{	for (enc = AES_CTR, root->f->armor.type = UNSET; enc < UNSET; enc++)
-				if (boxflags & EncryptionTypeMask[enc])
+				if (keytype == EncryptionTypeID[enc])
 				{   root->f->armor.type = enc;
 					break;
 				}
@@ -516,7 +517,7 @@ static error_t parseencr(Box* root)
  */
 static error_t parsesdtp(Box* root)
 {
-	fprintf(stderr, "parsesdtp: unknown box (what the hell am I?)\n");
+	//fprintf(stderr, "parsesdtp: unknown box (what the hell am I?)\n");
 	fseek(root->stream, root->bsize, SEEK_CUR);
 	return FRAGMENT_SUCCESS;
 }
