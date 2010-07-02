@@ -30,7 +30,6 @@
  */
 
 #include <endian.h>
-#include <stdbool.h>
 #include <smth-fragment-parser.h>
 #include <smth-common-defs.h>
 

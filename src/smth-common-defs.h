@@ -35,6 +35,7 @@
  */
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef uint64_t tick_t;			/**< A time interval					*/
 typedef uint64_t offset_t;			/**< A memory offset					*/
@@ -53,6 +54,8 @@ typedef int error_t;				/**< An error type (returned by parser  */
 typedef char byte_t;				/**< A byte (obviously)					*/
 typedef char uuid_t[16];			/**< A unique id						*/
 typedef char base64data, hexdata, chardata, url_t;
+/** \brief State of a variable */
+typedef enum { UNDEF = 0, YES = 1, NO = 2} state_t ;
 
 #endif /* __SMTH_COMMON_DEFS_H__ */
 
