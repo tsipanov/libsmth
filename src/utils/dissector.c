@@ -23,19 +23,27 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/stat.h>
 #include <smth-fragment-parser.h>
 
 void examine(Fragment *vc);
+void dumps(Fragment* vc, char* ifile);
+void dumpt(Fragment* vc, char* ifile);
 
 int main(int argc, char **argv)
 {
 	char* ifile = argv[1];
 
-	if(!ifile)
+	if (!ifile)
 	{	fprintf(stderr, "SMTH dissector v0.1\nusage: ismc filename\n");
 		return 0;
 	}
-	//TODO check if file exists
+	if (access(ifile, R_OK))
+	{	fprintf(stderr, "File specified does not exist or it is not readable.\n");
+		return 0;
+	}
+
 	FILE *input  = fopen(ifile, "rb");
 
 	Fragment vc;
@@ -49,13 +57,10 @@ int main(int argc, char **argv)
 	examine(&vc);
 
 	printf("Dumping data to file...\n", vc.size);
-	char ofile[strlen(ifile)+5];
-	sprintf(ofile, "%s.wmv", ifile);
-	FILE *output = fopen(ofile, "wb");
-	fwrite(vc.data, sizeof (byte_t), vc.size, output);
+	dumps(&vc, ifile); //dumpt
 
 	disposefragment(&vc);
-	fclose(output);
+
 	fclose(input);
 	return 0;
 }
@@ -91,3 +96,32 @@ void examine(Fragment *vc)
 	}
 	printf("\n============================================================\n\n");
 }
+
+void dumps(Fragment* vc, char* ifile)
+{
+	char ofile[strlen(ifile)+10];
+	int i, offset = 0;
+	//SECURE
+	for( i = 0; i < vc->sampleno; i++)
+	{
+		sprintf(ofile, "%s.d", ifile);
+		mkdir(ofile, 0755);
+		sprintf(ofile, "%s.d/%04d.vc1", ifile, i);
+		int size = vc->samples[i].size;
+		FILE *output = fopen(ofile, "wb");
+		fwrite(&(vc->data[offset]), sizeof (byte_t), size, output);
+		offset += size;
+		fclose(output);
+	}
+}
+
+void dumpt(Fragment* vc, char* ifile)
+{
+	char ofile[strlen(ifile)+4];
+	sprintf(ofile, "%s.wmv", ifile);
+	FILE *output = fopen(ofile, "wb");
+	fwrite(vc->data, sizeof (byte_t), vc->size, output);
+	fclose(output);
+}
+
+

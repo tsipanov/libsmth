@@ -94,7 +94,7 @@ void disposefragment(Fragment *f)
 
 /*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
 
-/** FIXME
+/**
  * \brief        Sets target reading an appropriate number of bytes from stream
  *
  * If flag marked by mask is set, target is set reading sizeof (target) bytes
@@ -105,12 +105,14 @@ void disposefragment(Fragment *f)
  * \param target The target to be set
  * \param mask   The mask to select the appropriate flag bit
  */
+//XXX
 #define GET_IF_FLAG_SET(target, mask) \
 	if (boxflags & le32toh(mask)) /* Flags are hard coded as little endian */ \
 	{   if (!readbox(&(target), sizeof (target), root)) \
 			return FRAGMENT_IO_ERROR; \
 		boxsize -= sizeof (target); \
-	}
+	} \
+	else target = 0;
 
 /**
  * \brief      Read size bytes from root->stream, and stores them into dest.
@@ -348,7 +350,7 @@ static error_t parsetfhd(Box* root)
 	root->f->defaults.size = (bitrate_t) be32toh(singleword);
 
 	GET_IF_FLAG_SET(singleword, TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT);
-	root->f->defaults.settings = (flags_t) be32toh(singleword);
+	root->f->defaults.settings = (flags_t) singleword; /* This has not to be converted */
 
 	XXX_SKIP_4B_QUIRK;
 
@@ -397,7 +399,7 @@ static error_t parsetrun(Box* root)
 			GET_IF_FLAG_SET(singleword, TRUN_SAMPLE_SIZE_PRESENT);
 			tmp[i].size = (bitrate_t) be32toh(singleword);
 			GET_IF_FLAG_SET(singleword, TRUN_SAMPLE_FLAGS_PRESENT);
-			tmp[i].settings = (flags_t) singleword; /* this is not to be converted */
+			tmp[i].settings = (flags_t) be32toh(singleword);
 			GET_IF_FLAG_SET(singleword, TRUN_SAMPLE_COMPOSITION_TIME_OFFSET_PRESENT);
 			tmp[i].timeoffset = (bitrate_t) be32toh(singleword);
 		}
@@ -463,9 +465,8 @@ static error_t parseencr(Box* root)
 
 	if (boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
-		if(!readbox(&boxflags, sizeof (flags_t), root)) return FRAGMENT_IO_ERROR;
-		boxflags = (flags_t) be32toh(boxflags); /* endian-safe */
-		if(boxflags & ENCRYPTION_KEY_TYPE_MASK) /* if it is encrypted */
+		if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
+		if (boxflags & ENCRYPTION_KEY_TYPE_MASK) /* if it is encrypted */
 		{	for (enc = AES_CTR, root->f->armor.type = UNSET; enc < UNSET; enc++)
 				if (boxflags & EncryptionTypeMask[enc])
 				{   root->f->armor.type = enc;
@@ -475,7 +476,7 @@ static error_t parseencr(Box* root)
 		}
 		else root->f->armor.type = NONE;
 
-		root->f->armor.vectorsize = (byte_t)(boxflags & ENCRYPTION_KEY_SIZE_MASK); //FIXME endianess
+		root->f->armor.vectorsize = (byte_t)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
 
 		if (!readbox(&root->f->armor.id, sizeof(uuid_t), root))
 			return FRAGMENT_IO_ERROR;

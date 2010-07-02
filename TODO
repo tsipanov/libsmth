@@ -6,6 +6,8 @@
 * Trasformare i diecimila return in parsefragment in un solo enunciato
 * forse ce la caviamo con un goto
 
+*GET_IF_FLAG_SET: viene comunque impostato.... sistemare...
+
 preparare il parser dei flag
 /* used by TRUN and TFHD */
 /** ExtendedSampleFlags (4 bytes): A comprehensive Sample flags field. */

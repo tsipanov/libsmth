@@ -21,7 +21,7 @@
  * \file   smth-fragment-parser.c
  * \brief  XML manifest parser
  * \author Stefano Sanfilippo
- * \date   30th June 2010
+ * \date   30th June - 1st July 2010
  */
 
 #include <stdbool.h>
@@ -31,13 +31,18 @@
 #if 0
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL endblock(void *data, const char *el);
-
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
 	printf("\n%4d: Text - ", Eventcnt++);
-	fwrite(txt, txtlen, sizeof(char), stdout);
+	fwrite(text, lenght, sizeof(char), stdout);
 }
 #endif
+
+#define STRTOLOWER \
+ int i; \
+ for(i = 0; str[i]; i++) \
+    str[i] = tolower(str[i]);
+
 
 //TODO aggiungere uno stato per il parser
 /**
@@ -50,7 +55,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
  * present. We take advantage of atol implementation, which sets to 0 all
  * invalid fields (i.e. containing non-numeric characters).
  *
- * \param m    The manifest to be filled with data parsed.
+ * \param m    The manifest to be filled with parsed data.
  * \param attr The attributes to parse.
  * \return     MANIFEST_SUCCESS
  */
@@ -130,7 +135,7 @@ static error_t parsearmor(Manifest *m, const char **attr)
  * Unless the type specified is video, StreamMaxWidth, StreamMaxHeight,
  * DisplayWidth, and DisplayHeight must not appear.
  *
- * \param m    The manifest to be filled with data parsed.
+ * \param m    The Manifest struct to be filled with parsed data.
  * \param attr The attributes to parse.
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
