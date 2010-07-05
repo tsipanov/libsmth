@@ -55,6 +55,9 @@ typedef char byte_t;				/**< A byte (obviously)					*/
 typedef char uuid_t[16];			/**< A unique id						*/
 typedef char base64data, hexdata, chardata, url_t;
 
+/** \brief State of a variable */
+typedef enum { UNDEF = 0, YES = 1, NO = 2} state_t;
+
 #endif /* __SMTH_COMMON_DEFS_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */

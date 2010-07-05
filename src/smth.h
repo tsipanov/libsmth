@@ -64,6 +64,17 @@
  * Each `Box` must contain certain sub-Boxes, and it may contain others.
  * Any block may contain one or more `VendorExtensionUUIDBox`, as described later.
  *
+ * 3. Manifest Response
+ * ====================
+ *
+ * According to the specifications, the Manifest MUST be a Well-Formed XML
+ * Document [XML] subject to the following constraints:
+ *
+ *   +The Document's XML Declaration's major version is 1.
+ *   +The Document’s XML Declaration's minor version is 0.
+ *   +The Document does not use a Document Type Definition (DTD).
+ *   +The Document uses an encoding that is supported by the Client.
+ *   +The XML Elements specified in this document do not use XML Namespaces.
  */
 
 #endif /* __SMTH_H__ */

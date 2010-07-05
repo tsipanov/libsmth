@@ -123,9 +123,9 @@ static const word_t BoxTypeID[] = { 0x666f6f6d, /**< "moof" */
 								 	0x7461646d, /**< "mdat" */
 									0x70746473  /**< "sdtp" */ };
 
-/** The signature of different encryption methods. [First byte is keysize] */
-static const word_t EncryptionTypeID[] = { 0x00000100,   /**< AES 128-bit CTR */
-               		                         0x00000200};  /**< AES 128-bit CBC */
+/** The signature of different encryption methods. [First byte is keysize]   */
+static const word_t EncryptionTypeID[] = { 0x00000100,  /**< AES 128-bit CTR */
+               		                       0x00000200}; /**< AES 128-bit CBC */
 
 /*************************END ENDIAN DEPENDED SECTION**************************/
 

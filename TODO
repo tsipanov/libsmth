@@ -1,7 +1,7 @@
-//
-
-* Controllare che i flag in parseencr funzionino a dovere
-//TODO cerchiamo di unificare Sample e DefaultSample
-* Trasformare i diecimila return in parsefragment in un solo enunciato
-
 //////////////////////////////////////TODO//////////////////////////////////////
+
+* controllare che la parsetfhd non possa essere semplificata
+* scrivere che se fallisce l'analisi, lo stato del fragment potrebbe essere indefinito
+* Controllare che i flag in parseencr funzionino a dovere
+* Cerchiamo di unificare Sample e DefaultSample
+* Trasformare i diecimila return in parsefragment in un solo enunciato

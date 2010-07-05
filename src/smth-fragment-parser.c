@@ -67,8 +67,9 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	{   disposefragment(root.f);
 		return result;
 	}
+	/* if it is not EOF */
+	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED;
 
-	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED; /* if it is not EOF */
 	return FRAGMENT_SUCCESS;
 }
 
@@ -95,7 +96,7 @@ void disposefragment(Fragment *f)
 /*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
 
 /**
- * \brief        Sets target reading an appropriate number of bytes from stream
+ * \brief        Sets target reading an appropriate number of bytes from stream.
  *
  * If flag marked by mask is set, target is set reading sizeof (target) bytes
  * from the stream and decrements boxsize accordingly.
@@ -107,7 +108,7 @@ void disposefragment(Fragment *f)
  */
 //XXX
 #define GET_IF_FLAG_SET(target, mask) \
-	if (boxflags & le32toh(mask)) /* Flags are hard coded as little endian */ \
+	if (boxflags & mask) \
 	{   if (!readbox(&(target), sizeof (target), root)) \
 			return FRAGMENT_IO_ERROR; \
 		boxsize -= sizeof (target); \
@@ -221,9 +222,6 @@ static error_t parsebox(Box* root)
  *             subparsers failed to decode Boxes, or FRAGMENT_INAPPROPRIATE if
  *             a Box that should not stay into a MoofBox was encountered.
  */
-
-/* TODO do they have to appear in a fixed order? It would be much simpler... */
-
 static error_t parsemoof(Box* root)
 {
 	error_t result;
@@ -334,8 +332,8 @@ static error_t parsetfhd(Box* root)
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 	boxsize -= sizeof (boxflags);
 
-	uint64_t doubleword = 0;
-	uint32_t singleword = 0;
+	uint64_t doubleword;
+	uint32_t singleword;
 
 	GET_IF_FLAG_SET(doubleword, TFHD_BASE_DATA_OFFSET_PRESENT);
 	root->f->defaults.dataoffset = (offset_t) be64toh(doubleword);
@@ -350,7 +348,7 @@ static error_t parsetfhd(Box* root)
 	root->f->defaults.size = (bitrate_t) be32toh(singleword);
 
 	GET_IF_FLAG_SET(singleword, TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT);
-	root->f->defaults.settings = (flags_t) singleword; /* This has not to be converted */
+	root->f->defaults.settings = (flags_t) be32toh(singleword);
 
 	XXX_SKIP_4B_QUIRK;
 
@@ -368,7 +366,7 @@ static error_t parsetfhd(Box* root)
  * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
  *             code.
  * \sa         parsetfhd
- * \sa		   SETBYFLAG
+ * \sa		   GET_IF_FLAG_SET
  */
 static error_t parsetrun(Box* root)
 {

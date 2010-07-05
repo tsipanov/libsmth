@@ -27,8 +27,7 @@
 #ifndef __SMTH_MANIFEST_PARSER_H__
 #define __SMTH_MANIFEST_PARSER_H__
 
-/** The Stream content type */
-typedef enum {VIDEO, AUDIO, TEXT} StreamType;
+#include <smth-common-defs.h>
 
 /** The Stream subtype (for text streams) */
 typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
@@ -60,6 +59,9 @@ typedef enum {	H264, /**< Advanced Video Coding */
 				WMAP, /**< WMA Professional */
 				CUST  /**< A vendor extension value registered with MPEG4-RA */
 } ContainerType;
+
+/** The Stream content type. OTHER is used for error detection only. */
+typedef enum {VIDEO, AUDIO, TEXT, OTHER} StreamType;
 
 typedef struct
 {

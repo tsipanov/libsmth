@@ -32,83 +32,81 @@
 #include <smth-common-defs.h>
 #include <smth-manifest-parser.h>
 
-/*
- * 3. Manifest Response
- * ====================
- *
- * According to the specifications, the Manifest MUST be a Well-Formed XML
- * Document [XML] subject to the following constraints:
- *
- *   +The Document's XML Declaration's major version is 1.
- *   +The Document’s XML Declaration's minor version is 0.
- *   +The Document does not use a Document Type Definition (DTD).
- *   +The Document uses an encoding that is supported by the Client.
- *   +The XML Elements specified in this document do not use XML Namespaces.
+/**
+ * \internal
+ * \file   smth-manifest-defs.h
+ * \brief  XML manifest parser (privare header)
+ * \author Stefano Sanfilippo
+ * \date   3rd July 2010
  */
 
 /** The xml tag identifying a SmoothStream (root) section					  */
-#define MANIFEST_STREAM_ELEMENT			("SmoothStreamingMedia")
+#define MANIFEST_ELEMENT					"SmoothStreamingMedia"
 /** The xml attribute representing number of ticks per second				  */
-	#define MANIFEST_MEDIA_TIME_SCALE		("TimeScale")
+	#define MANIFEST_MEDIA_TIME_SCALE		"TimeScale"
 /** The xml attribute representing media duration							  */
-	#define MANIFEST_MEDIA_DURATION			("Duration")
+	#define MANIFEST_MEDIA_DURATION			"Duration"
 /** The xml attribute signaling whether the fragment is part of live content  */
-	#define MANIFEST_MEDIA_IS_LIVE			("IsLive")
+	#define MANIFEST_MEDIA_IS_LIVE			"IsLive"
 /** The xml attribute representing server cache size in Fragments			  */
-	#define MANIFEST_MEDIA_LOOKAHEAD		("LookaheadCount")
+	#define MANIFEST_MEDIA_LOOKAHEAD		"LookaheadCount"
 /** The xml attribute representing the major version of the Manifest		  */
-	#define MANIFEST_MEDIA_MAJOR_VERSION	("MajorVersion")
+	#define MANIFEST_MEDIA_MAJOR_VERSION	"MajorVersion"
 /** The xml attribute representing the minor version of the Manifest		  */
-	#define MANIFEST_MEDIA_MINOR_VERSION	("MinorVersion")
+	#define MANIFEST_MEDIA_MINOR_VERSION	"MinorVersion"
 /** The xml attribute representing the size of the DVR window				  */
-	#define MANIFEST_MEDIA_DVR_WINDOW	    ("DVRWindowLength")
+	#define MANIFEST_MEDIA_DVR_WINDOW	    "DVRWindowLength"
 
 /** The xml tag identifying a Protection (sub)section	   */
-#define MANIFEST_ARMOR_ELEMENT			("Protection")
+#define MANIFEST_ARMOR_ELEMENT			"Protection"
 /** The xml attribute marking a 16bytes UUID				*/
-	#define MANIFEST_PROTECTION_ID			("SystemID")
+	#define MANIFEST_PROTECTION_ID			"SystemID"
 
 /**	The xml tag name for StreamElement						*/
-#define MANIFEST_STREAM_ELEMENT				("StreamIndex")
+#define MANIFEST_STREAM_ELEMENT				"StreamIndex"
 /**	The xml attribute name for StreamElement::Type			*/
-	#define MANIFEST_STREAM_TYPE			("Type")
+	#define MANIFEST_STREAM_TYPE			"Type"
 /**	The xml attribute name for StreamElement::SubType		*/
-	#define MANIFEST_STREAM_SUBTYPE			("Subtype")
+	#define MANIFEST_STREAM_SUBTYPE			"Subtype"
 /**	The xml attribute name for StreamElement::TimeScale		*/
-	#define MANIFEST_STREAM_TIME_SCALE		("TimeScale")
+	#define MANIFEST_STREAM_TIME_SCALE		"TimeScale"
 /**	The xml attribute name for StreamElement::StreamName	*/
-	#define MANIFEST_STREAM_NAME			("Name")
+	#define MANIFEST_STREAM_NAME			"Name"
 /**	The xml attribute name for StreamElement::StreamNumber  */
-	#define	MANIFEST_STREAM_CHUNKS			("Chunks")
+	#define	MANIFEST_STREAM_CHUNKS			"Chunks"
 /**	The xml attribute name for StreamElement::QualityLevels */
-	#define	MANIFEST_STREAM_QUALITY_LEVELS  ("QualityLevels")
+	#define	MANIFEST_STREAM_QUALITY_LEVELS  "QualityLevels"
 /**	The xml attribute name for StreamElement::StreamUrl		*/
-	#define	MANIFEST_STREAM_URL				("Url")
+	#define	MANIFEST_STREAM_URL				"Url"
 /**	The xml attribute name for StreamElement::MaxWidth	    */
-	#define	MANIFEST_STREAM_MAX_WIDTH		("MaxWidth")
+	#define	MANIFEST_STREAM_MAX_WIDTH		"MaxWidth"
 /**	The xml attribute name for StreamElement::MaxHeight		*/
-	#define	MANIFEST_STREAM_MAX_HEIGHT		("MaxHeight")
+	#define	MANIFEST_STREAM_MAX_HEIGHT		"MaxHeight"
 /**	The xml attribute name for StreamElement::DisplayWidth  */
-	#define	MANIFEST_STREAM_DISPLAY_WIDTH   ("DisplayWidth")
+	#define	MANIFEST_STREAM_DISPLAY_WIDTH   "DisplayWidth"
 /**	The xml attribute name for StreamElement::DisplayHeight	*/
-	#define	MANIFEST_STREAM_DISPLAY_HEIGHT  ("DisplayHeight")
+	#define	MANIFEST_STREAM_DISPLAY_HEIGHT  "DisplayHeight"
 /**	The xml attribute name for StreamElement::ParentStream	*/
-	#define	MANIFEST_STREAM_PARENT			("ParentStreamIndex")
+	#define	MANIFEST_STREAM_PARENT			"ParentStreamIndex"
 /**	The xml attribute name for StreamElement::ManifestOutput */
-	#define MANIFEST_STREAM_OUTPUT			("ManifestOutput")
+	#define MANIFEST_STREAM_OUTPUT			"ManifestOutput"
 
 /** Default number of ticks per minute					*/
-#define MANIFEST_MEDIA_DEFAULT_TICKS	 (10000000)
+#define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
 /** Major version number for the Manifest				*/
-#define MANIFEST_MEDIA_DEFAULT_MAJOR	 ("2")
+#define MANIFEST_MEDIA_DEFAULT_MAJOR	"2"
 /** Minor version number for the Manifest				*/
-#define MANIFEST_MEDIA_DEFAULT_MINOR	 ("0")
+#define MANIFEST_MEDIA_DEFAULT_MINOR	"0"
 
 static char    StreamTypeNames[3][6] = { "video", "audio", "text"};
 static char     ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
-static char     CodecTypeNames[4][6] = { "353", "85", "255","65534"};
+static char     CodecTypeNames[4][6] = { "353", "85", "255", "65534"};
 static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",
 										 "DESC", "CTRL", "DATA" };
+
+static void XMLCALL startblock(void *data, const char *el, const char **attr);
+static void XMLCALL   endblock(void *data, const char *el);
+static void XMLCALL  textblock(void *data, const char *text, int lenght);
 
 static error_t   parsemedia(Manifest *m, const char **attr);
 static error_t   parsearmor(Manifest *m, const char **attr);

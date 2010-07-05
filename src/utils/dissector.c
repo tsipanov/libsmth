@@ -100,7 +100,7 @@ void examine(Fragment *vc)
 
 void dumps(Fragment* vc, char* ifile)
 {
-	char ofile[strlen(ifile)+10];
+	char ofile[strlen(ifile)+16];
 	int i, offset = 0;
 	//SECURE
 	for( i = 0; i < vc->sampleno; i++)

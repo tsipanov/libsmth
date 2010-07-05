@@ -26,22 +26,33 @@
 
 #include <stdbool.h>
 #include <expat.h>
+#include <string.h>
 #include <smth-manifest-defs.h>
 
-#if 0
-static void XMLCALL startblock(void *data, const char *el, const char **attr);
-static void XMLCALL endblock(void *data, const char *el);
+/** \brief expat tag start event callback   */
+static void XMLCALL startblock(void *data, const char *el, const char **attr)
+{
+}
+
+/** \brief expat tag end event callback		*/
+static void XMLCALL endblock(void *data, const char *el)
+{
+}
+
+/** \brief expat text event callback		*/
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
-	printf("\n%4d: Text - ", Eventcnt++);
-	fwrite(text, lenght, sizeof(char), stdout);
+	base64data *tmp = malloc(lenght+1);
+	if (!tmp)
+	{   //TODO
+	}
+	memcpy(tmp, text, lenght);
+	tmp[lenght] = (base64data) 0;
+	m->armor = tmp;
 }
-#endif
 
-#define STRTOLOWER \
- int i; \
- for(i = 0; str[i]; i++) \
-    str[i] = tolower(str[i]);
+#define stolower(str) \
+ int i; for (i = 0; str[i]; i++) str[i] = tolower(str[i]);
 
 
 //TODO aggiungere uno stato per il parser
@@ -89,7 +100,7 @@ static error_t parsemedia(Manifest *m, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_IS_LIVE))
 		{   /* we can safely assume that if it is not true, it is false */
-			//m->islive = !strcmp(tolower(attr[i + 1]), "true")? true: false; FIXME
+			m->islive = (tolower(attr[i + 1]) == 't');
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_LOOKAHEAD))
@@ -123,7 +134,6 @@ static error_t parsearmor(Manifest *m, const char **attr)
 	if(strcmp(attr[0], MANIFEST_PROTECTION_ID))
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
 	//m->armorID = ; // attr[1]; FIXME (4-2-2-8)
-	//ProtectionHeaderContent = STRING_BASE64 TODO char handler
 }
 
 /**
