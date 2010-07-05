@@ -12,4 +12,4 @@
 //fprintf(stderr, "Parse error at line %lu:\n%s\n",
 //	XML_GetCurrentLineNumber(parser),
 //	XML_ErrorString(XML_GetErrorCode(parser)));	
-
+trasformare le iterazioni su array in 

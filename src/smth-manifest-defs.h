@@ -43,8 +43,8 @@ typedef enum {	MEDIA, 		/**< A SmoothStreamingMedia block.	*/
 typedef struct
 {   /** The manifest to be filled with parsed data. */
 	Manifest *m;
-	/** The type of the block currently parsed. */
-	BlockType type;
+	/** Whether the parser is waiting for encryption armor data. */
+	bool armorwaiting;
 	/** The error code reported by a parsing handler. */
 	error_t state;
 } ManifestBox;
@@ -106,8 +106,11 @@ typedef struct
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	"2"
 /** Minor version number for the Manifest				*/
 #define MANIFEST_MEDIA_DEFAULT_MINOR	"0"
+
 /** The size of the parser buffer, in bytes */
 #define MANIFEST_XML_BUFFER_SIZE		8192
+/** The lenght of a UUID string in bytes	*/
+#define MANIFEST_ARMOR_UUID_LENGHT		35
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);

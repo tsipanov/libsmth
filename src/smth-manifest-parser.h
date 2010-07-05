@@ -87,6 +87,8 @@ typedef struct
 #define MANIFEST_UNKNOWN_BLOCK			 (-8)
 /** A text block was encountered where it was not expected.	*/
 #define MANIFEST_UNEXPECTED_TRAILING	 (-9)
+/** The armor UUID is malformed.						*/
+#define MANIFEST_MALFORMED_ARMOR_UUID    (-10)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
 

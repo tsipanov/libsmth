@@ -42,9 +42,11 @@
 error_t parsemanifest(Manifest *m, FILE *stream)
 {
 	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
-	ManifestBox root = {m, MEDIA, MANIFEST_SUCCESS};
+	ManifestBox root = {m, false, MANIFEST_SUCCESS};
 	error_t result;
 	bool done = false;
+
+	memset(m, 0x00, sizeof (Manifest)); /* reset memory */
 
 	if (feof(stream)) return MANIFEST_EMPTY;
 
@@ -65,7 +67,7 @@ error_t parsemanifest(Manifest *m, FILE *stream)
 			done = true;
 		}
 		if (XML_Parse(parser, chunk, len, done) == XML_STATUS_ERROR)
-		{	result MANIFEST_PARSE_ERROR;
+		{	result = MANIFEST_PARSE_ERROR;
 			break; /* here we could put a done = true statement, but it would *
 			        * be ignored by XML_Parse, as `while` would trigger off.  */
 		}
@@ -134,30 +136,37 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 		{   mb->m->dvrwindow = (lenght_t) atol(attr[i + 1]);
 			continue;
 		}
-		//TODO aggiungere frame custom
+		/* TODO else */
 	}
 	/* if the field is null, set it to default, as required by specs */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
 
 	return MANIFEST_SUCCESS;
 }
-#if 0
-//TODO controllare adeguatamente la codifica dei caratteri (o lo fa expat??)
+
 /**
- * \brief Parses a ProtectionElement
- *
+ * \brief Parses a ProtectionHeader element.
+ *        
  * This XML element holds metadata required by to play back protected content.
+ * Funnily enough, its container `Protection` is pointless.
  *
- * \param m    The manifest to be filled with data parsed.
+ * \param m    The manifest to be filled with parsed attributes.
  * \param attr The attributes to parse.
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
-static error_t parsearmor(Manifest *m, const char **attr)
+static error_t parsearmor(ManifestBox *mb, const char **attr)
 {
-	if(strcmp(attr[0], MANIFEST_PROTECTION_ID))
+	if (strcmp(attr[0], MANIFEST_PROTECTION_ID))
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
-	//m->armorID = ; // attr[1]; FIXME (4-2-2-8)
+	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGHT)
+		return MANIFEST_MALFORMED_ARMOR_UUID;
+//////////////////////////////////TODO//////////////////////////////////////////
+//	mb->m->armorID =; // attr[1];  9A04F079-9840-4286-AB92E65BE0885F95
+////////////////////////////////////////////////////////////////////////////////
+	mb->armorwaiting = true; /* waiting for the body to be parsed. */
+
+	return MANIFEST_SUCCESS;
 }
 
 /**
@@ -174,13 +183,21 @@ static error_t parsearmor(Manifest *m, const char **attr)
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
-static error_t parseelement(Manifest *m, const char **attr)
+static error_t parseelement(ManifestBox *mb, const char **attr)
 {
 	count_t i;
 	for (i = 0; attr[i]; i += 2)
 	{
+
+	tick_t duration;
+	tick_t tick;
+	bool islive;
+	count_t lookahead;
+	lenght_t dvrwindow;
+	uuid_t armorID;
+
 		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE)) //"video" / "audio" / "text"
-		{
+		{   
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE)) //4*4 ALPHA
@@ -234,7 +251,6 @@ static error_t parseelement(Manifest *m, const char **attr)
 		//FIXME	VendorExtensionAttribute
 	}
 }
-#endif
 
 #if 0
 
@@ -272,19 +288,24 @@ fragments that are part of this stream MUST be omitted.
 
 #endif
 
-////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////XML FIXME///////////////////////////////////////
 
 /** \brief expat tag start event callback. */
 static void XMLCALL startblock(void *data, const char *el, const char **attr)
-{   ManifestBox *manbox = data;
-	switch (manbox->type)
-	{   case MEDIA: manbox->state = parsemedia(manbox, attr); break;
+{
+	ManifestBox *manbox = data;
+
+	if (!strcmp(el, MANIFEST_ELEMENT))
+	{   manbox->state = parsemedia(manbox, attr);
+		return;
+	}
+// FIXME
 //		case LEVEL: manbox->state = parsemedia(manbox, attr); break;
 //		case TRACK: manbox->state = parsemedia(manbox, attr); break;
 //		case CHUNK: manbox->state = parsemedia(manbox, attr); break;
 //		case PROTECT: manbox->state = parsemedia(manbox, attr); break;
-		default: manbox->state = MANIFEST_UNKNOWN_BLOCK; break;
-	}
+
+//	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
 
 /** \brief expat tag end event callback. */
@@ -292,27 +313,29 @@ static void XMLCALL endblock(void *data, const char *el)
 {   ManifestBox *manbox = data;
 }
 
+//TODO implementare UnknownEncoding
+
 //FIXME e se unserissi anche la lunghezza??
 /** \brief expat text event callback. */
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
 	ManifestBox *manbox = data;
-//	if(manbox->type != PROTECT) FIXME
-//	{   manbox->state = MANIFEST_UNEXPECTED_TRAILING;
-//		return;
-//	}
-	if (lenght > 0)
-	{	
-		base64data *tmp = malloc(lenght+1);
-		if (!tmp)
-		{   free(tmp);
-			manbox->state = MANIFEST_NO_MEMORY;
+	if (manbox->armorwaiting)
+	{
+		if (lenght > 0)
+		{	
+			base64data *tmp = malloc(lenght+1);
+			if (!tmp)
+			{   free(tmp);
+				manbox->state = MANIFEST_NO_MEMORY;
+			}
+			memcpy(tmp, text, lenght);
+			tmp[lenght] = (base64data) 0;
+			manbox->m->armor = tmp;
 		}
-		memcpy(tmp, text, lenght);
-		tmp[lenght] = (base64data) 0;
-		manbox->m->armor = tmp;
+		else manbox->m->armor = NULL;
 	}
-	else manbox->m->armor = NULL;
+	manbox->armorwaiting = false;
 }
 
 /* vim: set ts=4 sw=4 tw=0: */
