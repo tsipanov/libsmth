@@ -33,3 +33,31 @@ URISAFE_IDENTIFIER $VALUE /* The value of the Attribute */
 char FragmentRequest[] = \
 	"/QualityLevels($BITRATE,$KEY=$VALUE))/Fragments($NAME=$TIME)";
 
+
+
+
+#if 0
+The UrlPattern and related fields define a pattern that can be used by the client to make
+semantically valid Fragment Requests for the presentation.
+UrlPattern (variable): Encapsulates a pattern for constructing Fragment Requests.
+BitrateSubstitution (variable): A placeholder expression for the Bit rate of a track.
+CustomAttributesSubstitution (variable): A placeholder expression for the Attributes used to
+disambiguate a track from other tracks in the stream.
+TrackName (variable): A unique identifier that applies to all tracks in a stream.
+BitrateSubstitution (variable): A placeholder expression for the time of a fragment.
+The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
+   UrlPattern = QualityLevelsPattern "/" FragmentsPattern
+   QualityLevelsPattern = QualityLevelsNoun "(" QualityLevelsPredicatePattern ")"
+   QualityLevelsNoun = "QualityLevels"
+   QualityLevelsPredicate = BitrateSubstitution ["," CustomAttributesSubstitution ]
+   Bitrate = "{bitrate}" / "{Bitrate}"
+   CustomAttributesSubstitution = "{CustomAttributes}"
+   FragmentsPattern = FragmentsNoun "(" FragmentsPatternPredicate ")";
+   FragmentsNoun = "Fragments"
+   FragmentsPatternPredicate = TrackName "=" StartTimeSubstitution;
+   TrackName = URISAFE_IDENTIFIER_NONNUMERIC
+   StartTimeSubstitution = "{start time}" / "{start_time}"
+
+P. 20 [24]
+#endif
+

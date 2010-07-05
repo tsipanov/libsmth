@@ -18,44 +18,67 @@
 
 /**
  * \internal
- * \file   smth-fragment-parser.c
+ * \file   smth-manifest-parser.c
  * \brief  XML manifest parser
  * \author Stefano Sanfilippo
- * \date   30th June - 1st July 2010
+ * \date   30th June - 1st July/5th July 2010
  */
 
 #include <stdbool.h>
 #include <expat.h>
 #include <string.h>
+#include <stdio.h>
 #include <smth-manifest-defs.h>
 
-/** \brief expat tag start event callback   */
-static void XMLCALL startblock(void *data, const char *el, const char **attr)
+/**
+ * \brief Parses a manifest from file stream and fills a Manifest struct.
+ *
+ * If a parse error was detected, only the last error code is reported.
+ *
+ * \param m      Pointer to the manifest struct to be filled
+ * \param stream The stream containing the manifest to be parsed.
+ * \return       MANIFEST_SUCCESS or an appropriate error code.
+ */
+error_t parsemanifest(Manifest *m, FILE *stream)
 {
-}
+	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
+	ManifestBox root = {m, MEDIA, MANIFEST_SUCCESS};
+	error_t result;
+	bool done = false;
 
-/** \brief expat tag end event callback		*/
-static void XMLCALL endblock(void *data, const char *el)
-{
-}
+	if (feof(stream)) return MANIFEST_EMPTY;
 
-/** \brief expat text event callback		*/
-static void XMLCALL textblock(void *data, const char *text, int lenght)
-{
-	base64data *tmp = malloc(lenght+1);
-	if (!tmp)
-	{   //TODO
+	XML_Parser parser = XML_ParserCreate(NULL);
+	if (!parser) return MANIFEST_NO_MEMORY;
+	XML_SetElementHandler(parser, startblock, endblock);
+	XML_SetCharacterDataHandler(parser, textblock);
+	XML_SetUserData(parser, &root);
+
+	while (!done)
+	{
+		lenght_t len;
+		len = (lenght_t) fread(chunk, sizeof(byte_t), sizeof(chunk), stream);
+		done = feof(stream);
+
+		if (ferror(stdin))
+		{   result = MANIFEST_IO_ERROR;
+			done = true;
+		}
+		if (XML_Parse(parser, chunk, len, done) == XML_STATUS_ERROR)
+		{	result MANIFEST_PARSE_ERROR;
+			break; /* here we could put a done = true statement, but it would *
+			        * be ignored by XML_Parse, as `while` would trigger off.  */
+		}
+		if (root.state != MANIFEST_SUCCESS)
+		{   result = root.state;
+			break; /* same as above. */
+		}
 	}
-	memcpy(tmp, text, lenght);
-	tmp[lenght] = (base64data) 0;
-	m->armor = tmp;
+
+	XML_ParserFree(parser);
+	return result;
 }
 
-#define stolower(str) \
- int i; for (i = 0; str[i]; i++) str[i] = tolower(str[i]);
-
-
-//TODO aggiungere uno stato per il parser
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -68,56 +91,57 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
  *
  * \param m    The manifest to be filled with parsed data.
  * \param attr The attributes to parse.
- * \return     MANIFEST_SUCCESS
+ * \return     MANIFEST_SUCCESS or an appropriate error code.
  */
-static error_t parsemedia(Manifest *m, const char **attr)
+static error_t parsemedia(ManifestBox *mb, const char **attr)
 {
 	count_t i;
-	/* we rely on expat for attr[] to have an even element number: if a[2*i] is
-	 * not NULL, we safely assume that neither a[2*i+1] is. */
 	for (i = 0; attr[i]; i += 2)
 	{
+		if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
+
 		/* The specifications require that Major is set to 2 and Minor to 0 */
 		if (!strcmp(attr[i], MANIFEST_MEDIA_MAJOR_VERSION))
-		{   if (strcmp(attr[i+1]), MANIFEST_MEDIA_DEFAULT_MAJOR)
+		{   if (strcmp(attr[i+1], MANIFEST_MEDIA_DEFAULT_MAJOR))
 			{	return MANIFEST_WRONG_VERSION;
 			}
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_MINOR_VERSION))
-		{   if (strcmp(attr[i+1]), MANIFEST_MEDIA_DEFAULT_MINOR)
+		{   if (strcmp(attr[i+1], MANIFEST_MEDIA_DEFAULT_MINOR))
 			{	return MANIFEST_WRONG_VERSION;
 			}
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_TIME_SCALE))
-		{   m->tick = (tick_t) atol(attr[i + 1]);
+		{   mb->m->tick = (tick_t) atol(attr[i + 1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_DURATION))
-		{   m->duration = (tick_t) atol(attr[i + 1]);
+		{   mb->m->duration = (tick_t) atol(attr[i + 1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_IS_LIVE))
 		{   /* we can safely assume that if it is not true, it is false */
-			m->islive = (tolower(attr[i + 1]) == 't');
+			mb->m->islive = (tolower(attr[i + 1]) == 't');
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_LOOKAHEAD))
-		{   m->lookahead = (count_t) atoi(attr[i + 1]);
+		{   mb->m->lookahead = (count_t) atoi(attr[i + 1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_DVR_WINDOW))
-		{   m->dvrwindow = (lenght_t) atol(attr[i + 1]);
+		{   mb->m->dvrwindow = (lenght_t) atol(attr[i + 1]);
 			continue;
 		}
 		//TODO aggiungere frame custom
 	}
 	/* if the field is null, set it to default, as required by specs */
-	if (!m->tick) m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
+	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
 
 	return MANIFEST_SUCCESS;
 }
+#if 0
 //TODO controllare adeguatamente la codifica dei caratteri (o lo fa expat??)
 /**
  * \brief Parses a ProtectionElement
@@ -210,11 +234,9 @@ static error_t parseelement(Manifest *m, const char **attr)
 		//FIXME	VendorExtensionAttribute
 	}
 }
+#endif
 
 #if 0
-FIXME nella struttura, bisogna inserire quale è il frammento attualmente in uso
-TODO  le funzioni della serie parse pensano stupidamente ad inserire i dati,
-      la funzione start controlla che sia tutto OK.
 
 Type (variable): The type of the stream: video, audio, or text.  
 StreamTimeScale (variable): The time scale for duration and time values in this stream, specified
@@ -250,29 +272,47 @@ fragments that are part of this stream MUST be omitted.
 
 #endif
 
-#if 0
-The UrlPattern and related fields define a pattern that can be used by the client to make
-semantically valid Fragment Requests for the presentation.
-UrlPattern (variable): Encapsulates a pattern for constructing Fragment Requests.
-BitrateSubstitution (variable): A placeholder expression for the Bit rate of a track.
-CustomAttributesSubstitution (variable): A placeholder expression for the Attributes used to
-disambiguate a track from other tracks in the stream.
-TrackName (variable): A unique identifier that applies to all tracks in a stream.
-BitrateSubstitution (variable): A placeholder expression for the time of a fragment.
-The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
-   UrlPattern = QualityLevelsPattern "/" FragmentsPattern
-   QualityLevelsPattern = QualityLevelsNoun "(" QualityLevelsPredicatePattern ")"
-   QualityLevelsNoun = "QualityLevels"
-   QualityLevelsPredicate = BitrateSubstitution ["," CustomAttributesSubstitution ]
-   Bitrate = "{bitrate}" / "{Bitrate}"
-   CustomAttributesSubstitution = "{CustomAttributes}"
-   FragmentsPattern = FragmentsNoun "(" FragmentsPatternPredicate ")";
-   FragmentsNoun = "Fragments"
-   FragmentsPatternPredicate = TrackName "=" StartTimeSubstitution;
-   TrackName = URISAFE_IDENTIFIER_NONNUMERIC
-   StartTimeSubstitution = "{start time}" / "{start_time}"
+////////////////////////////////////////////////////////////////////////////////
 
-P. 20 [24]
-#endif
+/** \brief expat tag start event callback. */
+static void XMLCALL startblock(void *data, const char *el, const char **attr)
+{   ManifestBox *manbox = data;
+	switch (manbox->type)
+	{   case MEDIA: manbox->state = parsemedia(manbox, attr); break;
+//		case LEVEL: manbox->state = parsemedia(manbox, attr); break;
+//		case TRACK: manbox->state = parsemedia(manbox, attr); break;
+//		case CHUNK: manbox->state = parsemedia(manbox, attr); break;
+//		case PROTECT: manbox->state = parsemedia(manbox, attr); break;
+		default: manbox->state = MANIFEST_UNKNOWN_BLOCK; break;
+	}
+}
+
+/** \brief expat tag end event callback. */
+static void XMLCALL endblock(void *data, const char *el)
+{   ManifestBox *manbox = data;
+}
+
+//FIXME e se unserissi anche la lunghezza??
+/** \brief expat text event callback. */
+static void XMLCALL textblock(void *data, const char *text, int lenght)
+{
+	ManifestBox *manbox = data;
+//	if(manbox->type != PROTECT) FIXME
+//	{   manbox->state = MANIFEST_UNEXPECTED_TRAILING;
+//		return;
+//	}
+	if (lenght > 0)
+	{	
+		base64data *tmp = malloc(lenght+1);
+		if (!tmp)
+		{   free(tmp);
+			manbox->state = MANIFEST_NO_MEMORY;
+		}
+		memcpy(tmp, text, lenght);
+		tmp[lenght] = (base64data) 0;
+		manbox->m->armor = tmp;
+	}
+	else manbox->m->armor = NULL;
+}
 
 /* vim: set ts=4 sw=4 tw=0: */

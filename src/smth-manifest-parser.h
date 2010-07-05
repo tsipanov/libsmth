@@ -27,42 +27,13 @@
 #ifndef __SMTH_MANIFEST_PARSER_H__
 #define __SMTH_MANIFEST_PARSER_H__
 
+#include <stdio.h>
 #include <smth-common-defs.h>
-
-/** The Stream subtype (for text streams) */
-typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
-				       *   implementation on the Client */
-   				CHAP, /**< Chapter markers */
-  				SUBT, /**< Subtitles used for foreign-language audio */
-				CAPT, /**< Closed captions for the hearing-impaired */
-   				DESC, /**< Media descriptions for the hearing-impaired */
- 				CTRL, /**< Events the control application business logic */
-  				DATA  /**< Application data that does not fall
-				       *   into any of the above categories */
-} StreamSubtype;
-
-/** Stream codec */
-typedef enum {	PCM,  /**< Linear 8 or 16 bit Pulse Code Modulation */
-				WMA,  /**< +Microsoft Windows Media Audio v7, v8
-				       *   and v9.x Standard (WMA Standard)
-			           *   +Microsoft Windows Media Audio v9.x
-				       *   and v10 Professional (WMA Professional)*/
-				MP3,  /**< ISO MPEG-1 Layer III */
-				AAC,  /**< ISO Advanced Audio Coding */
-				VEN   /**< SYNTHETIC Vendor-extensible format. */
-} CodecType;
-
-/** Stream container type */
-typedef enum {	H264, /**< Advanced Video Coding */
-				WVC1, /**< Microsoft VC-1(R) */
-				AACL, /**< AAC (Low Complexity) */
-				WMAP, /**< WMA Professional */
-				CUST  /**< A vendor extension value registered with MPEG4-RA */
-} ContainerType;
 
 /** The Stream content type. OTHER is used for error detection only. */
 typedef enum {VIDEO, AUDIO, TEXT, OTHER} StreamType;
 
+/** \brief Holds the manifest data of the opened stream. */
 typedef struct
 {
 	/** The duration of the content, measured in ticks, as indicated by the
@@ -91,16 +62,33 @@ typedef struct
 	 *  For instance: {9A04F079-9840-4286-AB92E65BE0885F95}
 	 */
 	uuid_t armorID;
-	/** Opaque data that the Content Protection System identified in the
-	 *  Manifest::armorid field can use to enable playback for authorized
-	 *  users, encoded using Base64.
+	/** Opaque data that can use to enable playback for authorize users,
+	 *  encoded using Base64.
 	 */
 	base64data *armor;
 } Manifest;
 
 #define MANIFEST_SUCCESS				 ( 0)
+/** Wrong Manifest version.								*/
 #define MANIFEST_WRONG_VERSION			 (-1)
+/** An out-of-context attribute was parsed.				*/
 #define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-2)
+/** There was no memory to istantiate the parser.		*/
+#define MANIFEST_NO_MEMORY				 (-3)
+/** There was an i/o error with the manifest file.		*/
+#define MANIFEST_IO_ERROR				 (-4)
+/** The parser encountered a malformed xml manifest.	*/
+#define MANIFEST_PARSE_ERROR			 (-5)
+/** The manifest is empty...							*/
+#define MANIFEST_EMPTY					 (-6)
+/** The xml backend behaved badly and it was blocked.	*/
+#define MANIFEST_PARSER_ERROR			 (-7)
+/** The manifest parser encountered an unknown element.	*/
+#define MANIFEST_UNKNOWN_BLOCK			 (-8)
+/** A text block was encountered where it was not expected.	*/
+#define MANIFEST_UNEXPECTED_TRAILING	 (-9)
+
+error_t parsemanifest(Manifest *m, FILE *manifest);
 
 #endif /* __SMTH_MANIFEST_PARSER_H__ */
 

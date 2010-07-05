@@ -90,7 +90,8 @@ typedef struct
 	 *  DefaultSampleSize field.
 	 */
 	bitrate_t size;
-	/** The default value of the SampleFlags field for each Sample. Filled from
+	/** The default value of the SampleFlags field for each Sample. If it is
+	 *  zero, its implicit value is Fragment::settings. Filled from
 	 *  DefaultSampleFlags field.
 	 */
 	flags_t settings;
@@ -112,35 +113,28 @@ typedef struct
 	state_t redundant;
 } SampleSettings;
 
-/** Note that the first three fields are equal to the ones in
- *  SampleDefault */
+/** \brief Per-sample metadata.
+ *
+ *  Note that the first three fields are equal to the ones in SampleDefault
+ */
 typedef struct
-{	/** The duration of each Sample, in increments defined by the TimeScale
-	 *  for the Track. If this field is not present, its implicit value is
-     *  the value of the DefaultSampleDuration field. This field MUST be present
-	 *  if and only if SampleDurationPresent flag is set. Filled from
-	 *  SampleDuration field.
+{	/** The duration of each Sample, in increments defined by Manifest::tick.
+	 *  If this field is not present, its implicit value is the value of
+	 *  SampleDefault::duration. Filled from SampleDuration field.
 	 */
 	bitrate_t duration;
-	/** The size of each Sample, in bytes. This field MUST be present
-	 *  if and only if the flag SampleSizePresent is set. If this field is
-	 *  not present, its implicit value is the value of the DefaultSampleSize
-	 *  field. Filled from SampleSize field.
+	/** The size of each Sample, in bytes. If this field is zero its implicit
+	 *  value is SampleDefault::size. Filled from SampleSize field.
 	 */
 	bitrate_t size;
-	/** The Sample flags of each Sample. This field MUST be present if and
-	 *  only if SampleFlagsPresent flag is set. If this field is not
-	 *  present, its implicit value is the value of the DefaultSampleDuration
-	 *  field. If the FirstSampleFlags field is present and this field is
-	 *  omitted, this field's implicit value for the first Sample in the
-	 *  Fragment MUST be the value of the FirstSampleFlags field.
-	 *  Retrieved from SampleFlags field.
+	/** The Sample flags. If this field is not present, its implicit value is
+	 *  SampleDefault::settings.
 	 */
 	flags_t settings;
-	/* The Sample Composition Time offset of each Sample, as defined in [ISOFF].
-	 * This field MUST be present if and only if the
-	 * SampleCompositionTimeOffsetPresent flag is set. Filled from
-	 * SampleCompositionTimeOffset field.
+	/** The Sample Composition Time offset of each Sample.
+	 *  This field MUST be present if and only if the
+	 *  SampleCompositionTimeOffsetPresent flag is set. Filled from
+	 *  SampleCompositionTimeOffset field.
 	 */
 	bitrate_t timeoffset;
 } Sample;
@@ -196,9 +190,6 @@ typedef struct
 /** There are trailing bytes after a MdatBox that will not be parsed */
 #define FRAGMENT_BIGGER_THAN_DECLARED (-8)
 
-int parsefragment(Fragment *f, FILE *stream);
-void disposefragment(Fragment *f);
-
 /** Sample priority (first 2 bytes)	*/
 #define	SAMPLE_PRIORITY(S)		 ((S) & 0xffff)
 /** Sample difference flag (bit 17)					*/
@@ -218,7 +209,8 @@ void disposefragment(Fragment *f);
  *
  *  For compatiility with MS specifications.
  */
-#define SAMPLE_GET_SIMPLE_FLAGS (S) ((S >> 20) & 0x3f)
+#define SAMPLE_GET_SIMPLE_FLAGS(S) ((S >> 20) & 0x3f)
+
 #if 0
 /** Fills a SampleSettings struct with data parsed from flagfield settings */
 inline void parsesampleflags(SampleSettings *s, flags_t settings)
@@ -231,6 +223,10 @@ inline void parsesampleflags(SampleSettings *s, flags_t settings)
 	s->redundant	= (state_t)	SAMPLE_DEPENDS_ON (settings);
 }
 #endif
+
+int parsefragment(Fragment *f, FILE *stream);
+void disposefragment(Fragment *f);
+
 #endif /* __SMTH_FRAGMENT_PARSER__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
