@@ -30,10 +30,23 @@
 #include <stdio.h>
 #include <smth-common-defs.h>
 
+/** The size of a Track::fourcc attribute string. */
+#define MANIFEST_TRACK_FOURCC_SIZE 4
+/** The size of a Stream::subtype attribute string. */
+#define MANIFEST_STREAM_SUBTYPE_SIZE 4
+
 /** Screen size metadata. */
 typedef struct
 {   metric_t width, height;
 } ScreenMetrics;
+
+/** Metadata expressed as key/value pairs that disambiguates tracks. */
+typedef struct
+{   /** The name of a custom Attribute for a track. */
+	chardata *key;
+	/** The value of a custom Attribute for a track. */
+	chardata *value;
+} Attribute;
 
 typedef struct
 {   /** An ordinal that identifies the track and MUST be unique for each track
@@ -57,9 +70,22 @@ typedef struct
 	flags_t audiotag;
 	/** A four-character code that identifies which media format is used for
 	 *  each sample. */
-	char fourcc[4];
+	char fourcc[MANIFEST_TRACK_FOURCC_SIZE];
 	/** Data that specifies parameters specific to the media format and common
-	 *  to all samples in the track. */
+	 *  to all samples in the track.
+	 *  The meaning of each sequence is correlated to the FourCC type, as follows:
+	 *    + "H264": hex-coded string of the following byte sequence:
+	 *           %x00 %x00 %x00 %x01 SPSField %x00 %x00 %x00 %x01 SPSField
+	 *              SPSField contains the Sequence Parameter Set (SPS).
+	 *              PPSField contains the Slice Parameter Set (PPS).
+	 *    + "WVC1": hex-coded string of the VIDEOINFOHEADER structure.
+	 *    + "AACL": should be empty.
+	 *    + "WMAP": WAVEFORMATEX structure, if the AudioTag field equals "65534",
+	 *				and should be empty otherwise.
+	 *    +  other: the format of the CodecPrivateData field is vendor-extensible.
+	 *              Registration of the FourCC field value with MPEG4-RA, can be
+	 *              used to avoid collision between extensions.
+	 */
 	hexdata *header;
 	/** The Channel Count of an audio track */
 	unit_t channelsno;
@@ -101,7 +127,7 @@ typedef struct
 	 *  each sample in a text track. However, the FourCC field, is used to
 	 *  identify the media format for each sample.
 	 */
-	char subtype[4]; //XXX
+	char subtype[MANIFEST_STREAM_SUBTYPE_SIZE]; //XXX
 } Stream;
 
 /** \brief Holds the manifest data of the opened stream. */
@@ -167,8 +193,7 @@ typedef struct
 /** A malformed subtype string was encountered */
 #define MANIFEST_MALFORMED_SUBTYPE		 (-12)
 /** A malformed fourcc string was encountered */
-#define MANIFEST_MALFORMED_FOURCC (-13)
-
+#define MANIFEST_MALFORMED_FOURCC		 (-13)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
 

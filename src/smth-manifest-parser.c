@@ -42,7 +42,7 @@
 error_t parsemanifest(Manifest *m, FILE *stream)
 {
 	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
-	ManifestBox root = {m, false, MANIFEST_SUCCESS};
+	ManifestBox root = {m, false, false, MANIFEST_SUCCESS};
 	error_t result;
 	bool done = false;
 
@@ -157,6 +157,8 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
  */
 static error_t parsearmor(ManifestBox *mb, const char **attr)
 {
+	if (!attr[0]) return MANIFEST_MALFORMED_ARMOR_UUID; /* no uuid */
+
 	if (strcmp(attr[0], MANIFEST_PROTECTION_ID)) //FIXME fortify
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
 	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGHT)
@@ -179,7 +181,7 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
  * This parser is not paranoid safe, as it will deduce some parameters from
  * the initial letter of a tag, without analizing the complete string.
  *
- * \param m    The Manifest struct to be filled with parsed data.
+ * \param mb   The Manifest struct wrapper to be filled with parsed data.
  * \param attr The attributes to parse.
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
@@ -212,10 +214,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
 		{   tmp->name = malloc(strlen(attr[i+1])); //FIXME sanitize ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
-			if(!tmp->name)
-			{   free(tmp);
-				return MANIFEST_NO_MEMORY;
-			}
+			if(!tmp->name) return MANIFEST_NO_MEMORY;
 			strcpy(tmp->name, attr[i+1]);
 			continue;
 		}
@@ -249,15 +248,12 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE))
-		{   if (strlen(attr[i+1]) == 4)
+		{   if (strlen(attr[i+1]) == MANIFEST_STREAM_SUBTYPE_SIZE)
 			{   strcpy(tmp->subtype, attr[i+1]);
 				continue;
 			}
-			if (strlen(attr[i+1]) != 0)
-			{	free(tmp);
-				return MANIFEST_MALFORMED_SUBTYPE;
-			}
-			/* else (not null, not 4 letters) keep it NULL */
+			if (strlen(attr[i+1]) != 0) return MANIFEST_MALFORMED_SUBTYPE;
+			/* else (NULL) keep it NULL */
 		}
 //////////////////////////////////////TODO//////////////////////////////////////
 #if 0
@@ -300,73 +296,78 @@ SubtypeControlEvents (variable): Control events for applications on the client.
  * by VIDEO: MaxWidth | MaxHeight | CodecPrivateData
  * by AUDIO: MaxWidth | MaxHeight | CodecPrivateData | SamplingRate |
  *           Channels | BitsPerSample | PacketSize | AudioTag | FourCC
+ *
+ * \param mb   The Manifest struct wrapper to be filled with parsed data.
+ * \param attr The attributes to parse.
+ * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
+ *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
 static error_t parsetrack(ManifestBox *mb, const char **attr)
 {
 	count_t i;
 
-	Stream *tmp = calloc(1, sizeof(Track));
+	Track *tmp = calloc(1, sizeof(Track));
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
 	for (i = 0; attr[i]; i += 2)
 	{
-		if (!strcmp(attr[i], MANIFEST_TRACK_INDEX)
+		if (!strcmp(attr[i], MANIFEST_TRACK_INDEX))
 		{   tmp->index = (count_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_BITRATE)
+		if (!strcmp(attr[i], MANIFEST_TRACK_BITRATE))
 		{   tmp->bitrate = (bitrate_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_MAXWIDTH)
+		if (!strcmp(attr[i], MANIFEST_TRACK_MAXWIDTH))
 		{   tmp->maxsize.width = (metric_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_MAXHEIGHT)
+		if (!strcmp(attr[i], MANIFEST_TRACK_MAXHEIGHT))
 		{   tmp->maxsize.height = (metric_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_PACKETSIZE)
+		if (!strcmp(attr[i], MANIFEST_TRACK_PACKETSIZE))
 		{   tmp->packetsize = (bitrate_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_SAMPLERATE)
+		if (!strcmp(attr[i], MANIFEST_TRACK_SAMPLERATE))
 		{   tmp->samplerate = (bitrate_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_AUDIOTAG)
+		if (!strcmp(attr[i], MANIFEST_TRACK_AUDIOTAG))
 		{   tmp->audiotag = (flags_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_FOURCC)
-		{   if (strlen(attr[i+1]) == 4)
+		if (!strcmp(attr[i], MANIFEST_TRACK_FOURCC))
+		{   /* overflow safe */
+			if (strlen(attr[i+1]) == MANIFEST_TRACK_FOURCC_SIZE)
 			{   strcpy(tmp->fourcc, attr[i+1]);
 				continue;
 			}
 			if (strlen(attr[i+1]) != 0)
-			{	free(tmp);
-				return MANIFEST_MALFORMED_FOURCC;
+			{	return MANIFEST_MALFORMED_FOURCC;
 			}
 			/* else (not null, not 4 letters) keep it NULL */
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_HEADER)
-		{   tmp->header = malloc(strlen(attr[i+1]) / 2); /* each byte is 2 chars long */
-			if(!tmp->name)
-			{   free(tmp);
-				return MANIFEST_NO_MEMORY;
-			}
-			//TODO unhexlify
+		if (!strcmp(attr[i], MANIFEST_TRACK_HEADER))
+		{
+			tmp->header = malloc(strlen(attr[i+1]));
+			if(!tmp->header) return MANIFEST_NO_MEMORY;
+			/* data is not unhexlified because vendor extensions could put
+			 * here anything, even text. */
+			strcpy(tmp->header, attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_CHANNELS)
+		if (!strcmp(attr[i], MANIFEST_TRACK_CHANNELS))
 		{   tmp->channelsno = (unit_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_BITSPERSAMPLE)
+		if (!strcmp(attr[i], MANIFEST_TRACK_BITSPERSAMPLE))
 		{   tmp->bitspersample = (unit_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_NAL_LENGHT)
+		if (!strcmp(attr[i], MANIFEST_TRACK_NAL_LENGHT))
 		{   tmp->nalunitlenght = (unit_t) atoi(attr[i+1]);
 			if (!tmp->nalunitlenght) tmp->nalunitlenght = NAL_DEFAULT_LENGHT;
 			continue;
@@ -374,42 +375,212 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		/* TODO else */
 	}
 
-	//TODO body
-
-	free(tmp->header); //XXX
-	free(tmp); //XXX
+	//mb->fillwithattrs = tmp->attributes; TODO
+	//if (tmp->header) free(tmp->header);  XXX
+	if (tmp) free(tmp); //XXX
 
 	return MANIFEST_SUCCESS;
 }
 
+/**
+ * \brief Attribute (metadata that disambiguates tracks in a stream) parser.
+ *
+ * \param m    The Manifest struct wrapper to be filled with parsed data.
+ * \param attr The attributes to parse.
+ * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
+ *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
+ */
+//TODO inserire il puntatore alla lista di attributi
+// <CustomAttributesElementName>
+static error_t parseattr(ManifestBox* mb, const char **attr)
+{
+	count_t i;
+	Attribute *tmp = malloc(sizeof (Attribute));
+
+	if (!tmp) return MANIFEST_NO_MEMORY;
+
+	for (i = 0; attr[i]; i += 2)
+	{
+		chardata *tmpvalue = malloc(strlen(attr[i+1]));
+		if (!tmpvalue) return MANIFEST_NO_MEMORY;
+
+		/* the lenght must not change (_const_ char **)*/
+		strcpy(tmpvalue, attr[i+1]);
+
+		if (!strcmp(attr[i], MANIFEST_ATTRS_KEY)) tmp->key = tmpvalue;
+		if (!strcmp(attr[i], MANIFEST_ATTRS_VALUE)) tmp->value = tmpvalue;
+	}
+
+	free(tmp); //XXX
+	return MANIFEST_SUCCESS;
+}
+
+/**
+  The StreamFragmentElement and related fields are used to specify metadata for one set of
+  Related fragments in a stream. The order of repeated StreamFragmentElement fields in a
+  containing StreamElement is significant for the correct function of the IIS Smooth Streaming
+  Transport Protocol. To this end, the following elements make use of the terms "preceding" and
+  "subsequent" StreamFragmentElement in reference to the order of these fields.
+ */
+static error_t parsechunk(ManifestBox *mb, const char **attr)
+{
+
+	return MANIFEST_SUCCESS;
+}
 #if 0
-TrackContent = CustomAttributes?
 
-  The CustomAttributesElement and related fields are used to specify metadata that disambiguates tracks in a stream.
-  CustomAttributes (variable): Metadata expressed as key/value pairs that disambiguates tracks.
-  AttributeName (variable): The name of a custom Attribute for a track.
-  AttributeValue (variable): The value of a custom Attribute for a track.
-
-
-     CustomAttributesElement = S? "<" CustomAttributesElementName S? ">"
-                                 S? 1*(AttributeElement S?)
-                                 "</" CustomAttributesElementName ">"
-
-
-     AttributeElement = "<" AttributeElementName S AttributeAttributes S? "/>"
-     AttributeAttributes = (AttributeNameAttribute S AttributeValueAttribute)
-                            / (AttributeValueAttribute S AttributeNameAttribute)
-     AttributeNameAttribute = S? AttributeNameAttributeName S? Eq S?
-                                (DQ AttributeName DQ) / (SQ AttributeName SQ) S?
-     AttributeNameAttributeName = "Name"
-     AttributeName = IDENTIFIER
-     AttributeValueAttribute = S? AttributeValueAttributeName S? Eq S?
-                                (DQ AttributeValue DQ) / (SQ AttributeValue SQ) S?
-     AttributeValueAttributeName = "Value"
-     AttributeValue = IDENTIFIER
+  StreamFragmentElement (variable): An XML Element that encapsulates metadata for a set of
+  Related fragments. Attributes can appear in any order. However, either one or both of the following
+  fields is required and MUST be present in StreamFragmentAttributes: FragmentDuration,
+  FragmentTime.
+  FragmentNumber (variable): The ordinal of the StreamFragmentElement in the stream. If
+  FragmentNumber is specified, its value MUST monotonically increase with the value of the
+  FragmentTime field .
+  FragmentDuration (variable): The duration of the fragment, specified as a number of increments
+  defined by the implicit or explicit value of the containing StreamElements StreamTimeScale
+  field. If the FragmentDuration field is omitted, its implicit value MUST be computed by the client
+  by subtracting the value of the preceding StreamFragmentElements FragmentTime field from
+  the value of this StreamFragmentElement's FragmentTime field. If no subsequent
+  StreamFragmentElement exists, the implicit value of the FragmentTime field is 0.
+  FragmentTime (variable): The time of the fragment, specified as a number of increments defined
+  by the implicit or explicit value of the containing StreamElement's StreamTimeScale field. If the
+  FragmentDuration field is omitted, its implicit value MUST be computed by the client by adding
+  the value of the preceding StreamFragmentElement's FragmentTime field to the value of this
+  StreamFragmentElement's FragmentDuration field. If no preceding StreamFragmentElement
+  exists, the implicit value of the FragmentTime field is 0.
+  The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
+     StreamFragmentElement = "<" StreamFragmentElementName S
+                                StreamFragmentAttributes S? ">"
+                                S? StreamFragmentContent S?
+                                "</" StreamFragmentElementName ">"
+     StreamFragmentElementname = "c"
+     StreamFragmentAttributes = *(
+                                       FragmentNumberAttribute
+                                       / FragmentDurationAttribute
+                                       / FragmentTimeAttribute
+                                     )
+     FragmentNumberAttribute = S? FragmentNumberAttributeName S? Eq S?
+                                  (DQ FragmentNumber DQ) / (SQ FragmentNumber SQ) S?
+     FragmentNumberAttributeName = "n"
+     FragmentNumber = STRING_UINT32
+     FragmentDurationAttribute = S? FragmentDurationAttributeName S? Eq S?
+                                (DQ FragmentDuration DQ) / (SQ FragmentDuration SQ) S?
+     FragmentDurationAttributeName = "d"
+     FragmentDuration = STRING_UINT64
+     FragmentTimeAttribute = S? FragmentTimeAttributeName S? Eq S?
+                             (DQ FragmentTime DQ) / (SQ FragmentTime SQ) S?
+     FragmentTimeAttributeName = "t"
+     FragmentTime = STRING_UINT64
+     StreamFragmentContent = *( TrackFragment S? )
+     TrackFragment = "<" TrackFragmentElementName S
+                       TrackFragmentAttributes S? ">"
+                       S? 1*(TrackFragmentContent S?)
+                       "</" TrackFragmentElementName ">"
+     TrackFragmentAttributes = *(
+                                       TrackFragmentIndexAttribute
+                                       / VendorExtensionAttribute
+                                     )
+     TrackFragmentIndexAttribute = S? TrackFragmentIndexAttribute S? Eq S?
+                                      (DQ TrackFragmentIndex DQ)
+                                      / (SQ TrackFragmentIndex SQ) S?
+     TrackFragmentIndexAttribute = "i"
+     TrackFragmentIndex = STRING_UINT32
+     TrackFragmentContent = VendorExtensionTrackData
+     VendorExtensionTrackData = XML_CHARDATA
 #endif
 
-////////////////////////////////XML FIXME///////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+#if 0
+2.2.2.6.1     TrackFragmentElement
+  TrackFragmentElement and related fields are used to specify metadata pertaining to a fragment
+  for a specific track, rather than all versions of a fragment for a stream.
+  TrackFragmentElement (variable): An XML Element that encapsulates informative track-specific
+  metadata for a specific fragment. Attributes can appear in any order. However, the following field is
+  required and MUST be present in TrackFragmentAttributes: TrackFragmentIndexAttribute.
+  TrackFragmentIndex (variable): An ordinal that MUST match the value of the Index field for the
+  track to which this TrackFragment field pertains.
+ManifestOutputSample (variable): A string that contains the Base64-encoded representation of
+the raw bytes of the sample data for this fragment. This field MUST be omitted unless the
+ManifestOutput field for the corresponding stream contains a CASEINSENSITIVE_TRUE value.
+The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
+  TrackFragmentElement = "<" TrackFragmentElementName S
+                           TrackFragmentAttributes S? ">"
+                           S? TrackFragmentContent S?
+                           "</" TrackFragmentElementName ">"
+  TrackFragmentElementName = "f"
+  TrackFragmentAttributes = *(
+                                   TrackFragmentIndexAttribute
+                                   / VendorExtensionAttribute
+                                 )
+  TrackFragmentIndexAttribute = S? TrackFragmentIndexAttribute S? Eq S?
+                                  (DQ TrackFragmentIndex DQ)
+                                  / (SQ TrackFragmentIndex SQ) S?
+  TrackFragmentIndexAttribute = "i"
+  TrackFragmentIndex = STRING_UINT32
+  TrackFragmentContent = ManifestOutputSample
+  ManifestOutputSample = BASE64_STRING
+#endif
+
+
+
+
+
+
+#if 0
+2.2.3    Fragment Request
+  The FragmentRequest and related fields contain data required to request a fragment from the
+  server.
+  FragmentRequest (variable): The URI [RFC2616] of the fragment resource.
+  BitratePredicate (variable): The bit rate of the Requested fragment.
+  CustomAttributesPredicate (variable): An Attribute of the Requested fragment used to
+  disambiguate tracks.
+  CustomAttributesKey (variable): The name of the Attribute specified in the
+  CustomAttributesPredicate field.
+  CustomAttributesValue (variable): The value of the Attribute specified in the
+  CustomAttributesPredicate.
+  FragmentsNoun (variable): The type of response expected by the client.
+  StreamName (variable): The name of the stream that contains the Requested fragment.
+  Time (variable): The time of the Requested fragment.
+  The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
+     FragmentRequest = PresentationURI "/" QualityLevelsSegment "/" FragmentsSegment
+                         ; PresentationURI is specified in section 2.2.1
+     QualityLevelsSegment = QualityLevelsNoun "(" QualityLevelsPredicate ")"
+     QualityLevelsNoun = "QualityLevels"
+     QualityLevelsPredicate = BitratePredicate *( "," CustomAttributesPredicate )
+     BitratePredicate = STRING_UINT32
+CustomAttributesPredicate = CustomAttributesKey "=" CustomAttributesValue
+CustomAttributesKey = URISAFE_IDENTIFIER_NONNUMERIC
+CustomAttributesValue = URISAFE_IDENTIFIER
+FragmentsSegment = FragmentsNoun "(" FragmentsPredicate ")"
+FragmentsNoun = FragmentsNounFullResponse
+                / FragmentsNounMetadataOnly
+                / FragmentsNounDataOnly
+                / FragmentsNounIndependentOnly
+FragmentsNounFullResponse = "Fragments"
+FragmentsNounMetadataOnly = "FragmentInfo"
+FragmentsNounDataOnly = "RawFragments"
+FragmentsNounIndependentOnly = "KeyFrames"
+FragmentsPredicate = StreamName "=" Time
+StreamName = URISAFE_IDENTIFIER_NONNUMERIC
+Time = STRING_UINT64
+#endif
+
+
+
+
+
+
+
 
 /** \brief expat tag start event callback. */
 static void XMLCALL startblock(void *data, const char *el, const char **attr)
@@ -453,10 +624,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 		if (lenght > 0)
 		{	
 			base64data *tmp = malloc(lenght+1);
-			if (!tmp)
-			{   free(tmp);
-				manbox->state = MANIFEST_NO_MEMORY;
-			}
+			if (!tmp) manbox->state = MANIFEST_NO_MEMORY;
 			memcpy(tmp, text, lenght);
 			tmp[lenght] = (base64data) 0;
 			manbox->m->armor = tmp;

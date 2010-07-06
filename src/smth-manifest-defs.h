@@ -45,6 +45,8 @@ typedef struct
 	Manifest *m;
 	/** Whether the parser is waiting for encryption armor data. */
 	bool armorwaiting;
+	/** Whether the parser is waiting for key/value metadata pairs. */
+	bool waitingforattrs;
 	/** The error code reported by a parsing handler. */
 	error_t state;
 } ManifestBox;
@@ -119,17 +121,26 @@ typedef struct
 	/** The xml attribute name for Track::FourCC */
 	#define MANIFEST_TRACK_FOURCC 			"FourCC"
 	/** The xml attribute name for Track::Header */
-	#define MANIFEST_TRACK_HEADER   "CodecPrivateData"
+	#define MANIFEST_TRACK_HEADER   		"CodecPrivateData"
 	/** The xml attribute name for Track::Channels */
-	#define MANIFEST_TRACK_CHANNELS "Channels"
+	#define MANIFEST_TRACK_CHANNELS 		"Channels"
 	/** The xml attribute name for Track::SampleBitRate */
-	#define MANIFEST_TRACK_BITSPERSAMPLE "BitsPerSample"
+	#define MANIFEST_TRACK_BITSPERSAMPLE 	"BitsPerSample"
+	/** The xml attribute name for Track::NalSize */
+	#define MANIFEST_TRACK_NAL_LENGHT		"NALUnitLengthField"
 
-/** Default number of ticks per minute */
+/** The xml tag name for a single attribute. */
+#define MANIFEST_ATTRS						"Attribute"
+	/** The xml attribute name for a Attrs::Key. */
+	#define MANIFEST_ATTRS_KEY				"Name"
+	/** The xml attribute name for a Attrs::Value. */
+	#define MANIFEST_ATTRS_VALUE 			"Value"
+
+/** Default number of ticks per minute. */
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
-/** Major version number for the Manifest */
+/** Major version number for the Manifest. */
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	"2"
-/** Minor version number for the Manifest */
+/** Minor version number for the Manifest. */
 #define MANIFEST_MEDIA_DEFAULT_MINOR	"0"
 
 /** The size of the parser buffer, in bytes. */
@@ -143,6 +154,8 @@ static error_t  parsemedia(ManifestBox *mb, const char **attr);
 static error_t  parsearmor(ManifestBox *mb, const char **attr);
 static error_t parsestream(ManifestBox *mb, const char **attr);
 static error_t  parsetrack(ManifestBox *mb, const char **attr);
+static error_t   parseattr(ManifestBox *mb, const char **attr);
+
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);
@@ -171,23 +184,6 @@ The following range of values is reserved with the following semantic meanings:
 * "AACL": Audio samples for this track use AAC (Low Complexity), as specified in [ISO/IEC-14496-3]
 * "WMAP": Audio samples for this track use WMA Professional
 * A vendor extension value containing a registered with MPEG4-RA, as specified in [ISO/IEC-14496-12].
-
-CodecPrivateData (variable):
-The format and semantic meaning of byte sequence varies with the value of the FourCC field as follows:
-* The FourCC field equals "H264": The CodecPrivateData field contains a hex-coded string
-   representation of the following byte sequence, specified in ABNF [RFC5234]:
-   * %x00 %x00 %x00 %x01 SPSField %x00 %x00 %x00 %x01 SPSField
-   * SPSField contains the Sequence Parameter Set (SPS).
-   * PPSField contains the Slice Parameter Set (PPS).
-* The FourCC field equals "WVC1": The CodecPrivateData field contains a hex-coded string
-   representation of the VIDEOINFOHEADER structure, specified in [MSDN-VIH].
-* The FourCC field equals "AACL": The CodecPrivateData field SHOULD be empty.
-* The FourCC field equals "WMAP": The CodecPrivateData field contains the WAVEFORMATEX
-   structure, specified in [WFEX], if the AudioTag field equals "65534" equals, and SHOULD be
-   empty otherwise.
-* The FourCC is a vendor extension value: The format of the CodecPrivateData field is also
-   vendor-extensible. Registration of the FourCC field value with MPEG4-RA, as specified in
-   [ISO/IEC-14496-12], can be used to avoid collision between extensions.
 
 /** The Stream subtype (for text streams) */
 typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
@@ -222,7 +218,7 @@ typedef enum {	H264, /**< Advanced Video Coding */
 
 
 static char     ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
-static char     CodecTypeNames[4][6] = { "353", "85", "255", "65534"};
+static char     CodecTypeNames[4][6] = { 353, 85, 255, 65534};
 static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",
 										 "DESC", "CTRL", "DATA" };
 #endif
