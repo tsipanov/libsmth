@@ -268,7 +268,7 @@ static error_t parsemfhd(Box* root)
 	XXX_SKIP_4B_QUIRK;
 
 	if (!readbox(&tmpsize, sizeof (tmpsize), root)) return FRAGMENT_IO_ERROR;
-	root->f->ordinal = (count_t) be32toh(tmpsize);
+	root->f->index = (count_t) be32toh(tmpsize);
 	boxsize -= sizeof (tmpsize);
 
 	return scanuuid(root, boxsize);
@@ -442,6 +442,47 @@ static error_t parsemdat(Box* root)
 }
 
 /**
+ * \brief  TfxdBox (absolute timestamp and duration) parser
+ *
+ * This field is found into a MoofBox (metadata) and should be ignored if it
+ * appears in an on-demand presentation. It assumes that the signature has
+ * already been stripped by a call to parseuuid.
+ *
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error code.
+ */
+static error_t parsetfxd(Box* root)
+{
+	flags_t boxflags;
+	signedlenght_t boxsize = root->bsize;
+
+	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
+	boxsize -= sizeof(boxflags);
+	//TODO semplificare
+	if (boxflags & TFXD_LONG_FIELDS_MASK)
+	{	
+		tick_t tmp;
+		if (!readbox(&tmp, sizeof (tick_t), root)) return FRAGMENT_IO_ERROR;
+		root->f->timestamp = (tick_t) be64toh(tmp);
+		if (!readbox(&tmp, sizeof (tick_t), root)) return FRAGMENT_IO_ERROR;
+		root->f->duration  = (tick_t) be64toh(tmp);
+		boxsize -= 2*sizeof (tick_t);
+	}
+	else
+	{
+		flags_t tmp;
+		if (!readbox(&tmp, sizeof (flags_t), root)) return FRAGMENT_IO_ERROR;
+		root->f->timestamp = (tick_t) be32toh(tmp);
+		if (!readbox(&tmp, sizeof (flags_t), root)) return FRAGMENT_IO_ERROR;
+		root->f->duration  = (tick_t) be32toh(tmp);
+		boxsize -= 2*sizeof (flags_t);
+	}
+
+	return scanuuid(root, boxsize); /* sounds strange, but a uuid box may have
+									 * a child uuid box... */
+}
+
+/**
  * \brief SampleEncryptionBox (content protection metadata) parser
  *
  * A SampleEncryptionBox is a particularly crafted VendorUUIDBox, with no
@@ -535,21 +576,20 @@ static error_t parsesdtp(Box* root)
 static error_t parseuuid(Box* root)
 {
 	uuid_t uuid;
-	error_t result;
 
 	if (!readbox(uuid, sizeof (uuid_t), root)) return FRAGMENT_IO_ERROR;
+	root->bsize -= sizeof (uuid_t);
 
 	/* If it is a SampleEncryptionBox */
-	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t)))
-	{	result = parseencr(root);
-		if(result != FRAGMENT_SUCCESS) return result;
-		return FRAGMENT_SUCCESS;
-	}
+	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t))) return parseencr(root);
+	/* If it is a TfxdBox */
+	if (!memcmp(uuid, absoluteuuid, sizeof (uuid_t))) return parsetfxd(root);
+
 	/* If it is an ordinary UUIDBox   */
 	Extension *tmp = malloc(sizeof (Extension));
 	if (!tmp) return FRAGMENT_NO_MEMORY;
 	/* Data size */
-	tmp->size = ((lenght_t) root->bsize) - sizeof(uuid_t);
+	tmp->size = (lenght_t) root->bsize;
 	if(!memcpy(uuid, tmp->uuid, sizeof(uuid_t)))
 	{   free(tmp);
 		return FRAGMENT_IO_ERROR;

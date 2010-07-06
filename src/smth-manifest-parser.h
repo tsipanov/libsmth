@@ -30,8 +30,42 @@
 #include <stdio.h>
 #include <smth-common-defs.h>
 
-/** The Stream content type. OTHER is used for error detection only. */
-typedef enum {VIDEO, AUDIO, TEXT, OTHER} StreamType;
+/** Screen size metadata. */
+typedef struct
+{   metric_t width, height;
+} ScreenMetrics;
+
+/** The Stream content type. */
+typedef enum {VIDEO, AUDIO, TEXT} StreamType;
+
+typedef struct
+{	/** The type of the stream: video, audio, or text. */
+	StreamType type;
+	/** The time scale for duration and time values in this stream,
+	 *  specified as the number of increments in one second. */
+	tick_t tick;
+	/** The name of the stream. */
+	chardata* name;
+	/** The number of fragments available for this stream. */
+	count_t chunksno;
+	/** The number of tracks available for this stream. */
+	count_t tracksno;
+	/** The maximum size of a video sample, in pixels. */
+	ScreenMetrics maxsize;
+	/** The suggested display size of a video sample, in pixels. */
+	ScreenMetrics bestsize;
+	/** Whether sample data for this stream are embedded in the Manifest as
+	 *  part of the ManifestOutputSample field.
+	 *  Otherwise, the ManifestOutputSample field for fragments that are part
+	 *  of this stream MUST be omitted.
+	 */
+	bool isembedded;
+	/** A four-character code that identifies the intended use category for
+	 *  each sample in a text track. However, the FourCC field, is used to
+	 *  identify the media format for each sample.
+	 */
+	char subtype[4]; //XXX
+} Stream;
 
 /** \brief Holds the manifest data of the opened stream. */
 typedef struct
@@ -66,20 +100,22 @@ typedef struct
 	 *  encoded using Base64.
 	 */
 	base64data *armor;
+	/** Pointer to the streams array (NULL terminated). */
+	Stream* streams;
 } Manifest;
 
 #define MANIFEST_SUCCESS				 ( 0)
-/** Wrong Manifest version.								*/
+/** Wrong Manifest version. */
 #define MANIFEST_WRONG_VERSION			 (-1)
-/** An out-of-context attribute was parsed.				*/
+/** An out-of-context attribute was parsed.	*/
 #define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-2)
-/** There was no memory to istantiate the parser.		*/
+/** There was no memory to istantiate the parser. */
 #define MANIFEST_NO_MEMORY				 (-3)
-/** There was an i/o error with the manifest file.		*/
+/** There was an i/o error with the manifest file. */
 #define MANIFEST_IO_ERROR				 (-4)
-/** The parser encountered a malformed xml manifest.	*/
+/** The parser encountered a malformed xml manifest. */
 #define MANIFEST_PARSE_ERROR			 (-5)
-/** The manifest is empty...							*/
+/** The manifest is empty... */
 #define MANIFEST_EMPTY					 (-6)
 /** The xml backend behaved badly and it was blocked.	*/
 #define MANIFEST_PARSER_ERROR			 (-7)
@@ -87,8 +123,12 @@ typedef struct
 #define MANIFEST_UNKNOWN_BLOCK			 (-8)
 /** A text block was encountered where it was not expected.	*/
 #define MANIFEST_UNEXPECTED_TRAILING	 (-9)
-/** The armor UUID is malformed.						*/
+/** The armor UUID is malformed. */
 #define MANIFEST_MALFORMED_ARMOR_UUID    (-10)
+/** A stream type different from audio, video and text was encountered.	*/
+#define MANIFEST_UNKNOWN_STREAM_TYPE	 (-11)
+/** A malformed subtype string was encountered */
+#define MANIFEST_MALFORMED_SUBTYPE		 (-12)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
 

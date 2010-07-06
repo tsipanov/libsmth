@@ -13,3 +13,9 @@
 //	XML_GetCurrentLineNumber(parser),
 //	XML_ErrorString(XML_GetErrorCode(parser)));	
 trasformare le iterazioni su array in 
+
+controllare gli errori sul atoi e che 't' sia piu` affidabile
+(tolower(attr[i + 1][0]) == 't'); semplificare
+magari unificare maxwidth, height..
+
+sistemare i nuovi frammenti

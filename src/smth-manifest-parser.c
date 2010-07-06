@@ -80,7 +80,7 @@ error_t parsemanifest(Manifest *m, FILE *stream)
 	XML_ParserFree(parser);
 	return result;
 }
-
+/******************************************************************************/
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -125,7 +125,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_IS_LIVE))
 		{   /* we can safely assume that if it is not true, it is false */
-			mb->m->islive = (tolower(attr[i + 1]) == 't');
+			mb->m->islive = (tolower(attr[i + 1][0]) == 't');
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_LOOKAHEAD))
@@ -157,13 +157,11 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
  */
 static error_t parsearmor(ManifestBox *mb, const char **attr)
 {
-	if (strcmp(attr[0], MANIFEST_PROTECTION_ID))
+	if (strcmp(attr[0], MANIFEST_PROTECTION_ID)) //FIXME fortify
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
 	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGHT)
 		return MANIFEST_MALFORMED_ARMOR_UUID;
-//////////////////////////////////TODO//////////////////////////////////////////
-//	mb->m->armorID =; // attr[1];  9A04F079-9840-4286-AB92E65BE0885F95
-////////////////////////////////////////////////////////////////////////////////
+//	mb->m->armorID = attr[1]; TODO 9A04F079-9840-4286-AB92E65BE0885F95
 	mb->armorwaiting = true; /* waiting for the body to be parsed. */
 
 	return MANIFEST_SUCCESS;
@@ -178,114 +176,214 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
  * Unless the type specified is video, StreamMaxWidth, StreamMaxHeight,
  * DisplayWidth, and DisplayHeight must not appear.
  *
+ * This parser is not paranoid safe, as it will deduce some parameters from
+ * the initial letter of a tag, without analizing the complete string.
+ *
  * \param m    The Manifest struct to be filled with parsed data.
  * \param attr The attributes to parse.
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
-static error_t parseelement(ManifestBox *mb, const char **attr)
+static error_t parsestream(ManifestBox *mb, const char **attr)
 {
 	count_t i;
+
+	Stream *tmp = calloc(1, sizeof(Stream));
+	if (!tmp) return MANIFEST_NO_MEMORY;
+
 	for (i = 0; attr[i]; i += 2)
 	{
-
-	tick_t duration;
-	tick_t tick;
-	bool islive;
-	count_t lookahead;
-	lenght_t dvrwindow;
-	uuid_t armorID;
-
-		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE)) //"video" / "audio" / "text"
-		{   
-			continue;
-		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE)) //4*4 ALPHA
+		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE))
 		{
+			switch (tolower(attr[i+1][0]))
+			{   case 'v': tmp->type = VIDEO; break; /* "video" */
+				case 'a': tmp->type = AUDIO; break; /* "audio" */
+				case 't': tmp->type = TEXT;  break; /* "text"  */
+				default:
+				{	free(tmp);
+					return MANIFEST_UNKNOWN_STREAM_TYPE;
+				}
+			}
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_TIME_SCALE)) //STRING_UINT64
-		{
+		if (!strcmp(attr[i], MANIFEST_STREAM_TIME_SCALE))
+		{   tmp->tick = (tick_t) atol(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_NAME)) //ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
-		{
+		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
+		{   tmp->name = malloc(strlen(attr[i+1])); //FIXME sanitize ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
+			if(!tmp->name)
+			{   free(tmp);
+				return MANIFEST_NO_MEMORY;
+			}
+			strcpy(tmp->name, attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_CHUNKS)) //STRING_UINT32
-		{
+		if (!strcmp(attr[i], MANIFEST_STREAM_CHUNKS_NO))
+		{   tmp->chunksno = (count_t) atoi(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_QUALITY_LEVELS)) //STRING_UINT32
-		{
+		if (!strcmp(attr[i], MANIFEST_STREAM_QUALITY_LEVELS_NO))
+		{   tmp->tracksno = (count_t) atoi(attr[i+1]);
 			continue;
 		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_WIDTH))
+		{   tmp->maxsize.width = (count_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_HEIGHT))
+		{   tmp->maxsize.height = (count_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_WIDTH))
+		{   tmp->bestsize.width = (count_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_HEIGHT))
+		{   tmp->bestsize.height = (count_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_OUTPUT))
+		{   /* we can safely assume that if it is not true, it is false */
+			tmp->isembedded = (tolower(attr[i+1][0]) == 't');
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE))
+		{   if (strlen(attr[i+1]) == 4)
+			{   strcpy(tmp->subtype, attr[i+1]);
+				continue;
+			}
+			if (strlen(attr[i+1]) != 0)
+			{	free(tmp);
+				return MANIFEST_MALFORMED_SUBTYPE;
+			}
+			/* else (not null, not 4 letters) keep it NULL */
+		}
+//////////////////////////////////////TODO//////////////////////////////////////
+#if 0
+Url (variable): A pattern used by the client to generate Fragment Request messages.
+#endif
 		if (!strcmp(attr[i], MANIFEST_STREAM_URL)) //UrlPattern
 		{
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_WIDTH)) //STRING_UINT32
-		{
-			continue;
-		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_HEIGHT)) //STRING_UINT32
-		{
-			continue;
-		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_WIDTH)) // STRING_UINT32
-		{
-			continue;
-		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_HEIGHT)) //STRING_UINT32
-		{
-			continue;
-		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_PARENT)) //ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
-		{
-			continue;
-		}
-		if (!strcmp(attr[i], MANIFEST_STREAM_OUTPUT)) //CASEINSENTITIVE_TRUE / CASEINSENSITIVE_FALSE
-		{
-			continue;
-		}
-		//FIXME	VendorExtensionAttribute
-	}
-}
-
 #if 0
-
-Type (variable): The type of the stream: video, audio, or text.  
-StreamTimeScale (variable): The time scale for duration and time values in this stream, specified
-as the number of increments in one second.
-Name (variable): The name of the stream.
-NumberOfFragments (variable): The number of fragments available for this stream.
-NumberOfTracks (variable): The number of tracks available for this stream.
-Subtype (variable): A four-character code that identifies the intended use category for each
-sample in a text track. However, the FourCC field, specified in section 2.2.2.5, is used to identify
-the media format for each sample. The following range of values is reserved, with the following
-semantic meanings:
-"SCMD": Triggers for actions by the higher-layer implementation on the client
-"CHAP": Chapter markers
-"SUBT": Subtitles used for foreign-language audio
-"CAPT": Closed captions for the hearing-impaired
-"DESC": Media descriptions for the hearing-impaired
-"CTRL": Events the control the application business logic
-"DATA": Application data that does not fall into any of the above categories
-Url (variable): A pattern used by the client to generate Fragment Request messages.
-SubtypeControlEvents (variable): Control events for applications on the client.
-StreamMaxWidth (variable): The maximum width of a video sample, in pixels.
-StreamMaxHeight (variable): The maximum height of a video sample, in pixels.
-DisplayWidth (variable): The suggested display width of a video sample, in pixels.
-DisplayHeight (variable): The suggested display height of a video sample, in pixels.
 ParentStream (variable): Specifies the non-sparse stream that is used to transmit timing
 information for this stream. If the ParentStream field is present, it indicates that the stream
 described by the containing StreamElement field is a sparse stream. If present, the value of this
 field MUST match the value of the Name field for a non-sparse stream in the presentation.
-ManifestOutput (variable): Specifies whether sample data for this stream appears directly in the
-Manifest as part of the ManifestOutputSample field, specified in section 2.2.2.6.1, if this field
-contains a CASEINSENTITIVE_TRUE value. Otherwise, the ManifestOutputSample field for
-fragments that are part of this stream MUST be omitted.
+#endif
+		if (!strcmp(attr[i], MANIFEST_STREAM_PARENT)) //FIXME sanitize ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
+		{
+			continue;
+		}
+#if 0
+SubtypeControlEvents (variable): Control events for applications on the client.
+#endif
+		/* TODO else */
+	}
 
+	free(tmp->name); //XXX
+	free(tmp); //XXX
+
+	return MANIFEST_SUCCESS;
+}
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * \brief TrackElement parser.
+ *
+ * Per-track metadata.
+ *
+ * Attributes can appear in any order. However, some are required:
+ *
+ * by   ANY: Index | Bitrate
+ * by VIDEO: MaxWidth | MaxHeight | CodecPrivateData
+ * by AUDIO: MaxWidth | MaxHeight | CodecPrivateData | SamplingRate |
+ *           Channels | BitsPerSample | PacketSize | AudioTag | FourCC
+ */
+static error_t parsetrack(ManifestBox *mb, const char **attr)
+{
+	count_t i;
+
+	Stream *tmp = calloc(1, sizeof(Track));
+	if (!tmp) return MANIFEST_NO_MEMORY;
+
+	for (i = 0; attr[i]; i += 2)
+	{
+		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE))
+		{
+		}
+	}
+
+	return MANIFEST_SUCCESS;
+}
+
+typedef struct
+{   /** An ordinal that identifies the track and MUST be unique for each track
+	 *  in the stream. The Index should start at 0 and increment by 1 for each
+	 *  subsequent track in the stream.
+	 */
+	count_t index; //"Index" STRING_UINT32
+	/** The average bandwidth consumed by the track, in bits per second (bps).
+	 *  The value 0 may be used for tracks whose bit rate is negligible relative
+	 *  to other tracks in the presentation.
+	 */
+	bitrate_t bitrate; //"Bitrate"    STRING_UINT32
+	/** The maximum size of a video sample, in pixels. */
+	ScreenMetrics maxsize; //STRING_UINT32 "MaxWidth" "MaxHeight"
+	/** The size of each audio Packet, in bytes. */
+	bitrate_t packetsize; // "PacketSize" STRING_UINT32
+	/** The Sampling Rate of an audio track */
+	bitrate_t samplerate; // "SamplingRate" STRING_UINT32
+	/** A numeric code that identifies which media format and variant of the
+	 *  media format is used for each sample in an audio track. */
+	flags_t audiotag; //"AudioTag"   STRING_UINT32
+	//FIXME//
+	/** A four-character code that identifies which media format is used for
+	 *  each sample. */
+	char fourcc[4]; //"AudioTag" 4*4 ALPHA
+	/** Data that specifies parameters specific to the media format and common
+	 *  to all samples in the track. */
+	hexdata *private; //"CodecPrivateData" *HEXCODED_BYTE 
+	/** The Channel Count of an audio track */
+	unit_t channelsno; //"Channels"	    STRING_UINT16
+	/** The sample Size of an audio track */
+	unit_t bitspersample; //"BitsPerSample" STRING_UINT16
+	/** The number of bytes that specify the length of each Network Abstraction
+	 *  Layer (NAL) unit. This field SHOULD be omitted unless the value of the
+	 *  FourCC field is "H264". The default value is 4.
+	 */
+	unit_t nalunitlenght; //"NALUnitLengthField" STRING_UINT16
+} Track;
+
+#if 0
+
+FIXME VendorExtensionAttribute
+TrackContent = CustomAttributes?
+
+  The CustomAttributesElement and related fields are used to specify metadata that disambiguates tracks in a stream.
+  CustomAttributes (variable): Metadata expressed as key/value pairs that disambiguates tracks.
+  AttributeName (variable): The name of a custom Attribute for a track.
+  AttributeValue (variable): The value of a custom Attribute for a track.
+
+
+     CustomAttributesElement = S? "<" CustomAttributesElementName S? ">"
+                                 S? 1*(AttributeElement S?)
+                                 "</" CustomAttributesElementName ">"
+
+
+     AttributeElement = "<" AttributeElementName S AttributeAttributes S? "/>"
+     AttributeAttributes = (AttributeNameAttribute S AttributeValueAttribute)
+                            / (AttributeValueAttribute S AttributeNameAttribute)
+     AttributeNameAttribute = S? AttributeNameAttributeName S? Eq S?
+                                (DQ AttributeName DQ) / (SQ AttributeName SQ) S?
+     AttributeNameAttributeName = "Name"
+     AttributeName = IDENTIFIER
+     AttributeValueAttribute = S? AttributeValueAttributeName S? Eq S?
+                                (DQ AttributeValue DQ) / (SQ AttributeValue SQ) S?
+     AttributeValueAttributeName = "Value"
+     AttributeValue = IDENTIFIER
 #endif
 
 ////////////////////////////////XML FIXME///////////////////////////////////////
@@ -299,11 +397,20 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	{   manbox->state = parsemedia(manbox, attr);
 		return;
 	}
-// FIXME
-//		case LEVEL: manbox->state = parsemedia(manbox, attr); break;
-//		case TRACK: manbox->state = parsemedia(manbox, attr); break;
-//		case CHUNK: manbox->state = parsemedia(manbox, attr); break;
-//		case PROTECT: manbox->state = parsemedia(manbox, attr); break;
+	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
+	{   manbox->state = parsestream(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
+	{   manbox->state = parsetrack(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
+	{   manbox->state = parsearmor(manbox, attr);
+		return;
+	}
+
+// FIXME case CHUNK: manbox->state = parsemedia(manbox, attr); break;
 
 //	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
@@ -313,15 +420,13 @@ static void XMLCALL endblock(void *data, const char *el)
 {   ManifestBox *manbox = data;
 }
 
-//TODO implementare UnknownEncoding
-
-//FIXME e se unserissi anche la lunghezza??
 /** \brief expat text event callback. */
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
 	ManifestBox *manbox = data;
 	if (manbox->armorwaiting)
 	{
+//FIXME e se unserissi anche la lunghezza??
 		if (lenght > 0)
 		{	
 			base64data *tmp = malloc(lenght+1);

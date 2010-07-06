@@ -32,7 +32,7 @@
 #include <smth-common-defs.h>
 #include <smth-manifest-parser.h>
 
-/** \brief Type of the xml block */
+/** \brief Type of the xml block */ //XXX
 typedef enum {	MEDIA, 		/**< A SmoothStreamingMedia block.	*/
 				PROTECT,	/**< A ProtectionHeader block. 		*/
 				LEVEL,		/**< A QualityLevel block. 	*/
@@ -67,7 +67,7 @@ typedef struct
 	#define MANIFEST_MEDIA_DVR_WINDOW	    "DVRWindowLength"
 
 /** The xml tag identifying a Protection (sub)section		*/
-#define MANIFEST_ARMOR_ELEMENT				"Protection"
+#define MANIFEST_ARMOR_ELEMENT				"ProtectionHeader"
 /** The xml attribute marking a 16bytes UUID				*/
 	#define MANIFEST_PROTECTION_ID			"SystemID"
 
@@ -82,9 +82,9 @@ typedef struct
 /**	The xml attribute name for StreamElement::StreamName	*/
 	#define MANIFEST_STREAM_NAME			"Name"
 /**	The xml attribute name for StreamElement::StreamNumber  */
-	#define	MANIFEST_STREAM_CHUNKS			"Chunks"
+	#define	MANIFEST_STREAM_CHUNKS_NO		"Chunks"
 /**	The xml attribute name for StreamElement::QualityLevels */
-	#define	MANIFEST_STREAM_QUALITY_LEVELS  "QualityLevels"
+	#define	MANIFEST_STREAM_QUALITY_LEVELS_NO "QualityLevels"
 /**	The xml attribute name for StreamElement::StreamUrl		*/
 	#define	MANIFEST_STREAM_URL				"Url"
 /**	The xml attribute name for StreamElement::MaxWidth	    */
@@ -100,6 +100,9 @@ typedef struct
 /**	The xml attribute name for StreamElement::ManifestOutput */
 	#define MANIFEST_STREAM_OUTPUT			"ManifestOutput"
 
+/** The xml tag name identifying a new track. */
+#define MANIFEST_TRACK_ELEMENT 				"QualityLevel"
+
 /** Default number of ticks per minute					*/
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
 /** Major version number for the Manifest				*/
@@ -112,18 +115,56 @@ typedef struct
 /** The lenght of a UUID string in bytes	*/
 #define MANIFEST_ARMOR_UUID_LENGHT		35
 
+static error_t parsemedia(ManifestBox *m, const char **attr);
+static error_t parsearmor(ManifestBox *m, const char **attr);
+static error_t parsestream(ManifestBox *m, const char **attr);
+static error_t parsetrack(ManifestBox *mb, const char **attr);
+
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);
 static void XMLCALL  textblock(void *data, const char *text, int lenght);
-static error_t parsemedia(ManifestBox *m, const char **attr);
-static error_t parsearmor(ManifestBox *m, const char **attr);
-static error_t parseelement(ManifestBox *m, const char **attr);
 
 #endif /* __SMTH_MANIFEST_DEFS_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
 
 #if 0
+
+AudioTag (variable):
+The following range of values is reserved with the following semantic meanings:
+* "1": The sample media format is Linear 8 or 16-bit Pulse Code Modulation
+* "353": Microsoft Windows Media Audio v7, v8 and v9.x Standard (WMA Standard)
+* "353": Microsoft Windows Media Audio v9.x and v10 Professional (WMA Professional)
+* "85": ISO MPEG-1 Layer III (MP3)
+* "255": ISO Advanced Audio Coding (AAC)
+* "65534": Vendor-extensible format. If specified, the CodecPrivateData field SHOULD contain a
+    hex-encoded version of the WAVE_FORMAT_EXTENSIBLE structure [WFEX].
+
+FourCC (variable):
+The following range of values is reserved with the following semantic meanings:
+* "H264": Video samples for this track use Advanced Video Coding, as specified in [ISO/IEC-14496-15]
+* "WVC1": Video samples for this track use VC-1, as specified in [VC-1].
+* "AACL": Audio samples for this track use AAC (Low Complexity), as specified in [ISO/IEC-14496-3]
+* "WMAP": Audio samples for this track use WMA Professional
+* A vendor extension value containing a registered with MPEG4-RA, as specified in [ISO/IEC-14496-12].
+
+CodecPrivateData (variable):
+The format and semantic meaning of byte sequence varies with the value of the FourCC field as follows:
+* The FourCC field equals "H264": The CodecPrivateData field contains a hex-coded string
+   representation of the following byte sequence, specified in ABNF [RFC5234]:
+   * %x00 %x00 %x00 %x01 SPSField %x00 %x00 %x00 %x01 SPSField
+   * SPSField contains the Sequence Parameter Set (SPS).
+   * PPSField contains the Slice Parameter Set (PPS).
+* The FourCC field equals "WVC1": The CodecPrivateData field contains a hex-coded string
+   representation of the VIDEOINFOHEADER structure, specified in [MSDN-VIH].
+* The FourCC field equals "AACL": The CodecPrivateData field SHOULD be empty.
+* The FourCC field equals "WMAP": The CodecPrivateData field contains the WAVEFORMATEX
+   structure, specified in [WFEX], if the AudioTag field equals "65534" equals, and SHOULD be
+   empty otherwise.
+* The FourCC is a vendor extension value: The format of the CodecPrivateData field is also
+   vendor-extensible. Registration of the FourCC field value with MPEG4-RA, as specified in
+   [ISO/IEC-14496-12], can be used to avoid collision between extensions.
+
 /** The Stream subtype (for text streams) */
 typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
 				       *   implementation on the Client */
@@ -156,7 +197,6 @@ typedef enum {	H264, /**< Advanced Video Coding */
 } ContainerType;
 
 
-static char    StreamTypeNames[3][6] = { "video", "audio", "text"};
 static char     ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
 static char     CodecTypeNames[4][6] = { "353", "85", "255", "65534"};
 static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",

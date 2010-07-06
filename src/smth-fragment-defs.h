@@ -82,10 +82,14 @@ typedef struct
 
 /** Mask for extracting keysize value from a 32bit word containing both flags
  *  and KeySizeValue. Beware of endianess */
-#define ENCRYPTION_KEY_TYPE_MASK (0xffffff00)
+#define ENCRYPTION_KEY_TYPE_MASK 0xffffff00
 /** Mask for extracting flags value from a 32bit word containing both flags
  *  and KeySizeValue. Beware of endianess */
-#define ENCRYPTION_KEY_SIZE_MASK (0x000000ff)
+#define ENCRYPTION_KEY_SIZE_MASK 0x000000ff
+
+/** If the mask reveals a non-zero value, then the following fields are 8B each
+ *  else, they are 4B each. */
+#define TFXD_LONG_FIELDS_MASK    0xff000000
 
 /** Version of the TFHD box structure */
 static const byte_t tfhdVersion = 0x00;
@@ -94,10 +98,16 @@ static const byte_t tfhdVersion = 0x00;
 static const byte_t encryptionVersion = 0x00;
 
 /** The signature of a SampleEncryptionBox, namely a specific UUIDBox */
-static const uuid_t encryptionuuid = { 0xa2, 0x39, 0x4f, 0x52,
-                                       0x5a, 0x9b, 0x4f, 0x14,
-                                       0xa2, 0x44, 0x6c, 0x42,
-                                       0x7c, 0x64, 0x8d, 0xf4 };
+static const uuid_t encryptionuuid = {  0xa2, 0x39, 0x4f, 0x52,
+										0x5a, 0x9b, 0x4f, 0x14,
+										0xa2, 0x44, 0x6c, 0x42,
+										0x7c, 0x64, 0x8d, 0xf4 };
+
+/** The uuid identifying a TfxdBox, namely a specific UUIDBox */
+static const uuid_t absoluteuuid   = {  0x6d, 0x1d, 0x9b, 0x05,
+										0x42, 0xd5, 0x44, 0xe6,
+										0x80, 0xe2, 0x14, 0x1d,
+										0xaf, 0xf7, 0x57, 0xb2 };
 
 /************************START ENDIAN DEPENDENT SECTION*************************
  * All data is initialised with little endian values, as most people using this
@@ -137,6 +147,7 @@ static error_t parsetraf(Box* root);
 static error_t parsetfhd(Box* root);
 static error_t parsetrun(Box* root);
 static error_t parseuuid(Box* root);
+static error_t parsetfxd(Box* root);
 static error_t parseencr(Box* root);
 static error_t parsesdtp(Box* root);
 static error_t  scanuuid(Box* root, signedlenght_t boxsize);

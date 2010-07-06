@@ -70,7 +70,9 @@ void examine(Fragment *vc)
 	int i;
 
 	printf("\n==========================DATA SUMMARY======================\n\n");
-	printf("Fragment no.%d [%d bytes of data]\n", vc->ordinal, vc->size);
+	printf("Fragment no.%d [%d bytes of data]\n", vc->index, vc->size);
+	printf(" +-timestap: %ld\n", vc->timestamp);
+	printf(" +-duration: %ld\n", vc->duration);
 	printf(" +-first settings: 0x%08lx\n", vc->settings);
 	printf(" +-armor\n");
 	printf(" | +-type: %d (0 = NONE)\n", vc->armor.type);

@@ -36,7 +36,7 @@ int main()
 		return 1;
 	}
 
-	printf("%d\n", m.tick);
+	printf("%d\n%s\n", m.dvrwindow, m.armor);
 
 	fclose(f);
 	if (m.armor) free(m.armor);

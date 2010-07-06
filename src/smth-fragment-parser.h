@@ -147,7 +147,7 @@ typedef struct
 	 *  a Fragment earlier in the timeline, but ordinal values for consecutive
 	 *  Fragments are not required to be consecutive.
 	 */
-	count_t ordinal;
+	count_t index;
 	/** The number of Samples in the Fragment, filled from Trun::SampleCount */
 	count_t sampleno;
 	/** The value of the SampleFlags field for the first Sample.
@@ -155,6 +155,12 @@ typedef struct
 	 *  per-sample settings and default settings. Filled from FirstSampleFlags
 	 */ 
 	flags_t settings;
+	/** The absolute timestamp of the first sample of the fragment, in time
+	 *  scale increments for the track. */
+	tick_t timestamp;
+	/** The total duration of all samples in the fragment, in time scale
+	 *  increments for the track. */
+	tick_t duration;
 	/** The encryption data for ciphered streams */
 	Encryption armor;
 	/** The default metadata for samples in the stream */
