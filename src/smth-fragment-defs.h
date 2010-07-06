@@ -91,23 +91,33 @@ typedef struct
  *  else, they are 4B each. */
 #define TFXD_LONG_FIELDS_MASK    0xff000000
 
+/** If the mask reveals a non-zero value, then the following fields are 8B each
+ *  else, they are 4B each. */
+#define TFRF_LONG_FIELDS_MASK    0xff000000
+
 /** Version of the TFHD box structure */
 static const byte_t tfhdVersion = 0x00;
 
 /** Version of the SampleEncryption box structure */
 static const byte_t encryptionVersion = 0x00;
 
-/** The signature of a SampleEncryptionBox, namely a specific UUIDBox */
+/** The uuid of a SampleEncryptionBox, namely a specific UUIDBox. */
 static const uuid_t encryptionuuid = {  0xa2, 0x39, 0x4f, 0x52,
 										0x5a, 0x9b, 0x4f, 0x14,
 										0xa2, 0x44, 0x6c, 0x42,
 										0x7c, 0x64, 0x8d, 0xf4 };
 
-/** The uuid identifying a TfxdBox, namely a specific UUIDBox */
-static const uuid_t absoluteuuid   = {  0x6d, 0x1d, 0x9b, 0x05,
-										0x42, 0xd5, 0x44, 0xe6,
-										0x80, 0xe2, 0x14, 0x1d,
-										0xaf, 0xf7, 0x57, 0xb2 };
+/** The uuid identifying a TfxdBox, namely a specific UUIDBox. */
+static const uuid_t tfxduuid = { 0x6d, 0x1d, 0x9b, 0x05,
+								 0x42, 0xd5, 0x44, 0xe6,
+								 0x80, 0xe2, 0x14, 0x1d,
+								 0xaf, 0xf7, 0x57, 0xb2 };
+
+/** The uuid identifying a TfrfBox, namely a specific UUIDBox. */
+static const uuid_t tfrfuuid = { 0xd4, 0x80, 0x7e, 0xf2,
+								 0xca, 0x39, 0x46, 0x95,
+								 0x8e, 0x54, 0x26, 0xcb,
+								 0x9e, 0x46, 0xa7, 0x9f };
 
 /************************START ENDIAN DEPENDENT SECTION*************************
  * All data is initialised with little endian values, as most people using this
@@ -133,7 +143,7 @@ static const word_t BoxTypeID[] = { 0x666f6f6d, /**< "moof" */
 								 	0x7461646d, /**< "mdat" */
 									0x70746473  /**< "sdtp" */ };
 
-/** The signature of different encryption methods. [First byte is keysize]   */
+/** The signature of different encryption methods. [LSB is keysize]   */
 static const word_t EncryptionTypeID[] = { 0x00000100,  /**< AES 128-bit CTR */
                		                       0x00000200}; /**< AES 128-bit CBC */
 
@@ -150,6 +160,7 @@ static error_t parseuuid(Box* root);
 static error_t parsetfxd(Box* root);
 static error_t parseencr(Box* root);
 static error_t parsesdtp(Box* root);
+static error_t parsetfrf(Box* root);
 static error_t  scanuuid(Box* root, signedlenght_t boxsize);
 static bool isencrbox(Box* root);
 static bool readbox(void *dest, size_t size, Box* root);

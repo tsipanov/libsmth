@@ -35,6 +35,43 @@ typedef struct
 {   metric_t width, height;
 } ScreenMetrics;
 
+typedef struct
+{   /** An ordinal that identifies the track and MUST be unique for each track
+	 *  in the stream. The Index should start at 0 and increment by 1 for each
+	 *  subsequent track in the stream.
+	 */
+	count_t index;
+	/** The average bandwidth consumed by the track, in bits per second (bps).
+	 *  The value 0 may be used for tracks whose bit rate is negligible relative
+	 *  to other tracks in the presentation.
+	 */
+	bitrate_t bitrate;
+	/** The maximum size of a video sample, in pixels. */
+	ScreenMetrics maxsize;
+	/** The size of each audio Packet, in bytes. */
+	bitrate_t packetsize;
+	/** The Sampling Rate of an audio track */
+	bitrate_t samplerate;
+	/** A numeric code that identifies which media format and variant of the
+	 *  media format is used for each sample in an audio track. */
+	flags_t audiotag;
+	/** A four-character code that identifies which media format is used for
+	 *  each sample. */
+	char fourcc[4];
+	/** Data that specifies parameters specific to the media format and common
+	 *  to all samples in the track. */
+	hexdata *header;
+	/** The Channel Count of an audio track */
+	unit_t channelsno;
+	/** The sample Size of an audio track */
+	unit_t bitspersample;
+	/** The number of bytes that specify the length of each Network Abstraction
+	 *  Layer (NAL) unit. This field SHOULD be omitted unless the value of the
+	 *  FourCC field is "H264". The default value is 4.
+	 */
+	unit_t nalunitlenght;
+} Track;
+
 /** The Stream content type. */
 typedef enum {VIDEO, AUDIO, TEXT} StreamType;
 
@@ -129,6 +166,9 @@ typedef struct
 #define MANIFEST_UNKNOWN_STREAM_TYPE	 (-11)
 /** A malformed subtype string was encountered */
 #define MANIFEST_MALFORMED_SUBTYPE		 (-12)
+/** A malformed fourcc string was encountered */
+#define MANIFEST_MALFORMED_FOURCC (-13)
+
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
 

@@ -583,8 +583,9 @@ static error_t parseuuid(Box* root)
 	/* If it is a SampleEncryptionBox */
 	if (!memcmp(uuid, encryptionuuid, sizeof (uuid_t))) return parseencr(root);
 	/* If it is a TfxdBox */
-	if (!memcmp(uuid, absoluteuuid, sizeof (uuid_t))) return parsetfxd(root);
-
+	if (!memcmp(uuid, tfxduuid, sizeof (uuid_t))) return parsetfxd(root);
+	/* If it is a TfrfBox */
+//	if (!memcmp(uuid, tfrfuuid, sizeof (uuid_t))) return parsetfrf(root); FIXME
 	/* If it is an ordinary UUIDBox   */
 	Extension *tmp = malloc(sizeof (Extension));
 	if (!tmp) return FRAGMENT_NO_MEMORY;

@@ -80,7 +80,7 @@ error_t parsemanifest(Manifest *m, FILE *stream)
 	XML_ParserFree(parser);
 	return result;
 }
-/******************************************************************************/
+
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -228,19 +228,19 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_WIDTH))
-		{   tmp->maxsize.width = (count_t) atoi(attr[i+1]);
+		{   tmp->maxsize.width = (metric_t) atoi(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_HEIGHT))
-		{   tmp->maxsize.height = (count_t) atoi(attr[i+1]);
+		{   tmp->maxsize.height = (metric_t) atoi(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_WIDTH))
-		{   tmp->bestsize.width = (count_t) atoi(attr[i+1]);
+		{   tmp->bestsize.width = (metric_t) atoi(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_HEIGHT))
-		{   tmp->bestsize.height = (count_t) atoi(attr[i+1]);
+		{   tmp->bestsize.height = (metric_t) atoi(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_OUTPUT))
@@ -288,7 +288,6 @@ SubtypeControlEvents (variable): Control events for applications on the client.
 
 	return MANIFEST_SUCCESS;
 }
-////////////////////////////////////////////////////////////////////////////////
 
 /**
  * \brief TrackElement parser.
@@ -311,55 +310,79 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 
 	for (i = 0; attr[i]; i += 2)
 	{
-		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE))
-		{
+		if (!strcmp(attr[i], MANIFEST_TRACK_INDEX)
+		{   tmp->index = (count_t) atoi(attr[i+1]);
+			continue;
 		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_BITRATE)
+		{   tmp->bitrate = (bitrate_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_MAXWIDTH)
+		{   tmp->maxsize.width = (metric_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_MAXHEIGHT)
+		{   tmp->maxsize.height = (metric_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_PACKETSIZE)
+		{   tmp->packetsize = (bitrate_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_SAMPLERATE)
+		{   tmp->samplerate = (bitrate_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_AUDIOTAG)
+		{   tmp->audiotag = (flags_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_FOURCC)
+		{   if (strlen(attr[i+1]) == 4)
+			{   strcpy(tmp->fourcc, attr[i+1]);
+				continue;
+			}
+			if (strlen(attr[i+1]) != 0)
+			{	free(tmp);
+				return MANIFEST_MALFORMED_FOURCC;
+			}
+			/* else (not null, not 4 letters) keep it NULL */
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_HEADER)
+		{   tmp->header = malloc(strlen(attr[i+1]) / 2); /* each byte is 2 chars long */
+			if(!tmp->name)
+			{   free(tmp);
+				return MANIFEST_NO_MEMORY;
+			}
+			//TODO unhexlify
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_CHANNELS)
+		{   tmp->channelsno = (unit_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_BITSPERSAMPLE)
+		{   tmp->bitspersample = (unit_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_TRACK_NAL_LENGHT)
+		{   tmp->nalunitlenght = (unit_t) atoi(attr[i+1]);
+			if (!tmp->nalunitlenght) tmp->nalunitlenght = NAL_DEFAULT_LENGHT;
+			continue;
+		}
+		/* TODO else */
 	}
+
+	//TODO body
+
+	free(tmp->header); //XXX
+	free(tmp); //XXX
 
 	return MANIFEST_SUCCESS;
 }
 
-typedef struct
-{   /** An ordinal that identifies the track and MUST be unique for each track
-	 *  in the stream. The Index should start at 0 and increment by 1 for each
-	 *  subsequent track in the stream.
-	 */
-	count_t index; //"Index" STRING_UINT32
-	/** The average bandwidth consumed by the track, in bits per second (bps).
-	 *  The value 0 may be used for tracks whose bit rate is negligible relative
-	 *  to other tracks in the presentation.
-	 */
-	bitrate_t bitrate; //"Bitrate"    STRING_UINT32
-	/** The maximum size of a video sample, in pixels. */
-	ScreenMetrics maxsize; //STRING_UINT32 "MaxWidth" "MaxHeight"
-	/** The size of each audio Packet, in bytes. */
-	bitrate_t packetsize; // "PacketSize" STRING_UINT32
-	/** The Sampling Rate of an audio track */
-	bitrate_t samplerate; // "SamplingRate" STRING_UINT32
-	/** A numeric code that identifies which media format and variant of the
-	 *  media format is used for each sample in an audio track. */
-	flags_t audiotag; //"AudioTag"   STRING_UINT32
-	//FIXME//
-	/** A four-character code that identifies which media format is used for
-	 *  each sample. */
-	char fourcc[4]; //"AudioTag" 4*4 ALPHA
-	/** Data that specifies parameters specific to the media format and common
-	 *  to all samples in the track. */
-	hexdata *private; //"CodecPrivateData" *HEXCODED_BYTE 
-	/** The Channel Count of an audio track */
-	unit_t channelsno; //"Channels"	    STRING_UINT16
-	/** The sample Size of an audio track */
-	unit_t bitspersample; //"BitsPerSample" STRING_UINT16
-	/** The number of bytes that specify the length of each Network Abstraction
-	 *  Layer (NAL) unit. This field SHOULD be omitted unless the value of the
-	 *  FourCC field is "H264". The default value is 4.
-	 */
-	unit_t nalunitlenght; //"NALUnitLengthField" STRING_UINT16
-} Track;
-
 #if 0
-
-FIXME VendorExtensionAttribute
 TrackContent = CustomAttributes?
 
   The CustomAttributesElement and related fields are used to specify metadata that disambiguates tracks in a stream.

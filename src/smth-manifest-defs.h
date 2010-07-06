@@ -49,76 +49,100 @@ typedef struct
 	error_t state;
 } ManifestBox;
 
-/** The xml tag identifying a SmoothStream (root) section					  */
+/** The xml tag identifying a SmoothStream (root) section */
 #define MANIFEST_ELEMENT					"SmoothStreamingMedia"
-/** The xml attribute representing number of ticks per second				  */
+	/** The xml attribute representing number of ticks per second */
 	#define MANIFEST_MEDIA_TIME_SCALE		"TimeScale"
-/** The xml attribute representing media duration							  */
+	/** The xml attribute representing media duration */
 	#define MANIFEST_MEDIA_DURATION			"Duration"
-/** The xml attribute signaling whether the fragment is part of live content  */
+	/** The xml attribute signaling whether the fragment is part of live content */
 	#define MANIFEST_MEDIA_IS_LIVE			"IsLive"
-/** The xml attribute representing server cache size in Fragments			  */
+	/** The xml attribute representing server cache size in Fragments */
 	#define MANIFEST_MEDIA_LOOKAHEAD		"LookaheadCount"
-/** The xml attribute representing the major version of the Manifest		  */
+	/** The xml attribute representing the major version of the Manifest */
 	#define MANIFEST_MEDIA_MAJOR_VERSION	"MajorVersion"
-/** The xml attribute representing the minor version of the Manifest		  */
+	/** The xml attribute representing the minor version of the Manifest */
 	#define MANIFEST_MEDIA_MINOR_VERSION	"MinorVersion"
-/** The xml attribute representing the size of the DVR window				  */
+	/** The xml attribute representing the size of the DVR window */
 	#define MANIFEST_MEDIA_DVR_WINDOW	    "DVRWindowLength"
 
-/** The xml tag identifying a Protection (sub)section		*/
+/** The xml tag identifying a Protection (sub)section */
 #define MANIFEST_ARMOR_ELEMENT				"ProtectionHeader"
-/** The xml attribute marking a 16bytes UUID				*/
+	/** The xml attribute marking a 16bytes UUID */
 	#define MANIFEST_PROTECTION_ID			"SystemID"
 
-/**	The xml tag name for StreamElement						*/
+/**	The xml tag name for StreamElement */
 #define MANIFEST_STREAM_ELEMENT				"StreamIndex"
-/**	The xml attribute name for StreamElement::Type			*/
+	/**	The xml attribute name for StreamElement::Type			*/
 	#define MANIFEST_STREAM_TYPE			"Type"
-/**	The xml attribute name for StreamElement::SubType		*/
+	/**	The xml attribute name for StreamElement::SubType		*/
 	#define MANIFEST_STREAM_SUBTYPE			"Subtype"
-/**	The xml attribute name for StreamElement::TimeScale		*/
+	/**	The xml attribute name for StreamElement::TimeScale		*/
 	#define MANIFEST_STREAM_TIME_SCALE		"TimeScale"
-/**	The xml attribute name for StreamElement::StreamName	*/
+	/**	The xml attribute name for StreamElement::StreamName	*/
 	#define MANIFEST_STREAM_NAME			"Name"
-/**	The xml attribute name for StreamElement::StreamNumber  */
+	/**	The xml attribute name for StreamElement::StreamNumber  */
 	#define	MANIFEST_STREAM_CHUNKS_NO		"Chunks"
-/**	The xml attribute name for StreamElement::QualityLevels */
+	/**	The xml attribute name for StreamElement::QualityLevels */
 	#define	MANIFEST_STREAM_QUALITY_LEVELS_NO "QualityLevels"
-/**	The xml attribute name for StreamElement::StreamUrl		*/
+	/**	The xml attribute name for StreamElement::StreamUrl		*/
 	#define	MANIFEST_STREAM_URL				"Url"
-/**	The xml attribute name for StreamElement::MaxWidth	    */
+	/**	The xml attribute name for StreamElement::MaxWidth	    */
 	#define	MANIFEST_STREAM_MAX_WIDTH		"MaxWidth"
-/**	The xml attribute name for StreamElement::MaxHeight		*/
+	/**	The xml attribute name for StreamElement::MaxHeight		*/
 	#define	MANIFEST_STREAM_MAX_HEIGHT		"MaxHeight"
-/**	The xml attribute name for StreamElement::DisplayWidth  */
+	/**	The xml attribute name for StreamElement::DisplayWidth  */
 	#define	MANIFEST_STREAM_DISPLAY_WIDTH   "DisplayWidth"
-/**	The xml attribute name for StreamElement::DisplayHeight	*/
+	/**	The xml attribute name for StreamElement::DisplayHeight	*/
 	#define	MANIFEST_STREAM_DISPLAY_HEIGHT  "DisplayHeight"
-/**	The xml attribute name for StreamElement::ParentStream	*/
+	/**	The xml attribute name for StreamElement::ParentStream	*/
 	#define	MANIFEST_STREAM_PARENT			"ParentStreamIndex"
-/**	The xml attribute name for StreamElement::ManifestOutput */
+	/**	The xml attribute name for StreamElement::ManifestOutput */
 	#define MANIFEST_STREAM_OUTPUT			"ManifestOutput"
 
-/** The xml tag name identifying a new track. */
+/** The xml tag name identifying a new track.	*/
 #define MANIFEST_TRACK_ELEMENT 				"QualityLevel"
+	/**	The xml attribute name for Track::Index 	*/
+	#define MANIFEST_TRACK_INDEX			"Index"
+	/**	The xml attribute name for Track::Bitrate	*/
+	#define MANIFEST_TRACK_BITRATE			"Bitrate"
+	/**	The xml attribute name for Track::MaxWidth 	*/
+	#define MANIFEST_TRACK_MAXWIDTH			"MaxWidth"
+	/**	The xml attribute name for Track::MaxHeight	*/
+	#define MANIFEST_TRACK_MAXHEIGHT		"MaxHeight"
+	/**	The xml attribute name for Track::PacketSize */
+	#define MANIFEST_TRACK_PACKETSIZE  		"PacketSize"
+	/**	The xml attribute name for Track::SampleRate */
+	#define MANIFEST_TRACK_SAMPLERATE   	"SamplingRate"
+	/**	The xml attribute name for Track::AudioTag	*/
+	#define MANIFEST_TRACK_AUDIOTAG			"AudioTag"
+	/** The xml attribute name for Track::FourCC */
+	#define MANIFEST_TRACK_FOURCC 			"FourCC"
+	/** The xml attribute name for Track::Header */
+	#define MANIFEST_TRACK_HEADER   "CodecPrivateData"
+	/** The xml attribute name for Track::Channels */
+	#define MANIFEST_TRACK_CHANNELS "Channels"
+	/** The xml attribute name for Track::SampleBitRate */
+	#define MANIFEST_TRACK_BITSPERSAMPLE "BitsPerSample"
 
-/** Default number of ticks per minute					*/
+/** Default number of ticks per minute */
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
-/** Major version number for the Manifest				*/
+/** Major version number for the Manifest */
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	"2"
-/** Minor version number for the Manifest				*/
+/** Minor version number for the Manifest */
 #define MANIFEST_MEDIA_DEFAULT_MINOR	"0"
 
-/** The size of the parser buffer, in bytes */
+/** The size of the parser buffer, in bytes. */
 #define MANIFEST_XML_BUFFER_SIZE		8192
-/** The lenght of a UUID string in bytes	*/
+/** The lenght of a UUID string in bytes. */
 #define MANIFEST_ARMOR_UUID_LENGHT		35
+/** The default NAL lenght for tracks. */
+#define NAL_DEFAULT_LENGHT				4
 
-static error_t parsemedia(ManifestBox *m, const char **attr);
-static error_t parsearmor(ManifestBox *m, const char **attr);
-static error_t parsestream(ManifestBox *m, const char **attr);
-static error_t parsetrack(ManifestBox *mb, const char **attr);
+static error_t  parsemedia(ManifestBox *mb, const char **attr);
+static error_t  parsearmor(ManifestBox *mb, const char **attr);
+static error_t parsestream(ManifestBox *mb, const char **attr);
+static error_t  parsetrack(ManifestBox *mb, const char **attr);
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);

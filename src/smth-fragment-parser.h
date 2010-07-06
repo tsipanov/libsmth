@@ -156,7 +156,7 @@ typedef struct
 	 */ 
 	flags_t settings;
 	/** The absolute timestamp of the first sample of the fragment, in time
-	 *  scale increments for the track. */
+	 *  scale increments for the track. FIXME FIRST*/
 	tick_t timestamp;
 	/** The total duration of all samples in the fragment, in time scale
 	 *  increments for the track. */
