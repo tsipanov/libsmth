@@ -69,7 +69,7 @@ typedef struct
 	 *  relying on the vectorsize and vectorno fields.
 	 */
 	byte_t *vectors;
-} Encryption; // MUST BE FREED.
+} Encryption;
 
 /** \brief Holds the default sample metadata parsed from the TfhdBox */
 typedef struct
@@ -197,36 +197,36 @@ typedef struct
 #define FRAGMENT_BIGGER_THAN_DECLARED (-8)
 
 /** Sample priority (first 2 bytes)	*/
-#define	SAMPLE_PRIORITY(S)		 ((S) & 0xffff)
+#define	SAMPLE_PRIORITY(S)		 ((unit_t) ((S) & 0xffff))
 /** Sample difference flag (bit 17)					*/
-#define SAMPLE_IS_DIFFERENCE(S)  (((S) >> 16) & 1)
+#define SAMPLE_IS_DIFFERENCE(S)  ((bool) (((S) >> 16) & 1))
 /** Sample padding values (bits 18,19 and 20)		*/
-#define SAMPLE_PADDING(S) 		 (((S) >> 17) & 7)
+#define SAMPLE_PADDING(S) 		 ((byte_t) (((S) >> 17) & 7))
 /** Sample redundancy (bits 21 and 22)				*/
-#define SAMPLE_REDUNDANCY(S)	 (((S) >> 20) & 3)
+#define SAMPLE_REDUNDANCY(S)	 ((state_t) (((S) >> 20) & 3))
 /** Sample is depended on (bits 23 and 24)			*/
-#define SAMPLE_IS_DEPENDED_ON(S) (((S) >> 22) & 3)
+#define SAMPLE_IS_DEPENDED_ON(S) ((state_t) (((S) >> 22) & 3))
 /** Sample depends on others (bits 25 and 26)		*/
-#define SAMPLE_DEPENDS_ON(S)	 (((S) >> 24) & 3)
+#define SAMPLE_DEPENDS_ON(S)	 ((state_t) (((S) >> 24) & 3))
 
 /** 
  *  \brief Get last byte, containing SampleSettings::dependson,
  *		   SampleSettings::isdependedon and SampleSettings::redundant.
  *
- *  For compatiility with MS specifications.
+ *  For compatibility with MS specifications.
  */
-#define SAMPLE_GET_SIMPLE_FLAGS(S) ((S >> 20) & 0x3f)
+#define SAMPLE_GET_SIMPLE_FLAGS(S) ((byte_t) ((S >> 20) & 0x3f))
 
 #if 0
 /** Fills a SampleSettings struct with data parsed from flagfield settings */
 inline void parsesampleflags(SampleSettings *s, flags_t settings)
 {
-	s->priority 	= (unit_t) 	SAMPLE_PRIORITY (settings);
-	s->isdifference = (bool) 	SAMPLE_IS_DIFFERENCE (settings);
-	s->padding		= (byte_t)	SAMPLE_PADDING (settings);
-	s->dependson	= (state_t)	SAMPLE_REDUNDANCY (settings);
-	s->isdependedon = (state_t)	SAMPLE_IS_DEPENDED_ON (settings);
-	s->redundant	= (state_t)	SAMPLE_DEPENDS_ON (settings);
+	s->priority 	= SAMPLE_PRIORITY (settings);
+	s->isdifference = SAMPLE_IS_DIFFERENCE (settings);
+	s->padding		= SAMPLE_PADDING (settings);
+	s->dependson	= SAMPLE_REDUNDANCY (settings);
+	s->isdependedon = SAMPLE_IS_DEPENDED_ON (settings);
+	s->redundant	= SAMPLE_DEPENDS_ON (settings);
 }
 #endif
 

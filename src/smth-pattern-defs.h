@@ -33,6 +33,42 @@ URISAFE_IDENTIFIER $VALUE /* The value of the Attribute */
 char FragmentRequest[] = \
 	"/QualityLevels($BITRATE,$KEY=$VALUE))/Fragments($NAME=$TIME)";
 
+#if 0
+  The FragmentRequest and related fields contain data required to request a fragment from the server.
+
+  FragmentRequest (variable): The URI [RFC2616] of the fragment resource.
+  BitratePredicate (variable): The bit rate of the Requested fragment.
+  CustomAttributesPredicate (variable): An Attribute of the Requested fragment used to disambiguate tracks.
+  CustomAttributesKey (variable): The name of the Attribute specified in the CustomAttributesPredicate field.
+  CustomAttributesValue (variable): The value of the Attribute specified in the CustomAttributesPredicate.
+  FragmentsNoun (variable): The type of response expected by the client.
+  StreamName (variable): The name of the stream that contains the Requested fragment.
+  Time (variable): The time of the Requested fragment.
+
+
+     FragmentRequest = PresentationURI/QualityLevelsSegment/FragmentsSegment
+
+     QualityLevelsSegment = QualityLevelsNoun "(" QualityLevelsPredicate ")"
+     QualityLevelsNoun = "QualityLevels"
+     QualityLevelsPredicate = BitratePredicate *( "," CustomAttributesPredicate )
+     BitratePredicate = STRING_UINT32
+CustomAttributesPredicate = CustomAttributesKey "=" CustomAttributesValue
+CustomAttributesKey = URISAFE_IDENTIFIER_NONNUMERIC
+CustomAttributesValue = URISAFE_IDENTIFIER
+FragmentsSegment = FragmentsNoun "(" FragmentsPredicate ")"
+FragmentsNoun = FragmentsNounFullResponse
+                / FragmentsNounMetadataOnly
+                / FragmentsNounDataOnly
+                / FragmentsNounIndependentOnly
+FragmentsNounFullResponse = "Fragments"
+FragmentsNounMetadataOnly = "FragmentInfo"
+FragmentsNounDataOnly = "RawFragments"
+FragmentsNounIndependentOnly = "KeyFrames"
+FragmentsPredicate = StreamName "=" Time
+StreamName = URISAFE_IDENTIFIER_NONNUMERIC
+Time = STRING_UINT64
+#endif
+
 
 
 

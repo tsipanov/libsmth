@@ -123,7 +123,7 @@ static const uuid_t tfrfuuid = { 0xd4, 0x80, 0x7e, 0xf2,
  * All data is initialised with little endian values, as most people using this
  * library will compile it on a x86 platform. Anyway, it should not change
  * much if using a big endian CPU, only a few assembler istructions more...
- * The code is packed with le32toh.
+ * The code is full of le32toh.
  ******************************************************************************/
 
 /** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */

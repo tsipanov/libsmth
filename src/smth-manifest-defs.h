@@ -32,12 +32,53 @@
 #include <smth-common-defs.h>
 #include <smth-manifest-parser.h>
 
-/** \brief Type of the xml block */ //XXX
+
+#if 0
+
+/** \brief Type of the xml block */
 typedef enum {	MEDIA, 		/**< A SmoothStreamingMedia block.	*/
 				PROTECT,	/**< A ProtectionHeader block. 		*/
 				LEVEL,		/**< A QualityLevel block. 	*/
 				TRACK,		/**< A StreamIndex block. 	*/
 				CHUNK 		/**< A c (Chunk) block. 	*/ } BlockType;
+
+/** The Stream subtype (for text streams) */
+typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
+				       *   implementation on the Client */
+   				CHAP, /**< Chapter markers */
+  				SUBT, /**< Subtitles used for foreign-language audio */
+				CAPT, /**< Closed captions for the hearing-impaired */
+   				DESC, /**< Media descriptions for the hearing-impaired */
+ 				CTRL, /**< Events the control application business logic */
+  				DATA  /**< Application data that does not fall
+				       *   into any of the above categories */
+} StreamSubtype;
+
+/** Stream codec */
+typedef enum {	PCM,  /**< Linear 8 or 16 bit Pulse Code Modulation */
+				WMA,  /**< +Microsoft Windows Media Audio v7, v8
+				       *   and v9.x Standard (WMA Standard)
+			           *   +Microsoft Windows Media Audio v9.x
+				       *   and v10 Professional (WMA Professional)*/
+				MP3,  /**< ISO MPEG-1 Layer III */
+				AAC,  /**< ISO Advanced Audio Coding */
+				VEN   /**< SYNTHETIC Vendor-extensible format. */
+} CodecType;
+
+/** Stream container type */
+typedef enum {	H264, /**< Advanced Video Coding */
+				WVC1, /**< Microsoft VC-1(R) */
+				AACL, /**< AAC (Low Complexity) */
+				WMAP, /**< WMA Professional */
+				CUST  /**< A vendor extension value registered with MPEG4-RA */
+} FourCCType;
+
+
+static char    FourCCTypeNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
+static char     CodecTypeNames[4][6] = { 353, 85, 255, 65534};
+static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",
+										 "DESC", "CTRL", "DATA" };
+#endif
 
 /** \brief Holds data and metadata for the Manifest parser. */
 typedef struct
@@ -46,7 +87,7 @@ typedef struct
 	/** Whether the parser is waiting for encryption armor data. */
 	bool armorwaiting;
 	/** Whether the parser is waiting for key/value metadata pairs. */
-	bool waitingforattrs;
+	Track *fillwithattrs;
 	/** The error code reported by a parsing handler. */
 	error_t state;
 } ManifestBox;
@@ -164,61 +205,3 @@ static void XMLCALL  textblock(void *data, const char *text, int lenght);
 #endif /* __SMTH_MANIFEST_DEFS_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
-
-#if 0
-
-AudioTag (variable):
-The following range of values is reserved with the following semantic meanings:
-* "1": The sample media format is Linear 8 or 16-bit Pulse Code Modulation
-* "353": Microsoft Windows Media Audio v7, v8 and v9.x Standard (WMA Standard)
-* "353": Microsoft Windows Media Audio v9.x and v10 Professional (WMA Professional)
-* "85": ISO MPEG-1 Layer III (MP3)
-* "255": ISO Advanced Audio Coding (AAC)
-* "65534": Vendor-extensible format. If specified, the CodecPrivateData field SHOULD contain a
-    hex-encoded version of the WAVE_FORMAT_EXTENSIBLE structure [WFEX].
-
-FourCC (variable):
-The following range of values is reserved with the following semantic meanings:
-* "H264": Video samples for this track use Advanced Video Coding, as specified in [ISO/IEC-14496-15]
-* "WVC1": Video samples for this track use VC-1, as specified in [VC-1].
-* "AACL": Audio samples for this track use AAC (Low Complexity), as specified in [ISO/IEC-14496-3]
-* "WMAP": Audio samples for this track use WMA Professional
-* A vendor extension value containing a registered with MPEG4-RA, as specified in [ISO/IEC-14496-12].
-
-/** The Stream subtype (for text streams) */
-typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
-				       *   implementation on the Client */
-   				CHAP, /**< Chapter markers */
-  				SUBT, /**< Subtitles used for foreign-language audio */
-				CAPT, /**< Closed captions for the hearing-impaired */
-   				DESC, /**< Media descriptions for the hearing-impaired */
- 				CTRL, /**< Events the control application business logic */
-  				DATA  /**< Application data that does not fall
-				       *   into any of the above categories */
-} StreamSubtype;
-
-/** Stream codec */
-typedef enum {	PCM,  /**< Linear 8 or 16 bit Pulse Code Modulation */
-				WMA,  /**< +Microsoft Windows Media Audio v7, v8
-				       *   and v9.x Standard (WMA Standard)
-			           *   +Microsoft Windows Media Audio v9.x
-				       *   and v10 Professional (WMA Professional)*/
-				MP3,  /**< ISO MPEG-1 Layer III */
-				AAC,  /**< ISO Advanced Audio Coding */
-				VEN   /**< SYNTHETIC Vendor-extensible format. */
-} CodecType;
-
-/** Stream container type */
-typedef enum {	H264, /**< Advanced Video Coding */
-				WVC1, /**< Microsoft VC-1(R) */
-				AACL, /**< AAC (Low Complexity) */
-				WMAP, /**< WMA Professional */
-				CUST  /**< A vendor extension value registered with MPEG4-RA */
-} ContainerType;
-
-
-static char     ContainerNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
-static char     CodecTypeNames[4][6] = { 353, 85, 255, 65534};
-static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",
-										 "DESC", "CTRL", "DATA" };
-#endif

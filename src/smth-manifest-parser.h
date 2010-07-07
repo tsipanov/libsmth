@@ -194,6 +194,8 @@ typedef struct
 #define MANIFEST_MALFORMED_SUBTYPE		 (-12)
 /** A malformed fourcc string was encountered */
 #define MANIFEST_MALFORMED_FOURCC		 (-13)
+/** An attribute block was encountered out of a Track element. */
+#define MANIFEST_UNEXPECTED_ATTRS		 (-14)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
 
