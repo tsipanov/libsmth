@@ -40,6 +40,39 @@ typedef struct
 {   metric_t width, height;
 } ScreenMetrics;
 
+typedef struct
+{   /**  An ordinal that must match the value of the Index field for the track
+	 *   to which this TrackFragment field pertains.
+	 */
+	count_t index;
+	/** The raw bytes of the sample data for this fragment, only if
+	 *  Stream::isembedded is true.
+	 */
+	base64data* content;
+} FragmentIndex;
+
+/** \brief Holds metadata for a single chunk. */
+typedef struct
+{   /** The ordinal of the StreamFragmentElement in the stream.
+	 *  The value must monotonically increase.
+	 */
+	count_t index;
+	/** The duration of the fragment in ticks. If the FragmentDuration field
+	 *  is omitted, its implicit value must be computed by the client by
+	 *  subtracting the value of the preceding Chunk::time to the current
+	 *  Chunk::time. If the fragment is the first in the stream, the implicit
+	 *  value is 0.
+	 */
+	tick_t duration;
+	/** The time of the fragment, in ticks. If it is omitted, its implicit
+	 *  value must be computed by the client by adding the value of
+	 *  the preceding StreamFragmentElement's FragmentTime field to the value
+	 *  of this StreamFragmentElement's FragmentDuration field. If the fragment
+	 *  is the first in the stream, the implicit value is 0.
+	 */
+	tick_t time;
+} Chunk;
+
 /** Metadata expressed as key/value pairs that disambiguates tracks. */
 typedef struct
 {   /** The name of a custom Attribute for a track. */

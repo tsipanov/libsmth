@@ -306,6 +306,8 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 {
 	count_t i;
 
+//	if (!mb->fillwithattrs) return MANIFEST_UNEXPECTED_ATTRS FIXME
+
 	Track *tmp = calloc(1, sizeof(Track));
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
@@ -374,13 +376,14 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		/* TODO else */
 	}
 
-	mb->fillwithattrs = tmp->attributes;
+	mb->fillwithattrs = tmp;
 	//if (tmp->header) free(tmp->header);  XXX
 	if (tmp) free(tmp); //XXX
 
 	return MANIFEST_SUCCESS;
 }
 ////////////////////////////////////////////////////////////////////////////////
+//TODO quando finisce un Track, resettare a zero il puntatore
 /**
  * \brief Attribute (metadata that disambiguates tracks in a stream) parser.
  *
@@ -398,7 +401,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 
 	if (!mb->fillwithattrs) return MANIFEST_UNEXPECTED_ATTRS;
 
-	Attribute *tmp = malloc(sizeof (Attribute));
+	Attribute *tmp = calloc(1, sizeof (Attribute));
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
 	for (i = 0; attr[i]; i += 2)
@@ -437,51 +440,51 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
  */
 static error_t parsechunk(ManifestBox *mb, const char **attr)
 {
+	count_t i;
+//TODO add pointer to right fragment...
+	Chunk *tmp = calloc(1, sizeof (Chunk));
+	if (!tmp) return MANIFEST_NO_MEMORY;
 
+	for (i = 0; attr[i]; i += 2)
+	{
+		if (!strcmp(attr[i], MANIFEST_CHUNK_INDEX))
+		{   tmp->index = (count_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_CHUNK_DURATION))
+		{   tmp->duration = (tick_t) atoi(attr[i+1]);
+			continue;
+		}
+		if (!strcmp(attr[i], MANIFEST_CHUNK_TIME))
+		{   tmp->time = (tick_t) atoi(attr[i+1]);
+			continue;
+		}
+		/* TODO else */
+	}
+
+	//free(tmp); //XXX FIXME
 	return MANIFEST_SUCCESS;
 }
 
-//TODO mettere dove servono i calloc
-
+//FIXME If the fragment is the first in the stream, the implicit value is 0.
 #if 0
-  <c n=STRING_UINT32 //number d=STRING_UINT64 //duration t=STRING_UINT64 //time>
-    *(<f i=STRING_UINT32 VendorExtensionAttribute>
-          XML_CHARDATA
-      </f>)
-  </c>
-#endif
-
-typedef struct
-{   /** The ordinal of the StreamFragmentElement in the stream.
-	 *  If FragmentNumber is specified, its value must monotonically increase
-	 *  with the value of the FragmentTime field.
-	 */
-	count_t index;
-	/** The duration of the fragment, specified as a number of increments
-	 *  defined by the implicit or explicit value of the containing
-	 *  StreamElements StreamTimeScale field. If the FragmentDuration field
-	 *  is omitted, its implicit value MUST be computed by the client by
-	 *  subtracting the value of the preceding StreamFragmentElements
-	 *  FragmentTime field from the value of this StreamFragmentElement's
-	 *  FragmentTime field. If no subsequent StreamFragmentElement exists,
-	 *  the implicit value of the FragmentTime field is 0.
+FIXME fare in modo che siano impostati correttamente.
+	/** The duration of the fragment in ticks. If the FragmentDuration field
+	 *  is omitted, its implicit value must be computed by the client by
+	 *  subtracting the value of the preceding Chunk::time to the current
+	 *  Chunk::time. If the fragment is the first in the stream, the implicit
+	 *  value is 0.
 	 */
 	tick_t duration;
-	/** The time of the fragment, specified as a number of increments defined
-	 *  by the implicit or explicit value of the containing StreamElement's
-	 *  StreamTimeScale field. If the FragmentDuration field is omitted, its
-	 *  implicit value MUST be computed by the client by adding the value of
+	/** The time of the fragment, in ticks. If it is omitted, its implicit
+	 *  value must be computed by the client by adding the value of
 	 *  the preceding StreamFragmentElement's FragmentTime field to the value
-	 *  of this StreamFragmentElement's FragmentDuration field. If no preceding
-	 *  StreamFragmentElement exists, the implicit value of the FragmentTime
-	 *  field is 0.
+	 *  of this StreamFragmentElement's FragmentDuration field. If the fragment
+	 *  is the first in the stream, the implicit value is 0.
 	 */
 	tick_t time;
-} Chunk;
-
-
-
-//aggiungere tipo di box aperto come controllo sulle chiusuere
+#endif
+//FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
@@ -493,28 +496,25 @@ typedef struct
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
-static error_t parsefrag(ManifestBox* mb, const char** attr)
+static error_t parsefragindex(ManifestBox* mb, const char** attr)
 {
+	count_t i;
+//TODO add pointer to right one...
+	FragmentIndex *tmp = calloc(1, sizeof (Chunk));
+	if (!tmp) return MANIFEST_NO_MEMORY;
+
+	for (i = 0; attr[i]; i += 2)
+	{
+		if (!strcmp(attr[i], MANIFEST_FRAGMENT_INDEX))
+		{   tmp->index = (count_t) atoi(attr[i+1]);
+		}
+		/* TODO else */
+	}
+	//TODO body BASE64_STRING solo se... tmp->content;
+
+	free(tmp); //XXX FIXME
+	return MANIFEST_SUCCESS;
 }
-#if 0
-  TrackFragmentElement = <f i=STRING_UINT32 //index Vendor>
-							BASE64_STRING
-                         </f>
-#endif
-
-typedef struct
-{   /**  An ordinal that MUST match the value of the Index field for the track
-	 *   to which this TrackFragment field pertains.
-	 */
-	count_t index;
-	/** A string that contains the Base64-encoded representation of the raw
-	 *  bytes of the sample data for this fragment. This field MUST be omitted
-	 *  unless the ManifestOutput field for the corresponding stream contains
-	 *  a CASEINSENSITIVE_TRUE value.
-	 */
-	base64data* content; //FIXME inizializzare a NULL
-} FragmentElement;
-
 
 //TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
 
@@ -522,6 +522,8 @@ typedef struct
 static void XMLCALL startblock(void *data, const char *el, const char **attr)
 {
 	ManifestBox *manbox = data;
+
+	//puts(el);
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
 	{   manbox->state = parsemedia(manbox, attr);
@@ -539,9 +541,13 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	{   manbox->state = parsearmor(manbox, attr);
 		return;
 	}
-
-// FIXME case CHUNK: manbox->state = parsemedia(manbox, attr); break;
-
+	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
+	{   manbox->state = parsechunk(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
+	{   manbox->state = parsefragindex(manbox, attr);
+	}
 //	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
 

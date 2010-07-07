@@ -62,7 +62,7 @@ typedef enum {	PCM,  /**< Linear 8 or 16 bit Pulse Code Modulation */
 				       *   and v10 Professional (WMA Professional)*/
 				MP3,  /**< ISO MPEG-1 Layer III */
 				AAC,  /**< ISO Advanced Audio Coding */
-				VEN   /**< SYNTHETIC Vendor-extensible format. */
+				VEN   /**< Vendor-extensible format. */
 } CodecType;
 
 /** Stream container type */
@@ -177,6 +177,20 @@ typedef struct
 	/** The xml attribute name for a Attrs::Value. */
 	#define MANIFEST_ATTRS_VALUE 			"Value"
 
+/** The xml tag name of a Chunk identifier. */
+#define MANIFEST_CHUNK_ELEMENT				"c"
+	/** The xml attribute name of a Chunk::index. */
+	#define MANIFEST_CHUNK_INDEX			"n"
+	/** The xml attribute name of a Chunk::duration. */
+	#define MANIFEST_CHUNK_DURATION			"d"
+	/** The xml attribute name of a Chunk::time. */
+	#define MANIFEST_CHUNK_TIME				"t"
+
+/** The xml tag name of a Fragment identifier. */
+#define MANIFEST_FRAGMENT_ELEMENT "f"
+	/** The xml attribute name for FragmentIndex::index. */
+	#define MANIFEST_FRAGMENT_INDEX "i"
+
 /** Default number of ticks per minute. */
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
 /** Major version number for the Manifest. */
@@ -196,7 +210,6 @@ static error_t  parsearmor(ManifestBox *mb, const char **attr);
 static error_t parsestream(ManifestBox *mb, const char **attr);
 static error_t  parsetrack(ManifestBox *mb, const char **attr);
 static error_t   parseattr(ManifestBox *mb, const char **attr);
-
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);
