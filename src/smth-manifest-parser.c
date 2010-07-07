@@ -81,6 +81,12 @@ error_t parsemanifest(Manifest *m, FILE *stream)
 	return result;
 }
 
+void disposemanifest(Manifest* m)
+{
+}
+
+/*--------------------- HIC QUOQUE SUNT LEONES (CODICIS) ---------------------*/
+
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -382,7 +388,7 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 
 	return MANIFEST_SUCCESS;
 }
-////////////////////////////////////////////////////////////////////////////////
+
 //TODO quando finisce un Track, resettare a zero il puntatore
 /**
  * \brief Attribute (metadata that disambiguates tracks in a stream) parser.
@@ -462,11 +468,10 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 		/* TODO else */
 	}
 
-	//free(tmp); //XXX FIXME
+	//free(tmp); //XXX FIXME perche` fa saltare tutto??
 	return MANIFEST_SUCCESS;
 }
 
-//FIXME If the fragment is the first in the stream, the implicit value is 0.
 #if 0
 FIXME fare in modo che siano impostati correttamente.
 	/** The duration of the fragment in ticks. If the FragmentDuration field
@@ -484,6 +489,7 @@ FIXME fare in modo che siano impostati correttamente.
 	 */
 	tick_t time;
 #endif
+
 //FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
 
 /**
@@ -511,7 +517,6 @@ static error_t parsefragindex(ManifestBox* mb, const char** attr)
 		/* TODO else */
 	}
 	//TODO body BASE64_STRING solo se... tmp->content;
-
 	free(tmp); //XXX FIXME
 	return MANIFEST_SUCCESS;
 }
@@ -523,7 +528,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 {
 	ManifestBox *manbox = data;
 
-	//puts(el);
+	//fprintf(stderr, "Parsing: %s\n", el); //DEBUG
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
 	{   manbox->state = parsemedia(manbox, attr);
@@ -548,7 +553,8 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
 	{   manbox->state = parsefragindex(manbox, attr);
 	}
-//	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
+
+	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
 
 /** \brief expat tag end event callback. */
@@ -563,6 +569,8 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 	if (manbox->armorwaiting)
 	{
 //FIXME e se unserissi anche la lunghezza??
+//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi (se le
+// chiamate sono piu` di una??
 		if (lenght > 0)
 		{	
 			base64data *tmp = malloc(lenght+1);

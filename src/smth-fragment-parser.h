@@ -230,7 +230,7 @@ inline void parsesampleflags(SampleSettings *s, flags_t settings)
 }
 #endif
 
-int parsefragment(Fragment *f, FILE *stream);
+error_t parsefragment(Fragment *f, FILE *stream);
 void disposefragment(Fragment *f);
 
 #endif /* __SMTH_FRAGMENT_PARSER__ */

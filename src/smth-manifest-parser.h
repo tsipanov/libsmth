@@ -231,6 +231,7 @@ typedef struct
 #define MANIFEST_UNEXPECTED_ATTRS		 (-14)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
+void disposemanifest(Manifest *m);
 
 #endif /* __SMTH_MANIFEST_PARSER_H__ */
 
