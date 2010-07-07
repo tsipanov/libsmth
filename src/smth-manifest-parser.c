@@ -381,7 +381,7 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 
 	return MANIFEST_SUCCESS;
 }
-
+////////////////////////////////////////////////////////////////////////////////
 /**
  * \brief Attribute (metadata that disambiguates tracks in a stream) parser.
  *
@@ -416,77 +416,35 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 }
 
 /**
-  The StreamFragmentElement and related fields are used to specify metadata for one set of
-  Related fragments in a stream. The order of repeated StreamFragmentElement fields in a
-  containing StreamElement is significant for the correct function of the IIS Smooth Streaming
-  Transport Protocol. To this end, the following elements make use of the terms "preceding" and
-  "subsequent" StreamFragmentElement in reference to the order of these fields.
+ * \brief StreamFragment (metadata for a set of Related fragments) parser.
+ *
+ * Attributes may appear in any order, but at least one of FragmentDuration and
+ * FragmentTime must be present.
+ *
+ * \param m    The Manifest struct wrapper to be filled with parsed data.
+ * \param attr The attributes to parse.
+ * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
+ *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
 static error_t parsechunk(ManifestBox *mb, const char **attr)
 {
 
 	return MANIFEST_SUCCESS;
 }
+
+//TODO mettere dove servono i calloc
 #if 0
 
-  StreamFragmentElement (variable): An XML Element that encapsulates metadata for a set of
-  Related fragments. Attributes can appear in any order. However, either one or both of the following
-  fields is required and MUST be present in StreamFragmentAttributes: FragmentDuration,
-  FragmentTime.
-  FragmentNumber (variable): The ordinal of the StreamFragmentElement in the stream. If
-  FragmentNumber is specified, its value MUST monotonically increase with the value of the
-  FragmentTime field .
-  FragmentDuration (variable): The duration of the fragment, specified as a number of increments
-  defined by the implicit or explicit value of the containing StreamElements StreamTimeScale
-  field. If the FragmentDuration field is omitted, its implicit value MUST be computed by the client
-  by subtracting the value of the preceding StreamFragmentElements FragmentTime field from
-  the value of this StreamFragmentElement's FragmentTime field. If no subsequent
-  StreamFragmentElement exists, the implicit value of the FragmentTime field is 0.
-  FragmentTime (variable): The time of the fragment, specified as a number of increments defined
-  by the implicit or explicit value of the containing StreamElement's StreamTimeScale field. If the
-  FragmentDuration field is omitted, its implicit value MUST be computed by the client by adding
-  the value of the preceding StreamFragmentElement's FragmentTime field to the value of this
-  StreamFragmentElement's FragmentDuration field. If no preceding StreamFragmentElement
-  exists, the implicit value of the FragmentTime field is 0.
-  The syntax of the fields defined in this section, specified in ABNF [RFC5234], is as follows:
-     StreamFragmentElement = "<" StreamFragmentElementName S
-                                StreamFragmentAttributes S? ">"
-                                S? StreamFragmentContent S?
-                                "</" StreamFragmentElementName ">"
-     StreamFragmentElementname = "c"
-     StreamFragmentAttributes = *(
-                                       FragmentNumberAttribute
-                                       / FragmentDurationAttribute
-                                       / FragmentTimeAttribute
-                                     )
-     FragmentNumberAttribute = S? FragmentNumberAttributeName S? Eq S?
-                                  (DQ FragmentNumber DQ) / (SQ FragmentNumber SQ) S?
-     FragmentNumberAttributeName = "n"
-     FragmentNumber = STRING_UINT32
-     FragmentDurationAttribute = S? FragmentDurationAttributeName S? Eq S?
-                                (DQ FragmentDuration DQ) / (SQ FragmentDuration SQ) S?
-     FragmentDurationAttributeName = "d"
-     FragmentDuration = STRING_UINT64
-     FragmentTimeAttribute = S? FragmentTimeAttributeName S? Eq S?
-                             (DQ FragmentTime DQ) / (SQ FragmentTime SQ) S?
-     FragmentTimeAttributeName = "t"
-     FragmentTime = STRING_UINT64
-     StreamFragmentContent = *( TrackFragment S? )
-     TrackFragment = "<" TrackFragmentElementName S
-                       TrackFragmentAttributes S? ">"
-                       S? 1*(TrackFragmentContent S?)
-                       "</" TrackFragmentElementName ">"
-     TrackFragmentAttributes = *(
-                                       TrackFragmentIndexAttribute
-                                       / VendorExtensionAttribute
-                                     )
-     TrackFragmentIndexAttribute = S? TrackFragmentIndexAttribute S? Eq S?
-                                      (DQ TrackFragmentIndex DQ)
-                                      / (SQ TrackFragmentIndex SQ) S?
-     TrackFragmentIndexAttribute = "i"
-     TrackFragmentIndex = STRING_UINT32
-     TrackFragmentContent = VendorExtensionTrackData
-     VendorExtensionTrackData = XML_CHARDATA
+  FragmentNumber (variable): The ordinal of the StreamFragmentElement in the stream. If FragmentNumber is specified, its value MUST monotonically increase with the value of the FragmentTime field .
+  FragmentDuration (variable): The duration of the fragment, specified as a number of increments defined by the implicit or explicit value of the containing StreamElements StreamTimeScale field. If the FragmentDuration field is omitted, its implicit value MUST be computed by the client by subtracting the value of the preceding StreamFragmentElements FragmentTime field from the value of this StreamFragmentElement's FragmentTime field. If no subsequent StreamFragmentElement exists, the implicit value of the FragmentTime field is 0.
+  FragmentTime (variable): The time of the fragment, specified as a number of increments defined by the implicit or explicit value of the containing StreamElement's StreamTimeScale field. If the FragmentDuration field is omitted, its implicit value MUST be computed by the client by adding the value of the preceding StreamFragmentElement's FragmentTime field to the value of this StreamFragmentElement's FragmentDuration field. If no preceding StreamFragmentElement exists, the implicit value of the FragmentTime field is 0.
+
+  <c n=STRING_UINT32 //number d=STRING_UINT64 //duration t=STRING_UINT64 //time>
+    *(<f i=STRING_UINT32 VendorExtensionAttribute>
+          XML_CHARDATA
+      </f>)
+  </c>
+
 #endif
 
 
