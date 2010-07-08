@@ -19,7 +19,7 @@
 /**
  * \internal
  * \file   smth-manifest-parser.h
- * \brief  XML manifest parser (public header)
+ * \brief  XML manifest parser - public header
  * \author Stefano Sanfilippo
  * \date   30th June 2010
  */
@@ -35,11 +35,12 @@
 /** The size of a Stream::subtype attribute string. */
 #define MANIFEST_STREAM_SUBTYPE_SIZE 4
 
-/** Screen size metadata. */
+/** \brief Screen size metadata. */
 typedef struct
 {   metric_t width, height;
 } ScreenMetrics;
 
+/** \brief Holds index metadata for a Fragment. */
 typedef struct
 {   /**  An ordinal that must match the value of the Index field for the track
 	 *   to which this TrackFragment field pertains.
@@ -73,7 +74,7 @@ typedef struct
 	tick_t time;
 } Chunk;
 
-/** Metadata expressed as key/value pairs that disambiguates tracks. */
+/** \brief Metadata expressed as key/value pairs that disambiguates tracks. */
 typedef struct
 {   /** The name of a custom Attribute for a track. */
 	chardata *key;
@@ -81,6 +82,7 @@ typedef struct
 	chardata *value;
 } Attribute;
 
+/** \brief Track specific metadata. */
 typedef struct
 {   /** An ordinal that identifies the track and MUST be unique for each track
 	 *  in the stream. The Index should start at 0 and increment by 1 for each
@@ -134,6 +136,7 @@ typedef struct
 /** The Stream content type. */
 typedef enum {VIDEO, AUDIO, TEXT} StreamType;
 
+/** \brief Holds stream metadata. */
 typedef struct
 {	/** The type of the stream: video, audio, or text. */
 	StreamType type;
@@ -202,36 +205,36 @@ typedef struct
 
 #define MANIFEST_SUCCESS				 ( 0)
 /** Wrong Manifest version. */
-#define MANIFEST_WRONG_VERSION			 (-1)
+#define MANIFEST_WRONG_VERSION			 (-9)
 /** An out-of-context attribute was parsed.	*/
-#define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-2)
+#define MANIFEST_INAPPROPRIATE_ATTRIBUTE (-10)
 /** There was no memory to istantiate the parser. */
-#define MANIFEST_NO_MEMORY				 (-3)
+#define MANIFEST_NO_MEMORY				 (-11)
 /** There was an i/o error with the manifest file. */
-#define MANIFEST_IO_ERROR				 (-4)
+#define MANIFEST_IO_ERROR				 (-12)
 /** The parser encountered a malformed xml manifest. */
-#define MANIFEST_PARSE_ERROR			 (-5)
+#define MANIFEST_PARSE_ERROR			 (-13)
 /** The manifest is empty... */
-#define MANIFEST_EMPTY					 (-6)
+#define MANIFEST_EMPTY					 (-14)
 /** The xml backend behaved badly and it was blocked.	*/
-#define MANIFEST_PARSER_ERROR			 (-7)
+#define MANIFEST_PARSER_ERROR			 (-15)
 /** The manifest parser encountered an unknown element.	*/
-#define MANIFEST_UNKNOWN_BLOCK			 (-8)
+#define MANIFEST_UNKNOWN_BLOCK			 (-16)
 /** A text block was encountered where it was not expected.	*/
-#define MANIFEST_UNEXPECTED_TRAILING	 (-9)
+#define MANIFEST_UNEXPECTED_TRAILING	 (-17)
 /** The armor UUID is malformed. */
-#define MANIFEST_MALFORMED_ARMOR_UUID    (-10)
+#define MANIFEST_MALFORMED_ARMOR_UUID    (-18)
 /** A stream type different from audio, video and text was encountered.	*/
-#define MANIFEST_UNKNOWN_STREAM_TYPE	 (-11)
+#define MANIFEST_UNKNOWN_STREAM_TYPE	 (-19)
 /** A malformed subtype string was encountered */
-#define MANIFEST_MALFORMED_SUBTYPE		 (-12)
+#define MANIFEST_MALFORMED_SUBTYPE		 (-20)
 /** A malformed fourcc string was encountered */
-#define MANIFEST_MALFORMED_FOURCC		 (-13)
+#define MANIFEST_MALFORMED_FOURCC		 (-21)
 /** An attribute block was encountered out of a Track element. */
-#define MANIFEST_UNEXPECTED_ATTRS		 (-14)
+#define MANIFEST_UNEXPECTED_ATTRS		 (-22)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
-void disposemanifest(Manifest *m);
+void  disposemanifest(Manifest *m);
 
 #endif /* __SMTH_MANIFEST_PARSER_H__ */
 

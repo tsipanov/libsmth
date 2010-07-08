@@ -165,14 +165,14 @@ static error_t scanuuid(Box* root, signedlenght_t boxsize)
 }
 
 /**
- * \brief  prepares the first Box found on box->stream for parsing.
+ * \brief  prepares the first Box found on \c box->stream for parsing.
  *
  * parsebox will fill box structure with the size and the type of the incoming
  * block and position the input stream to the first byte of box data.
  * A parsing function would receive its size and type with the box structure,
  * then it may call parsebox to identify children Boxes and so on.
  * Obviously, it cannot be called by the parsing function itself, as the caller
- * needs to know in advance which parser to invoke.
+ * needs to know in advance which parser invoke.
  *
  * \param  root the box to be prepared.
  * \return FRAGMENT_SUCCESS if the box was successfully prepared,
@@ -414,6 +414,23 @@ static error_t parsetrun(Box* root)
 }
 
 /**
+ * \brief      SdtpBox (Independent and Disposable Samples Box) parser
+ *
+ * Marks frames that can be intentionally dropped if the CPU cannot keep up.
+ * This information is redundant, as it is repeated into more complete struct
+ * TrunBox: the box will be simply skipped.
+ *
+ * \param root pointer to the Box structure to be parsed
+ * \return     FRAGMENT_SUCCESS
+ */
+static error_t parsesdtp(Box* root)
+{
+	/* 4B flags = 0 + 1B * samplesno (simpleflags) */
+	fseek(root->stream, root->bsize, SEEK_CUR);
+	return FRAGMENT_SUCCESS;
+}
+
+/**
  * \brief MdatBox (data container) parser
  *
  * A MdatBox has no children (not even a UUIDBox) and no fields: simply reads
@@ -545,19 +562,6 @@ static error_t parseencr(Box* root)
 
 	root->f->armor.vectors = tmp;
 
-	return FRAGMENT_SUCCESS;
-}
-
-/**
- * \brief      Unknown SdtpBox: skip it... So sad :( [STUB]
- * \param root pointer to the Box structure to be parsed
- * \return     FRAGMENT_SUCCESS on successful parse, or an appropriate error
- *             code.
- */
-static error_t parsesdtp(Box* root)
-{
-	//fprintf(stderr, "parsesdtp: unknown box (what the hell am I?)\n");
-	fseek(root->stream, root->bsize, SEEK_CUR);
 	return FRAGMENT_SUCCESS;
 }
 

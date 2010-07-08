@@ -24,61 +24,13 @@
 /**
  * \internal
  * \file   smth-manifest-defs.h
- * \brief  XML manifest parser (private header)
+ * \brief  XML manifest parser - private header
  * \author Stefano Sanfilippo
  * \date   30th June 2010
  */
 
 #include <smth-common-defs.h>
 #include <smth-manifest-parser.h>
-
-
-#if 0
-
-/** \brief Type of the xml block */
-typedef enum {	MEDIA, 		/**< A SmoothStreamingMedia block.	*/
-				PROTECT,	/**< A ProtectionHeader block. 		*/
-				LEVEL,		/**< A QualityLevel block. 	*/
-				TRACK,		/**< A StreamIndex block. 	*/
-				CHUNK 		/**< A c (Chunk) block. 	*/ } BlockType;
-
-/** The Stream subtype (for text streams) */
-typedef enum { 	SCMD, /**< Triggers for actions by the higher-layer
-				       *   implementation on the Client */
-   				CHAP, /**< Chapter markers */
-  				SUBT, /**< Subtitles used for foreign-language audio */
-				CAPT, /**< Closed captions for the hearing-impaired */
-   				DESC, /**< Media descriptions for the hearing-impaired */
- 				CTRL, /**< Events the control application business logic */
-  				DATA  /**< Application data that does not fall
-				       *   into any of the above categories */
-} StreamSubtype;
-
-/** Stream codec */
-typedef enum {	PCM,  /**< Linear 8 or 16 bit Pulse Code Modulation */
-				WMA,  /**< +Microsoft Windows Media Audio v7, v8
-				       *   and v9.x Standard (WMA Standard)
-			           *   +Microsoft Windows Media Audio v9.x
-				       *   and v10 Professional (WMA Professional)*/
-				MP3,  /**< ISO MPEG-1 Layer III */
-				AAC,  /**< ISO Advanced Audio Coding */
-				VEN   /**< Vendor-extensible format. */
-} CodecType;
-
-/** Stream container type */
-typedef enum {	H264, /**< Advanced Video Coding */
-				WVC1, /**< Microsoft VC-1(R) */
-				AACL, /**< AAC (Low Complexity) */
-				WMAP, /**< WMA Professional */
-				CUST  /**< A vendor extension value registered with MPEG4-RA */
-} FourCCType;
-
-
-static char    FourCCTypeNames[4][5] = { "H264", "WVC1", "AACL", "WMAP" };
-static char     CodecTypeNames[4][6] = { 353, 85, 255, 65534};
-static char StreamSubtypeNames[7][5] = { "SCMD", "CHAP", "SUBT", "CAPT",
-										 "DESC", "CTRL", "DATA" };
-#endif
 
 /** \brief Holds data and metadata for the Manifest parser. */
 typedef struct
@@ -187,9 +139,9 @@ typedef struct
 	#define MANIFEST_CHUNK_TIME				"t"
 
 /** The xml tag name of a Fragment identifier. */
-#define MANIFEST_FRAGMENT_ELEMENT "f"
+#define MANIFEST_FRAGMENT_ELEMENT			"f"
 	/** The xml attribute name for FragmentIndex::index. */
-	#define MANIFEST_FRAGMENT_INDEX "i"
+	#define MANIFEST_FRAGMENT_INDEX			"i"
 
 /** Default number of ticks per minute. */
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
@@ -205,11 +157,14 @@ typedef struct
 /** The default NAL lenght for tracks. */
 #define NAL_DEFAULT_LENGHT				4
 
-static error_t  parsemedia(ManifestBox *mb, const char **attr);
-static error_t  parsearmor(ManifestBox *mb, const char **attr);
-static error_t parsestream(ManifestBox *mb, const char **attr);
-static error_t  parsetrack(ManifestBox *mb, const char **attr);
-static error_t   parseattr(ManifestBox *mb, const char **attr);
+static error_t     parsemedia(ManifestBox *mb, const char **attr);
+static error_t     parsearmor(ManifestBox *mb, const char **attr);
+static error_t    parsestream(ManifestBox *mb, const char **attr);
+static error_t     parsetrack(ManifestBox *mb, const char **attr);
+static error_t      parseattr(ManifestBox *mb, const char **attr);
+static error_t     parsechunk(ManifestBox *mb, const char **attr);
+static error_t parsefragindex(ManifestBox *mb, const char **attr);
+
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);

@@ -87,6 +87,40 @@ void disposemanifest(Manifest* m)
 
 /*--------------------- HIC QUOQUE SUNT LEONES (CODICIS) ---------------------*/
 
+/** \brief expat tag start event callback. */
+static void XMLCALL startblock(void *data, const char *el, const char **attr)
+{
+	ManifestBox *manbox = data;
+
+	//fprintf(stderr, "Parsing: %s\n", el); //DEBUG
+
+	if (!strcmp(el, MANIFEST_ELEMENT))
+	{   manbox->state = parsemedia(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
+	{   manbox->state = parsestream(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
+	{   manbox->state = parsetrack(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
+	{   manbox->state = parsearmor(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
+	{   manbox->state = parsechunk(manbox, attr);
+		return;
+	}
+	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
+	{   manbox->state = parsefragindex(manbox, attr);
+	}
+	//TODO Attribute
+	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
+}
+
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -149,6 +183,13 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 
 	return MANIFEST_SUCCESS;
 }
+
+/*
+typedef struct
+{   chardata *key;
+	chardata *value;
+} Attribute;
+ */
 
 /**
  * \brief Parses a ProtectionHeader element.
@@ -217,7 +258,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		if (!strcmp(attr[i], MANIFEST_STREAM_TIME_SCALE))
 		{   tmp->tick = (tick_t) atol(attr[i+1]);
 			continue;
-		}
+		} //FIXME alle stringhe bisogna aggiungere 1
 		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
 		{   tmp->name = malloc(strlen(attr[i+1])); //FIXME sanitize ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
 			if(!tmp->name) return MANIFEST_NO_MEMORY;
@@ -492,6 +533,8 @@ FIXME fare in modo che siano impostati correttamente.
 
 //FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
 
+//FIXME (NAL) unit. The default value is 4.
+
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
  *
@@ -502,7 +545,7 @@ FIXME fare in modo che siano impostati correttamente.
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
-static error_t parsefragindex(ManifestBox* mb, const char** attr)
+static error_t parsefragindex(ManifestBox *mb, const char **attr)
 {
 	count_t i;
 //TODO add pointer to right one...
@@ -522,40 +565,6 @@ static error_t parsefragindex(ManifestBox* mb, const char** attr)
 }
 
 //TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
-
-/** \brief expat tag start event callback. */
-static void XMLCALL startblock(void *data, const char *el, const char **attr)
-{
-	ManifestBox *manbox = data;
-
-	//fprintf(stderr, "Parsing: %s\n", el); //DEBUG
-
-	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   manbox->state = parsemedia(manbox, attr);
-		return;
-	}
-	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   manbox->state = parsestream(manbox, attr);
-		return;
-	}
-	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   manbox->state = parsetrack(manbox, attr);
-		return;
-	}
-	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   manbox->state = parsearmor(manbox, attr);
-		return;
-	}
-	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   manbox->state = parsechunk(manbox, attr);
-		return;
-	}
-	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   manbox->state = parsefragindex(manbox, attr);
-	}
-
-	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
-}
 
 /** \brief expat tag end event callback. */
 static void XMLCALL endblock(void *data, const char *el)
