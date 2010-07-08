@@ -212,9 +212,9 @@ typedef struct
 /** Sample redundancy (bits 1 and 2) */
 #define SDTP_REDUNDANCY(S)		((state_t)((S)&3))
 /** Sample is depended on (bits 3 and 4) */
-#define SDTP_IS_DEPENDED_ON(S)  ((state_t)(((S)>>2)&3))
+#define SDTP_IS_DEPENDED_ON(S)  ((state_t)((S)>>2)&3)
 /** Sample depends on others (bits 5 and 6) */
-#define SDTP_DEPENDS_ON(S)		((state_t)(((S)>>4)&3))
+#define SDTP_DEPENDS_ON(S)		((state_t)((S)>>4)&3)
 
 #if 0
 /** Fills a SampleSettings struct with data parsed from flagfield settings. */

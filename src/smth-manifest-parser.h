@@ -232,6 +232,8 @@ typedef struct
 #define MANIFEST_MALFORMED_FOURCC		 (-21)
 /** An attribute block was encountered out of a Track element. */
 #define MANIFEST_UNEXPECTED_ATTRS		 (-22)
+/** A string identifier contained characters other than [A-Za-z/-] . */
+#define MANIFEST_INVALID_IDENTIFIER		 (-23)
 
 error_t parsemanifest(Manifest *m, FILE *manifest);
 void  disposemanifest(Manifest *m);

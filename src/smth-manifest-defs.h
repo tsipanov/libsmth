@@ -123,7 +123,7 @@ typedef struct
 	#define MANIFEST_TRACK_NAL_LENGHT		"NALUnitLengthField"
 
 /** The xml tag name for a single attribute. */
-#define MANIFEST_ATTRS						"Attribute"
+#define MANIFEST_ATTRS_ELEMENT				"Attribute"
 	/** The xml attribute name for a Attrs::Key. */
 	#define MANIFEST_ATTRS_KEY				"Name"
 	/** The xml attribute name for a Attrs::Value. */
@@ -143,13 +143,13 @@ typedef struct
 	/** The xml attribute name for FragmentIndex::index. */
 	#define MANIFEST_FRAGMENT_INDEX			"i"
 
-/** Default number of ticks per minute. */
-#define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
 /** Major version number for the Manifest. */
 #define MANIFEST_MEDIA_DEFAULT_MAJOR	"2"
 /** Minor version number for the Manifest. */
 #define MANIFEST_MEDIA_DEFAULT_MINOR	"0"
 
+/** Default number of ticks per minute. */
+#define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
 /** The size of the parser buffer, in bytes. */
 #define MANIFEST_XML_BUFFER_SIZE		8192
 /** The lenght of a UUID string in bytes. */
@@ -164,7 +164,6 @@ static error_t     parsetrack(ManifestBox *mb, const char **attr);
 static error_t      parseattr(ManifestBox *mb, const char **attr);
 static error_t     parsechunk(ManifestBox *mb, const char **attr);
 static error_t parsefragindex(ManifestBox *mb, const char **attr);
-
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);

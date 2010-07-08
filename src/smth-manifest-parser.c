@@ -30,6 +30,34 @@
 #include <stdio.h>
 #include <smth-manifest-defs.h>
 
+/** \brief Converts a string into a 32bit integer. */
+#define atoint32(x) atoi(x)
+/** \brief Converts a string into a 64bit integer. */
+#define atoint64(x) atol(x)
+/** \brief Converts a string into a boolean value.
+ *
+ *  We can safely assume that if it is not true, it is false.
+ */
+#define istrue(x) (tolower(attr[i + 1][0]) == 't')
+
+/**
+ * \brief Checks whether a string is a valid identifier.
+ *
+ * This is a paranoid check to prevent buffer based pointer injections.
+ *
+ * \param s The string to check.
+ * \return  true if the string is sane.
+ */
+static inline bool stringissane(char* s)
+{   count_t i;
+
+	if (!isalpha(s[0])) return false;
+	for (i = 0; i < strlen(s); i++)
+		if (!isalpha(s[i]) || !isdigit(s[i]) || (s[i] == '_') || (s[i] == '-')
+			return false;
+	return true;
+}
+
 /**
  * \brief Parses a manifest from file stream and fills a Manifest struct.
  *
@@ -98,6 +126,10 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	{   manbox->state = parsemedia(manbox, attr);
 		return;
 	}
+	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
+	{   manbox->state = parsearmor(manbox, attr);
+		return;
+	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
 	{   manbox->state = parsestream(manbox, attr);
 		return;
@@ -106,8 +138,8 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	{   manbox->state = parsetrack(manbox, attr);
 		return;
 	}
-	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   manbox->state = parsearmor(manbox, attr);
+	if (!strcmp(el, MANIFEST_ATTRS_ELEMENT))
+	{   manbox->state = parseattr(manbox, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
@@ -116,9 +148,39 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
 	{   manbox->state = parsefragindex(manbox, attr);
+		return;
 	}
-	//TODO Attribute
+
 	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
+}
+////////////////////////////////////////////////////////////////////////////////
+//TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
+
+/** \brief expat tag end event callback. */
+static void XMLCALL endblock(void *data, const char *el)
+{   ManifestBox *manbox = data;
+}
+
+/** \brief expat text event callback. */
+static void XMLCALL textblock(void *data, const char *text, int lenght)
+{
+	ManifestBox *manbox = data;
+	if (manbox->armorwaiting)
+	{
+//FIXME e se unserissi anche la lunghezza??
+//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi (se le
+// chiamate sono piu` di una??
+		if (lenght > 0)
+		{	
+			base64data *tmp = malloc(lenght+1);
+			if (!tmp) manbox->state = MANIFEST_NO_MEMORY;
+			memcpy(tmp, text, lenght);
+			tmp[lenght] = (base64data) 0;
+			manbox->m->armor = tmp;
+		}
+		else manbox->m->armor = NULL;
+	}
+	manbox->armorwaiting = false;
 }
 
 /**
@@ -128,7 +190,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
  * required by the client to play back the content. The parser scans for
  * known attributes and sets corresponding fields in Manifest. Attributes may
  * appear in any order, but MajorVersion, MinorVersion and Duration must be
- * present. We take advantage of atol implementation, which sets to 0 all
+ * present. We take advantage of atoint64 implementation, which sets to 0 all
  * invalid fields (i.e. containing non-numeric characters).
  *
  * \param m    The manifest to be filled with parsed data.
@@ -156,40 +218,33 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_TIME_SCALE))
-		{   mb->m->tick = (tick_t) atol(attr[i + 1]);
+		{   mb->m->tick = (tick_t) atoint64(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_DURATION))
-		{   mb->m->duration = (tick_t) atol(attr[i + 1]);
+		{   mb->m->duration = (tick_t) atoint64(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_IS_LIVE))
-		{   /* we can safely assume that if it is not true, it is false */
-			mb->m->islive = (tolower(attr[i + 1][0]) == 't');
+		{   mb->m->islive = istrue(a[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_LOOKAHEAD))
-		{   mb->m->lookahead = (count_t) atoi(attr[i + 1]);
+		{   mb->m->lookahead = (count_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_DVR_WINDOW))
-		{   mb->m->dvrwindow = (lenght_t) atol(attr[i + 1]);
+		{   mb->m->dvrwindow = (lenght_t) atoint64(attr[i+1]);
 			continue;
 		}
-		/* TODO else */
+		/* else */
+		if (!insertcustomattr(&attr[i], mb->m)) return MANIFEST_NO_MEMORY;
 	}
-	/* if the field is null, set it to default, as required by specs */
+	/* if the field is null, set it to default, as required by specs. */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
 
 	return MANIFEST_SUCCESS;
 }
-
-/*
-typedef struct
-{   chardata *key;
-	chardata *value;
-} Attribute;
- */
 
 /**
  * \brief Parses a ProtectionHeader element.
@@ -206,11 +261,11 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
 {
 	if (!attr[0]) return MANIFEST_MALFORMED_ARMOR_UUID; /* no uuid */
 
-	if (strcmp(attr[0], MANIFEST_PROTECTION_ID)) //FIXME fortify
+	if (strcmp(attr[0], MANIFEST_PROTECTION_ID))
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
 	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGHT)
 		return MANIFEST_MALFORMED_ARMOR_UUID;
-//	mb->m->armorID = attr[1]; TODO 9A04F079-9840-4286-AB92E65BE0885F95
+//  mb->m->armorID = attr[1]; TODO 9A04F079-9840-4286-AB92E65BE0885F95
 	mb->armorwaiting = true; /* waiting for the body to be parsed. */
 
 	return MANIFEST_SUCCESS;
@@ -256,46 +311,47 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_TIME_SCALE))
-		{   tmp->tick = (tick_t) atol(attr[i+1]);
+		{   tmp->tick = (tick_t) atoint64(attr[i+1]);
 			continue;
-		} //FIXME alle stringhe bisogna aggiungere 1
+		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
-		{   tmp->name = malloc(strlen(attr[i+1])); //FIXME sanitize ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
-			if(!tmp->name) return MANIFEST_NO_MEMORY;
+		{   if (!stringissane(attr[i+1])) return MANIFEST_INVALID_IDENTIFIER;
+			tmp->name = malloc(strlen(attr[i+1])+1); /* including a \0 sigil */
+			if (!tmp->name) return MANIFEST_NO_MEMORY;  
 			strcpy(tmp->name, attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_CHUNKS_NO))
-		{   tmp->chunksno = (count_t) atoi(attr[i+1]);
+		{   tmp->chunksno = (count_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_QUALITY_LEVELS_NO))
-		{   tmp->tracksno = (count_t) atoi(attr[i+1]);
+		{   tmp->tracksno = (count_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_WIDTH))
-		{   tmp->maxsize.width = (metric_t) atoi(attr[i+1]);
+		{   tmp->maxsize.width = (metric_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_MAX_HEIGHT))
-		{   tmp->maxsize.height = (metric_t) atoi(attr[i+1]);
+		{   tmp->maxsize.height = (metric_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_WIDTH))
-		{   tmp->bestsize.width = (metric_t) atoi(attr[i+1]);
+		{   tmp->bestsize.width = (metric_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_DISPLAY_HEIGHT))
-		{   tmp->bestsize.height = (metric_t) atoi(attr[i+1]);
+		{   tmp->bestsize.height = (metric_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_OUTPUT))
-		{   /* we can safely assume that if it is not true, it is false */
-			tmp->isembedded = (tolower(attr[i+1][0]) == 't');
+		{	tmp->isembedded = istrue(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE))
-		{   if (strlen(attr[i+1]) == MANIFEST_STREAM_SUBTYPE_SIZE)
+		{   /* overflow safe */
+			if (strlen(attr[i+1]) == MANIFEST_STREAM_SUBTYPE_SIZE)
 			{   strcpy(tmp->subtype, attr[i+1]);
 				continue;
 			}
@@ -323,9 +379,10 @@ field MUST match the value of the Name field for a non-sparse stream in the pres
 #if 0
 SubtypeControlEvents (variable): Control events for applications on the client.
 #endif
-		/* TODO else */
+		/* else */
+		if (!insertcustomattr(&attr[i], tmp) return MANIFEST_NO_MEMORY;
 	}
-
+	//TODO insert
 	free(tmp->name); //XXX
 	free(tmp); //XXX
 
@@ -361,31 +418,31 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 	for (i = 0; attr[i]; i += 2)
 	{
 		if (!strcmp(attr[i], MANIFEST_TRACK_INDEX))
-		{   tmp->index = (count_t) atoi(attr[i+1]);
+		{   tmp->index = (count_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_BITRATE))
-		{   tmp->bitrate = (bitrate_t) atoi(attr[i+1]);
+		{   tmp->bitrate = (bitrate_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_MAXWIDTH))
-		{   tmp->maxsize.width = (metric_t) atoi(attr[i+1]);
+		{   tmp->maxsize.width = (metric_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_MAXHEIGHT))
-		{   tmp->maxsize.height = (metric_t) atoi(attr[i+1]);
+		{   tmp->maxsize.height = (metric_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_PACKETSIZE))
-		{   tmp->packetsize = (bitrate_t) atoi(attr[i+1]);
+		{   tmp->packetsize = (bitrate_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_SAMPLERATE))
-		{   tmp->samplerate = (bitrate_t) atoi(attr[i+1]);
+		{   tmp->samplerate = (bitrate_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_AUDIOTAG))
-		{   tmp->audiotag = (flags_t) atoi(attr[i+1]);
+		{   tmp->audiotag = (flags_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_FOURCC))
@@ -408,15 +465,15 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_CHANNELS))
-		{   tmp->channelsno = (unit_t) atoi(attr[i+1]);
+		{   tmp->channelsno = (unit_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_BITSPERSAMPLE))
-		{   tmp->bitspersample = (unit_t) atoi(attr[i+1]);
+		{   tmp->bitspersample = (unit_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_NAL_LENGHT))
-		{   tmp->nalunitlenght = (unit_t) atoi(attr[i+1]);
+		{   tmp->nalunitlenght = (unit_t) atoint32(attr[i+1]);
 			if (!tmp->nalunitlenght) tmp->nalunitlenght = NAL_DEFAULT_LENGHT;
 			continue;
 		}
@@ -495,15 +552,15 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 	for (i = 0; attr[i]; i += 2)
 	{
 		if (!strcmp(attr[i], MANIFEST_CHUNK_INDEX))
-		{   tmp->index = (count_t) atoi(attr[i+1]);
+		{   tmp->index = (count_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_CHUNK_DURATION))
-		{   tmp->duration = (tick_t) atoi(attr[i+1]);
+		{   tmp->duration = (tick_t) atoint32(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_CHUNK_TIME))
-		{   tmp->time = (tick_t) atoi(attr[i+1]);
+		{   tmp->time = (tick_t) atoint32(attr[i+1]);
 			continue;
 		}
 		/* TODO else */
@@ -555,42 +612,13 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	for (i = 0; attr[i]; i += 2)
 	{
 		if (!strcmp(attr[i], MANIFEST_FRAGMENT_INDEX))
-		{   tmp->index = (count_t) atoi(attr[i+1]);
+		{   tmp->index = (count_t) atoint32(attr[i+1]);
 		}
 		/* TODO else */
 	}
 	//TODO body BASE64_STRING solo se... tmp->content;
 	free(tmp); //XXX FIXME
 	return MANIFEST_SUCCESS;
-}
-
-//TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
-
-/** \brief expat tag end event callback. */
-static void XMLCALL endblock(void *data, const char *el)
-{   ManifestBox *manbox = data;
-}
-
-/** \brief expat text event callback. */
-static void XMLCALL textblock(void *data, const char *text, int lenght)
-{
-	ManifestBox *manbox = data;
-	if (manbox->armorwaiting)
-	{
-//FIXME e se unserissi anche la lunghezza??
-//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi (se le
-// chiamate sono piu` di una??
-		if (lenght > 0)
-		{	
-			base64data *tmp = malloc(lenght+1);
-			if (!tmp) manbox->state = MANIFEST_NO_MEMORY;
-			memcpy(tmp, text, lenght);
-			tmp[lenght] = (base64data) 0;
-			manbox->m->armor = tmp;
-		}
-		else manbox->m->armor = NULL;
-	}
-	manbox->armorwaiting = false;
 }
 
 /* vim: set ts=4 sw=4 tw=0: */
