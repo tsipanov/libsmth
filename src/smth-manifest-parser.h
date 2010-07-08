@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <smth-common-defs.h>
+#include <smth-pattern-parser.h>
 
 /** The size of a Track::fourcc attribute string. */
 #define MANIFEST_TRACK_FOURCC_SIZE 4
@@ -37,7 +38,8 @@
 
 /** \brief Screen size metadata. */
 typedef struct
-{   metric_t width, height;
+{   /** A coords couple describing a screensize. */
+	metric_t width, height;
 } ScreenMetrics;
 
 /** \brief Holds index metadata for a Fragment. */
@@ -105,7 +107,7 @@ typedef struct
 	flags_t audiotag;
 	/** A four-character code that identifies which media format is used for
 	 *  each sample. */
-	char fourcc[MANIFEST_TRACK_FOURCC_SIZE];
+	char fourcc[MANIFEST_TRACK_FOURCC_SIZE+1];
 	/** Data that specifies parameters specific to the media format and common
 	 *  to all samples in the track.
 	 *  The meaning of each sequence is correlated to the FourCC type, as follows:
@@ -153,6 +155,8 @@ typedef struct
 	ScreenMetrics maxsize;
 	/** The suggested display size of a video sample, in pixels. */
 	ScreenMetrics bestsize;
+	/** A pattern used by the client to generate Fragment Request messages. */
+	UrlPattern url;
 	/** Whether sample data for this stream are embedded in the Manifest as
 	 *  part of the ManifestOutputSample field.
 	 *  Otherwise, the ManifestOutputSample field for fragments that are part
@@ -163,7 +167,15 @@ typedef struct
 	 *  each sample in a text track. However, the FourCC field, is used to
 	 *  identify the media format for each sample.
 	 */
-	char subtype[MANIFEST_STREAM_SUBTYPE_SIZE]; //XXX
+	chardata subtype[MANIFEST_STREAM_SUBTYPE_SIZE+1]; //XXX
+	/**
+	 * Specifies the non-sparse stream that is used to transmit timing
+	 * information for this stream. If the ParentStream field is present, it
+	 * indicates that the stream described is a sparse stream. The value of
+	 * this field must match the value of Stream::name for a non-sparse stream
+	 * in the presentation.
+	 */
+	chardata *parent;
 } Stream;
 
 /** \brief Holds the manifest data of the opened stream. */

@@ -39,7 +39,7 @@ typedef struct
 	/** Whether the parser is waiting for encryption armor data. */
 	bool armorwaiting;
 	/** Whether the parser is waiting for key/value metadata pairs. */
-	Track *fillwithattrs;
+	Track *tracktobefilled;
 	/** The error code reported by a parsing handler. */
 	error_t state;
 } ManifestBox;
@@ -144,9 +144,9 @@ typedef struct
 	#define MANIFEST_FRAGMENT_INDEX			"i"
 
 /** Major version number for the Manifest. */
-#define MANIFEST_MEDIA_DEFAULT_MAJOR	"2"
+#define MANIFEST_MEDIA_DEFAULT_MAJOR		"2"
 /** Minor version number for the Manifest. */
-#define MANIFEST_MEDIA_DEFAULT_MINOR	"0"
+#define MANIFEST_MEDIA_DEFAULT_MINOR		"0"
 
 /** Default number of ticks per minute. */
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000

@@ -36,7 +36,7 @@
 #define atoint64(x) atol(x)
 /** \brief Converts a string into a boolean value.
  *
- *  We can safely assume that if it is not true, it is false.
+ *  We can safely assume that if a token is not true, it is false.
  */
 #define istrue(x) (tolower(attr[i + 1][0]) == 't')
 
@@ -48,12 +48,12 @@
  * \param s The string to check.
  * \return  true if the string is sane.
  */
-static inline bool stringissane(char* s)
+static inline bool stringissane(const char* s)
 {   count_t i;
-
-	if (!isalpha(s[0])) return false;
+	//FIXME is lenght is 0
+	if (!isalpha(s[0])) return false; /* so that we can save a few cpu cycles */
 	for (i = 0; i < strlen(s); i++)
-		if (!isalpha(s[i]) || !isdigit(s[i]) || (s[i] == '_') || (s[i] == '-')
+		if (!isalpha(s[i]) || !isdigit(s[i]) || (s[i] == '_') || (s[i] == '-'))
 			return false;
 	return true;
 }
@@ -109,8 +109,18 @@ error_t parsemanifest(Manifest *m, FILE *stream)
 	return result;
 }
 
+/**
+ * \brief Disposes properly of a Manifest struct.
+ *
+ * Programmers are advised to use this function to free a Manifest struct,
+ * avoiding the direct use of \c free(). NEVER TRY TO DISPOSE OF A FRAGMENT if
+ * \c parsemanifest() exit state was not successfull.
+ *
+ * \param m The manifest to be destroyed.
+ */
 void disposemanifest(Manifest* m)
-{
+{   if (m->armor) free(m->armor);
+	m->armor = NULL;
 }
 
 /*--------------------- HIC QUOQUE SUNT LEONES (CODICIS) ---------------------*/
@@ -153,7 +163,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 
 	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
-////////////////////////////////////////////////////////////////////////////////
+
 //TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
 
 /** \brief expat tag end event callback. */
@@ -168,8 +178,6 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 	if (manbox->armorwaiting)
 	{
 //FIXME e se unserissi anche la lunghezza??
-//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi (se le
-// chiamate sono piu` di una??
 		if (lenght > 0)
 		{	
 			base64data *tmp = malloc(lenght+1);
@@ -179,8 +187,18 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 			manbox->m->armor = tmp;
 		}
 		else manbox->m->armor = NULL;
+
+		manbox->armorwaiting = false;
+		return;
 	}
-	manbox->armorwaiting = false;
+	if (manbox->tracktobefilled)
+	{
+//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
+//	  (se le chiamate sono piu` di una)??
+		return;
+	}
+
+//	manbox->state = MANIFEST_UNEXPECTED_TRAILING; FIXME
 }
 
 /**
@@ -358,36 +376,30 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			if (strlen(attr[i+1]) != 0) return MANIFEST_MALFORMED_SUBTYPE;
 			/* else (NULL) keep it NULL */
 		}
-//////////////////////////////////////TODO//////////////////////////////////////
-#if 0
-Url (variable): A pattern used by the client to generate Fragment Request messages.
-#endif
-		if (!strcmp(attr[i], MANIFEST_STREAM_URL)) //UrlPattern
-		{
+		if (!strcmp(attr[i], MANIFEST_STREAM_PARENT))
+		{   if (!stringissane(attr[i+1])) return MANIFEST_INVALID_IDENTIFIER;
+			tmp->parent = malloc(strlen(attr[i+1])+1); /* including a \0 sigil */
+			if (!tmp->parent) return MANIFEST_NO_MEMORY;  
+			strcpy(tmp->parent, attr[i+1]);
 			continue;
 		}
-#if 0
-ParentStream (variable): Specifies the non-sparse stream that is used to transmit timing
-information for this stream. If the ParentStream field is present, it indicates that the stream
-described by the containing StreamElement field is a sparse stream. If present, the value of this
-field MUST match the value of the Name field for a non-sparse stream in the presentation.
-#endif
-		if (!strcmp(attr[i], MANIFEST_STREAM_PARENT)) //FIXME sanitize ALPHA *( ALPHA / DIGIT / UNDERSCORE / DASH )
-		{
+		if (!strcmp(attr[i], MANIFEST_STREAM_URL))
+		{   parseurlpattern(&tmp->url, attr[i+1]);
 			continue;
 		}
-#if 0
-SubtypeControlEvents (variable): Control events for applications on the client.
-#endif
+//TODO SubtypeControlEvents: Control events for applications on the client.
 		/* else */
-		if (!insertcustomattr(&attr[i], tmp) return MANIFEST_NO_MEMORY;
+		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
-	//TODO insert
-	free(tmp->name); //XXX
-	free(tmp); //XXX
+
+	//XXX insert
+	free(tmp->name);
+	free(tmp);
 
 	return MANIFEST_SUCCESS;
 }
+
+//FIXME deve essere azzerato
 
 /**
  * \brief TrackElement parser.
@@ -409,8 +421,6 @@ SubtypeControlEvents (variable): Control events for applications on the client.
 static error_t parsetrack(ManifestBox *mb, const char **attr)
 {
 	count_t i;
-
-//	if (!mb->fillwithattrs) return MANIFEST_UNEXPECTED_ATTRS FIXME
 
 	Track *tmp = calloc(1, sizeof(Track));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -477,17 +487,22 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 			if (!tmp->nalunitlenght) tmp->nalunitlenght = NAL_DEFAULT_LENGHT;
 			continue;
 		}
-		/* TODO else */
+		/* else */
+		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
-	mb->fillwithattrs = tmp;
-	//if (tmp->header) free(tmp->header);  XXX
-	if (tmp) free(tmp); //XXX
+	mb->tracktobefilled = tmp;
+
+	//TODO insert into list
+	if (tmp) free(tmp);
 
 	return MANIFEST_SUCCESS;
 }
-
+//TODO isnertcustom... come array terminato da NULL
 //TODO quando finisce un Track, resettare a zero il puntatore
+
+// <CustomAttributesElementName>
+
 /**
  * \brief Attribute (metadata that disambiguates tracks in a stream) parser.
  *
@@ -498,12 +513,11 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
  * \return     MANIFEST_SUCCESS or MANIFEST_INAPPROPRIATE_ATTRIBUTE if an
  *			   attribute different from MANIFEST_PROTECTION_ID was encountered.
  */
-// <CustomAttributesElementName>
 static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
 
-	if (!mb->fillwithattrs) return MANIFEST_UNEXPECTED_ATTRS;
+	if (!mb->tracktobefilled) return MANIFEST_UNEXPECTED_ATTRS;
 
 	Attribute *tmp = calloc(1, sizeof (Attribute));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -513,7 +527,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		chardata *tmpvalue = malloc(strlen(attr[i+1]));
 		if (!tmpvalue) return MANIFEST_NO_MEMORY;
 
-		/* the lenght must not change (_const_ char **)*/
+		/* the lenght must not change (_const_ char **) */
 		strcpy(tmpvalue, attr[i+1]);
 
 		if (!strcmp(attr[i], MANIFEST_ATTRS_KEY))
@@ -526,10 +540,14 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		}
 	}
 
-//	mb->fillwithattrs = tmp; FIXME lista dinamica.
-	free(tmp); //XXX
+	//TODO insert into list
+	free(tmp);
+
 	return MANIFEST_SUCCESS;
 }
+
+//	mb->fillwithattrs = tmp; FIXME lista dinamica. azzerare alla chisura
+//TODO add pointer to right fragment... fillwithchunks
 
 /**
  * \brief StreamFragment (metadata for a set of Related fragments) parser.
@@ -545,7 +563,6 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 static error_t parsechunk(ManifestBox *mb, const char **attr)
 {
 	count_t i;
-//TODO add pointer to right fragment...
 	Chunk *tmp = calloc(1, sizeof (Chunk));
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
@@ -563,7 +580,8 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 		{   tmp->time = (tick_t) atoint32(attr[i+1]);
 			continue;
 		}
-		/* TODO else */
+		/* else */
+		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
 	//free(tmp); //XXX FIXME perche` fa saltare tutto??
@@ -605,7 +623,7 @@ FIXME fare in modo che siano impostati correttamente.
 static error_t parsefragindex(ManifestBox *mb, const char **attr)
 {
 	count_t i;
-//TODO add pointer to right one...
+	//TODO add pointer to right one...
 	FragmentIndex *tmp = calloc(1, sizeof (Chunk));
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
@@ -617,6 +635,8 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 		/* TODO else */
 	}
 	//TODO body BASE64_STRING solo se... tmp->content;
+
+	//TODO insert
 	free(tmp); //XXX FIXME
 	return MANIFEST_SUCCESS;
 }

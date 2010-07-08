@@ -75,7 +75,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
 
 /**
  * \brief    Disposes properly of a Fragment. These days, it only calls
- *           free() on the dinamically allocated fields, but programmers
+ *           \c free() on the dinamically allocated fields, but programmers
  *           are advised to use it instead of freeing memory by themselves,
  *           as the internal data structure may vary heavily in the future.
  * \param f  The fragment  to be destroyed.
