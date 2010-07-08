@@ -157,6 +157,8 @@ typedef struct
 /** The default NAL lenght for tracks. */
 #define NAL_DEFAULT_LENGHT				4
 
+static bool stringissane(const char* s);
+
 static error_t     parsemedia(ManifestBox *mb, const char **attr);
 static error_t     parsearmor(ManifestBox *mb, const char **attr);
 static error_t    parsestream(ManifestBox *mb, const char **attr);

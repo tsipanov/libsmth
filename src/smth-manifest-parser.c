@@ -48,10 +48,11 @@
  * \param s The string to check.
  * \return  true if the string is sane.
  */
-static inline bool stringissane(const char* s)
+static bool stringissane(const char* s)
 {   count_t i;
-	//FIXME is lenght is 0
-	if (!isalpha(s[0])) return false; /* so that we can save a few cpu cycles */
+	/* so that we can save a few cpu cycles */
+	/* if it is not alpha, nor \0           */
+	if (s[0] && !isalpha(s[0])) return false;
 	for (i = 0; i < strlen(s); i++)
 		if (!isalpha(s[i]) || !isdigit(s[i]) || (s[i] == '_') || (s[i] == '-'))
 			return false;
@@ -120,6 +121,7 @@ error_t parsemanifest(Manifest *m, FILE *stream)
  */
 void disposemanifest(Manifest* m)
 {   if (m->armor) free(m->armor);
+	/* destroy even the reference. */
 	m->armor = NULL;
 }
 
@@ -164,11 +166,10 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
 
-//TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
-
 /** \brief expat tag end event callback. */
 static void XMLCALL endblock(void *data, const char *el)
 {   ManifestBox *manbox = data;
+//TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
 }
 
 /** \brief expat text event callback. */
@@ -198,7 +199,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 		return;
 	}
 
-//	manbox->state = MANIFEST_UNEXPECTED_TRAILING; FIXME
+	manbox->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME
 }
 
 /**
@@ -607,13 +608,12 @@ FIXME fare in modo che siano impostati correttamente.
 #endif
 
 //FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
-
 //FIXME (NAL) unit. The default value is 4.
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
  *
- * The TrackFragmentIndex attribute field is required and MUST be present.
+ * The Track::index attribute field is required and MUST be present.
  *
  * \param m    The Manifest struct wrapper to be filled with parsed data.
  * \param attr The attributes to parse.
@@ -630,9 +630,11 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	for (i = 0; attr[i]; i += 2)
 	{
 		if (!strcmp(attr[i], MANIFEST_FRAGMENT_INDEX))
-		{   tmp->index = (count_t) atoint32(attr[i+1]);
+		{	tmp->index = (count_t) atoint32(attr[i+1]);
+			continue;
 		}
-		/* TODO else */
+		/* else */
+		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 	//TODO body BASE64_STRING solo se... tmp->content;
 
