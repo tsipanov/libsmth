@@ -50,8 +50,7 @@
  */
 static bool stringissane(const char* s)
 {   count_t i;
-	/* so that we can save a few cpu cycles */
-	/* if it is not alpha, nor \0           */
+	/* so that we can save a few cpu cycles if it is not alpha nor \0 */
 	if (s[0] && !isalpha(s[0])) return false;
 	for (i = 0; i < strlen(s); i++)
 		if (!isalpha(s[i]) || !isdigit(s[i]) || (s[i] == '_') || (s[i] == '-'))
@@ -130,76 +129,108 @@ void disposemanifest(Manifest* m)
 /** \brief expat tag start event callback. */
 static void XMLCALL startblock(void *data, const char *el, const char **attr)
 {
-	ManifestBox *manbox = data;
+	ManifestBox *mb = data;
 
-	//fprintf(stderr, "Parsing: %s\n", el); //DEBUG
+	//fprintf(stderr, ">: %s\n", el); //DEBUG
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   manbox->state = parsemedia(manbox, attr);
+	{   mb->state = parsemedia(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   manbox->state = parsearmor(manbox, attr);
+	{   mb->state = parsearmor(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   manbox->state = parsestream(manbox, attr);
+	{   mb->state = parsestream(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   manbox->state = parsetrack(manbox, attr);
+	{   mb->state = parsetrack(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ATTRS_ELEMENT))
-	{   manbox->state = parseattr(manbox, attr);
+	{   mb->state = parseattr(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   manbox->state = parsechunk(manbox, attr);
+	{   mb->state = parsechunk(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   manbox->state = parsefragindex(manbox, attr);
+	{   mb->state = parsefragindex(mb, attr);
 		return;
 	}
 
-	manbox->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
+	mb->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
+
+//XXX---------------------------------------------------------------------------
+#define insertcustomattr(x,y) true
+#define parseurlpattern(x,y) NULL
 
 /** \brief expat tag end event callback. */
 static void XMLCALL endblock(void *data, const char *el)
-{   ManifestBox *manbox = data;
+{  
+	ManifestBox *mb = data;
+
+	//fprintf(stderr, "<: %s\n", el); //DEBUG
+
+	if (!strcmp(el, MANIFEST_ELEMENT))
+	{   //TODO check end of file...
+		return;
+	}
+	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
+	{   mb->armorwaiting = false;
+		return;
+	}
+	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
+	{   return;
+	}
+	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
+	{   return;
+	}
+	if (!strcmp(el, MANIFEST_ATTRS_ELEMENT))
+	{   return;
+	}
+	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
+	{   return;
+	}
+	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
+	{   return;
+	}
+
 //TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
 }
 
 /** \brief expat text event callback. */
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
-	ManifestBox *manbox = data;
-	if (manbox->armorwaiting)
+	ManifestBox *mb = data;
+	if (mb->armorwaiting)
 	{
-//FIXME e se unserissi anche la lunghezza??
+//FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
 		if (lenght > 0)
 		{	
 			base64data *tmp = malloc(lenght+1);
-			if (!tmp) manbox->state = MANIFEST_NO_MEMORY;
+			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
 			memcpy(tmp, text, lenght);
 			tmp[lenght] = (base64data) 0;
-			manbox->m->armor = tmp;
+			mb->m->armor = tmp;
 		}
-		else manbox->m->armor = NULL;
+		else mb->m->armor = NULL;
 
-		manbox->armorwaiting = false;
+		mb->armorwaiting = false;
 		return;
 	}
-	if (manbox->tracktobefilled)
-	{
+	if (mb->tracktobefilled)
+	{   //TODO track embedded
 //FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
 //	  (se le chiamate sono piu` di una)??
 		return;
 	}
 
-	manbox->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME
+	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME
 }
 
 /**
@@ -209,7 +240,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
  * required by the client to play back the content. The parser scans for
  * known attributes and sets corresponding fields in Manifest. Attributes may
  * appear in any order, but MajorVersion, MinorVersion and Duration must be
- * present. We take advantage of atoint64 implementation, which sets to 0 all
+ * present. We take advantage of \c atoint32|64 implementation, which sets to 0 all
  * invalid fields (i.e. containing non-numeric characters).
  *
  * \param m    The manifest to be filled with parsed data.
@@ -388,7 +419,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		{   parseurlpattern(&tmp->url, attr[i+1]);
 			continue;
 		}
-//TODO SubtypeControlEvents: Control events for applications on the client.
+		//TODO SubtypeControlEvents: Control events for applications on the client.
 		/* else */
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}

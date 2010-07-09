@@ -42,6 +42,12 @@ typedef struct
 	metric_t width, height;
 } ScreenMetrics;
 
+/** \brief Holds embedded track data. */
+typedef struct
+{   byte_t* data;    /**< Data. */
+	lenght_t lenght; /**< Lenght of the data. */
+} Embedded;
+
 /** \brief Holds index metadata for a Fragment. */
 typedef struct
 {   /**  An ordinal that must match the value of the Index field for the track
@@ -197,13 +203,11 @@ typedef struct
 	count_t lookahead;
 	/** The length of the DVR window, measured in ticks. If this field is
 	 *  omitted for a live presentation or set to 0, the DVR window is
-	 *  effectively infinite.
-	 *  This field MUST be omitted for on-demand presentations.
+	 *  effectively infinite. This field must not appear in on-demand
+	 *  presentations.
 	 */
 	lenght_t dvrwindow;
-	/** A UUID that uniquely identifies the Content Protection System to
-	 *  which this ProtectionElement pertains.
-	 *
+	/** A UUID that uniquely identifies the Content Protection System.
 	 *  For instance: {9A04F079-9840-4286-AB92E65BE0885F95}
 	 */
 	uuid_t armorID;
