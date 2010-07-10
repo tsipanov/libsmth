@@ -38,8 +38,15 @@ typedef struct
 	Manifest *m;
 	/** Whether the parser is waiting for encryption armor data. */
 	bool armorwaiting;
-	/** Whether the parser is waiting for key/value metadata pairs. */
-	Track *tracktobefilled;
+	/** The parser has finished parsing, anything coming after should
+		be ignored. */
+	bool manifestparsed;
+	/** The track to be filled with key/value metadata pairs. */
+	Track *activeTrack;
+	/** The Stream to be filled with Track metadata. */
+	Stream *activeStream;
+	/** The Fragment to be filled with embedded data. */
+	FragmentIndex *activeFragment;
 	/** The error code reported by a parsing handler. */
 	error_t state;
 } ManifestBox;
@@ -157,8 +164,9 @@ typedef struct
 /** The default NAL lenght for tracks. */
 #define NAL_DEFAULT_LENGHT				4
 
+/*@unused@*/
 static bool stringissane(const char* s);
-
+ 
 static error_t     parsemedia(ManifestBox *mb, const char **attr);
 static error_t     parsearmor(ManifestBox *mb, const char **attr);
 static error_t    parsestream(ManifestBox *mb, const char **attr);

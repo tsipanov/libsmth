@@ -38,7 +38,7 @@
  *
  *  We can safely assume that if a token is not true, it is false.
  */
-#define istrue(x) (tolower(attr[i + 1][0]) == 't')
+#define atobool(x) (tolower(attr[i + 1][0]) == 't')
 
 /**
  * \brief Checks whether a string is a valid identifier.
@@ -70,7 +70,7 @@ static bool stringissane(const char* s)
 error_t parsemanifest(Manifest *m, FILE *stream)
 {
 	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
-	ManifestBox root = {m, false, NULL, MANIFEST_SUCCESS};
+	ManifestBox root = {m, false, false, NULL, NULL, MANIFEST_SUCCESS};
 	error_t result;
 	bool done = false;
 
@@ -165,10 +165,6 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	mb->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
 
-//XXX---------------------------------------------------------------------------
-#define insertcustomattr(x,y) true
-#define parseurlpattern(x,y) NULL
-
 /** \brief expat tag end event callback. */
 static void XMLCALL endblock(void *data, const char *el)
 {  
@@ -177,7 +173,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	//fprintf(stderr, "<: %s\n", el); //DEBUG
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   //TODO check end of file...
+	{   mb->manifestparsed = true; //XXX
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
@@ -185,23 +181,37 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   return;
+	{   mb->activeStream = NULL;
+		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   return;
+	{   mb->activeTrack = NULL;
+		return;
 	}
+//XXX---------------------------------------------------------------------------
+//SmoothStream
+//|
+//+--Protection
+//|  `--XML_BASE64
+//+--Stream
+//   +--Track
+//   |  `--Attributes
+//   `--StreamFragment
+//      `--XML_BASE64
+#if 0
 	if (!strcmp(el, MANIFEST_ATTRS_ELEMENT))
 	{   return;
 	}
+#endif
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
 	{   return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
 	{   return;
 	}
-
-//TODO inserire un puntatore allo stream attivo e annullarlo ad ogni chiusura.
 }
+
+//TODO aggiungere i puntatori come dovuto
 
 /** \brief expat text event callback. */
 static void XMLCALL textblock(void *data, const char *text, int lenght)
@@ -223,7 +233,7 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 		mb->armorwaiting = false;
 		return;
 	}
-	if (mb->tracktobefilled)
+	if (mb->activeTrack)
 	{   //TODO track embedded
 //FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
 //	  (se le chiamate sono piu` di una)??
@@ -232,6 +242,9 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 
 	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME
 }
+
+#define insertcustomattr(x,y) true
+#define parseurlpattern(x,y) NULL
 
 /**
  * \brief Parses a SmoothStreamingMedia.
@@ -276,7 +289,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_IS_LIVE))
-		{   mb->m->islive = istrue(a[i+1]);
+		{   mb->m->islive = atobool(a[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_LOOKAHEAD))
@@ -396,7 +409,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_OUTPUT))
-		{	tmp->isembedded = istrue(attr[i+1]);
+		{	tmp->isembedded = atobool(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE))
@@ -523,7 +536,7 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
-	mb->tracktobefilled = tmp;
+	mb->activeTrack = tmp;
 
 	//TODO insert into list
 	if (tmp) free(tmp);
@@ -549,7 +562,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
 
-	if (!mb->tracktobefilled) return MANIFEST_UNEXPECTED_ATTRS;
+	if (!mb->activeTrack) return MANIFEST_UNEXPECTED_ATTRS;
 
 	Attribute *tmp = calloc(1, sizeof (Attribute));
 	if (!tmp) return MANIFEST_NO_MEMORY;

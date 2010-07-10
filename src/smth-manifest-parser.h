@@ -251,7 +251,7 @@ typedef struct
 /** A string identifier contained characters other than [A-Za-z/-] . */
 #define MANIFEST_INVALID_IDENTIFIER		 (-23)
 
-error_t parsemanifest(Manifest *m, FILE *manifest);
+error_t parsemanifest(Manifest *m, FILE *stream);
 void  disposemanifest(Manifest *m);
 
 #endif /* __SMTH_MANIFEST_PARSER_H__ */

@@ -50,7 +50,7 @@ typedef uint32_t tag_t;				/**< A numeric code that identifier		*/
 typedef uint32_t word_t;			/**< A 32bit word						*/
 typedef uint32_t flags_t;			/**< Flags bitfield						*/
 typedef uint16_t unit_t;			/**< An atomic unit						*/
-typedef int error_t;				/**< An error type (returned by parser  */
+typedef int error_t;				/**< An error type (returned by parser) */
 typedef char byte_t;				/**< A byte (obviously)					*/
 typedef char uuid_t[16];			/**< A unique id						*/
 typedef char base64data, hexdata, chardata, url_t;

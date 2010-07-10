@@ -46,7 +46,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	root.f = f;
 
 	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
-
+#if 1
 	result = parsebox(&root);
 	if (result != FRAGMENT_SUCCESS)
 	{   return result;
@@ -56,7 +56,6 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	{   disposefragment(root.f);
 		return result;
 	}
-
 	result = parsebox(&root);
 	if (result != FRAGMENT_SUCCESS)
 	{   disposefragment(root.f);
@@ -67,9 +66,37 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	{   disposefragment(root.f);
 		return result;
 	}
+#endif
+#if 0
+	int i;
+//	while(!feof(root.stream))
+	for ( i = 0; i < 2; i++)
+	{
+		if (result == FRAGMENT_SUCCESS)
+		{
+			switch(root.type)
+			{	case MOOF: result = parsemoof(&root); break;
+				case MDAT: result = parsemdat(&root); break;
+				default:
+				{	disposefragment(root.f);
+					return FRAGMENT_INAPPROPRIATE;
+				}
+			}
+			if (result != FRAGMENT_SUCCESS)
+			{   disposefragment(root.f);
+				puts("qui");
+				return result;
+			}
+		}
+		else
+		{   disposefragment(root.f);
+			return result;
+		}
+	}
+#endif
+
 	/* if it is not EOF */
 	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED;
-
 	return FRAGMENT_SUCCESS;
 }
 
