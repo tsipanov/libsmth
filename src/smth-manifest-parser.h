@@ -219,6 +219,7 @@ typedef struct
 	Stream* streams;
 } Manifest;
 
+/** The manifest was successfully parsed. */
 #define MANIFEST_SUCCESS				 ( 0)
 /** Wrong Manifest version. */
 #define MANIFEST_WRONG_VERSION			 (-9)

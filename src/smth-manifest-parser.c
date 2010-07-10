@@ -50,10 +50,10 @@
  */
 static bool stringissane(const char* s)
 {   count_t i;
-	/* so that we can save a few cpu cycles if it is not alpha nor \0 */
+	/* we can save a few cpu cycles if it is not alpha nor \0 */
 	if (s[0] && !isalpha(s[0])) return false;
 	for (i = 0; i < strlen(s); i++)
-		if (!isalpha(s[i]) || !isdigit(s[i]) || (s[i] == '_') || (s[i] == '-'))
+		if (!(isalpha(s[i]) || isdigit(s[i]) || (s[i] == '_') || (s[i] == '-')))
 			return false;
 	return true;
 }
@@ -114,7 +114,7 @@ error_t parsemanifest(Manifest *m, FILE *stream)
  *
  * Programmers are advised to use this function to free a Manifest struct,
  * avoiding the direct use of \c free(). NEVER TRY TO DISPOSE OF A FRAGMENT if
- * \c parsemanifest() exit state was not successfull.
+ * \c parsemanifest() did not return \c MANIFEST_SUCCESS.
  *
  * \param m The manifest to be destroyed.
  */
@@ -133,6 +133,10 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 
 	//fprintf(stderr, ">: %s\n", el); //DEBUG
 
+	if (mb->manifestparsed)
+	{   mb->state = MANIFEST_UNEXPECTED_TRAILING;
+		return;
+	}
 	if (!strcmp(el, MANIFEST_ELEMENT))
 	{   mb->state = parsemedia(mb, attr);
 		return;
@@ -164,7 +168,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 
 	mb->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
-
+//parserare due volte o inserire davvero la lunghezza dinamica??
 /** \brief expat tag end event callback. */
 static void XMLCALL endblock(void *data, const char *el)
 {  
@@ -173,7 +177,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	//fprintf(stderr, "<: %s\n", el); //DEBUG
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   mb->manifestparsed = true; //XXX
+	{   mb->manifestparsed = true;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
@@ -188,35 +192,29 @@ static void XMLCALL endblock(void *data, const char *el)
 	{   mb->activeTrack = NULL;
 		return;
 	}
-//XXX---------------------------------------------------------------------------
-//SmoothStream
-//|
-//+--Protection
-//|  `--XML_BASE64
-//+--Stream
-//   +--Track
-//   |  `--Attributes
-//   `--StreamFragment
-//      `--XML_BASE64
-#if 0
-	if (!strcmp(el, MANIFEST_ATTRS_ELEMENT))
-	{   return;
-	}
-#endif
+	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   return;
+	{   mb->activeChunk = NULL;
+		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   return;
+	{   mb->activeFragment = NULL;
+		return;
 	}
 }
 
-//TODO aggiungere i puntatori come dovuto
+//----------------------------------------XXX-----------------------------------
+//+--Stream
+//   +--Track
+//   |  `--Attributes
+//	 `--StreamFragment
+//      `--XML_BASE64
 
 /** \brief expat text event callback. */
 static void XMLCALL textblock(void *data, const char *text, int lenght)
 {
 	ManifestBox *mb = data;
+//FIXME skip trailing blanks
 	if (mb->armorwaiting)
 	{
 //FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
@@ -233,18 +231,20 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 		mb->armorwaiting = false;
 		return;
 	}
-	if (mb->activeTrack)
+	if (mb->activeFragment)
 	{   //TODO track embedded
 //FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
 //	  (se le chiamate sono piu` di una)??
 		return;
 	}
 
-	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME
+//	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
 }
 
+//XXX
 #define insertcustomattr(x,y) true
 #define parseurlpattern(x,y) NULL
+#define addtolist(x,y,z,a) true
 
 /**
  * \brief Parses a SmoothStreamingMedia.
@@ -441,6 +441,8 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 	free(tmp->name);
 	free(tmp);
 
+	if (!addtolist(tmp, mb->activeStream) return MANIFEST_NO_MEMORY; //FIXME
+
 	return MANIFEST_SUCCESS;
 }
 
@@ -592,6 +594,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 }
 
 //	mb->fillwithattrs = tmp; FIXME lista dinamica. azzerare alla chisura
+
 //TODO add pointer to right fragment... fillwithchunks
 
 /**
@@ -632,6 +635,8 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 	//free(tmp); //XXX FIXME perche` fa saltare tutto??
 	return MANIFEST_SUCCESS;
 }
+
+////////////////////////////////////////////////////////////////////////////////
 
 #if 0
 FIXME fare in modo che siano impostati correttamente.

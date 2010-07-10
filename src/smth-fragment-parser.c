@@ -50,7 +50,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
 //	while (!feof(root.stream))
 	int i; for ( i = 0; i < 2; i++)
 	{
-		error_t result = parsebox(&root);
+		error_t result = parsebox(&root); //TODO aggiungere END_OF_FILE??
 		if (result == FRAGMENT_SUCCESS)
 		{
 			switch (root.type)
