@@ -80,9 +80,13 @@ typedef struct
 /** The SampleEncryptionBox has the optional fields */
 #define ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT  (1<<0)
 
+/** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
+#define BOX_IS_HUGE				 0x00000001
+
 /** Mask for extracting keysize value from a 32bit word containing both flags
  *  and KeySizeValue. Beware of endianess */
 #define ENCRYPTION_KEY_TYPE_MASK 0xffffff00
+
 /** Mask for extracting flags value from a 32bit word containing both flags
  *  and KeySizeValue. Beware of endianess */
 #define ENCRYPTION_KEY_SIZE_MASK 0x000000ff
@@ -119,35 +123,22 @@ static const uuid_t tfrfuuid = { 0xd4, 0x80, 0x7e, 0xf2,
 								 0x8e, 0x54, 0x26, 0xcb,
 								 0x9e, 0x46, 0xa7, 0x9f };
 
-/************************START ENDIAN DEPENDENT SECTION*************************
- * All data is initialised with little endian values, as most people using this
- * library will compile it on a x86 platform. Anyway, it should not change
- * much if using a big endian CPU, only a few assembler istructions more...
- * The code is full of le32toh.
- ******************************************************************************/
-
-/** If BoxSize is equal to boxishuge, then a LongBoxSize section is present.  */
-static const word_t boxishuge = 0x00000001;
-
 /** Names of Boxes encoded as 32bit unsigned integer, used for type detection.*/
 
 /*  Used this Python snippet to build each row:
  *		for c in namestring: print '%x' % ord(c)
  */
-static const word_t BoxTypeID[] = { 0x666f6f6d, /**< "moof" */
-									0x6468666d, /**< "mfhd" */
-								   	0x66617274, /**< "traf" */
-								 	0x64697575, /**< "uuid" */
-								 	0x64686674, /**< "tfhd" */
-								 	0x6e757274, /**< "trun" */
-								 	0x7461646d, /**< "mdat" */
-									0x70746473  /**< "sdtp" */ };
-
+static const word_t BoxTypeID[] = { 0x6d6f6f66, /**< "moof" */
+									0x6d666864, /**< "mfhd" */
+								   	0x74726166, /**< "traf" */
+								 	0x75756964, /**< "uuid" */
+								 	0x74666864, /**< "tfhd" */
+								 	0x7472756e, /**< "trun" */
+								 	0x6d646174, /**< "mdat" */
+									0x73647470  /**< "sdtp" */ };
 /** The signature of different encryption methods. [LSB is keysize]   */
 static const word_t EncryptionTypeID[] = { 0x00000100,  /**< AES 128-bit CTR */
                		                       0x00000200}; /**< AES 128-bit CBC */
-
-/*************************END ENDIAN DEPENDED SECTION**************************/
 
 static error_t  parsebox(Box* root);
 static error_t parsemoof(Box* root);

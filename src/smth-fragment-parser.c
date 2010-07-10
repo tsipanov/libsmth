@@ -41,50 +41,25 @@
  */
 error_t parsefragment(Fragment *f, FILE *stream)
 {   Box root;
-	error_t result;
 	root.stream = stream;
 	root.f = f;
 
 	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
-#if 1
-	result = parsebox(&root);
-	if (result != FRAGMENT_SUCCESS)
-	{   return result;
-	}
-	result = parsemoof(&root);
-	if (result != FRAGMENT_SUCCESS)
-	{   disposefragment(root.f);
-		return result;
-	}
-	result = parsebox(&root);
-	if (result != FRAGMENT_SUCCESS)
-	{   disposefragment(root.f);
-		return result;
-	}
-	result = parsemdat(&root);
-	if (result != FRAGMENT_SUCCESS)
-	{   disposefragment(root.f);
-		return result;
-	}
-#endif
-#if 0
-	int i;
-//	while(!feof(root.stream))
-	for ( i = 0; i < 2; i++)
+
+//FIXME should work with `while`, but it does not...
+//	while (!feof(root.stream))
+	int i; for ( i = 0; i < 2; i++)
 	{
+		error_t result = parsebox(&root);
 		if (result == FRAGMENT_SUCCESS)
 		{
-			switch(root.type)
+			switch (root.type)
 			{	case MOOF: result = parsemoof(&root); break;
 				case MDAT: result = parsemdat(&root); break;
-				default:
-				{	disposefragment(root.f);
-					return FRAGMENT_INAPPROPRIATE;
-				}
+				default: result = FRAGMENT_INAPPROPRIATE; break;
 			}
 			if (result != FRAGMENT_SUCCESS)
 			{   disposefragment(root.f);
-				puts("qui");
 				return result;
 			}
 		}
@@ -93,10 +68,10 @@ error_t parsefragment(Fragment *f, FILE *stream)
 			return result;
 		}
 	}
-#endif
 
-	/* if it is not EOF */
+	/* XXX if it is not EOF */
 	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED;
+
 	return FRAGMENT_SUCCESS;
 }
 
@@ -214,9 +189,10 @@ static error_t parsebox(Box* root)
 	shortlenght_t offset = sizeof (shortlenght_t) + sizeof (name);
 
 	if (!readbox(&tmpsize, sizeof (shortlenght_t), root)) return FRAGMENT_IO_ERROR;
-	if (!readbox(&name, sizeof (name), root)) return FRAGMENT_IO_ERROR;
+	if (!getflags(&name, root)) return FRAGMENT_IO_ERROR;
 	for (element = 0, root->type = UNKNOWN; element < UNKNOWN; element++)
-	{	if (htole32(name) == BoxTypeID[element])
+	{
+		if (name == BoxTypeID[element])
 		{   root->type = element;
 			break;
 		}
@@ -224,7 +200,7 @@ static error_t parsebox(Box* root)
 	/* if it is still unknown */
 	if (root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
 	/* if it is a huge box */
-	if (tmpsize == htobe32(boxishuge))
+	if (tmpsize == htobe32(BOX_IS_HUGE))
 	{
 		if (!readbox(&root->bsize, sizeof (root->bsize), root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof (root->bsize);
@@ -251,12 +227,11 @@ static error_t parsebox(Box* root)
  */
 static error_t parsemoof(Box* root)
 {
-	error_t result;
 	signedlenght_t boxsize = root->bsize;
 
 	while (boxsize > 0)
 	{   
-		result = parsebox(root);
+		error_t result = parsebox(root);
 		if (result == FRAGMENT_SUCCESS)
 		{
 			boxsize -= root->tsize; /* total size of the newly parsed Box */
@@ -549,7 +524,7 @@ static error_t parseencr(Box* root)
 	if (boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
 		if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
-		flags_t keytype = (flags_t) (boxflags & ENCRYPTION_KEY_TYPE_MASK);
+		flags_t keytype = (flags_t) (boxflags & ENCRYPTION_KEY_TYPE_MASK); //FIXME usare xor
 		if (keytype) /* if it is encrypted */
 		{	for (enc = AES_CTR, root->f->armor.type = UNSET; enc < UNSET; enc++)
 				if (keytype == EncryptionTypeID[enc])
