@@ -216,7 +216,7 @@ static error_t parsebox(Box* root)
 	/* if it is still unknown */
 	if (root->type == UNKNOWN) return FRAGMENT_UNKNOWN;
 	/* if it is a huge box */
-	if (tmpsize == htobe32(BOX_IS_HUGE))
+	if (be32toh(tmpsize) == BOX_IS_HUGE)
 	{
 		if (!readbox(&root->bsize, sizeof (root->bsize), root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof (root->bsize);

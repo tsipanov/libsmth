@@ -46,7 +46,7 @@ typedef struct
 typedef struct
 {   byte_t* data;    /**< Data. */
 	lenght_t lenght; /**< Lenght of the data. */
-} Embedded;
+} Embedded; //XXX unisci a quella sotto
 
 /** \brief Holds index metadata for a Fragment. */
 typedef struct
@@ -58,7 +58,7 @@ typedef struct
 	 *  Stream::isembedded is true.
 	 */
 	base64data* content;
-} FragmentIndex;
+} ChunkIndex;
 
 /** \brief Holds metadata for a single chunk. */
 typedef struct
@@ -80,6 +80,8 @@ typedef struct
 	 *  is the first in the stream, the implicit value is 0.
 	 */
 	tick_t time;
+	/** The subfragments of a \c Chunk. */
+	ChunkIndex **fragments;
 } Chunk;
 
 /** \brief Metadata expressed as key/value pairs that disambiguates tracks. */
@@ -139,6 +141,8 @@ typedef struct
 	 *  FourCC field is "H264". The default value is 4.
 	 */
 	unit_t nalunitlenght;
+	/** A set of attributes as a NULL terminated array that identify the Track. */
+	Attribute **attributes;
 } Track;
 
 /** The Stream content type. */
@@ -152,7 +156,7 @@ typedef struct
 	 *  specified as the number of increments in one second. */
 	tick_t tick;
 	/** The name of the stream. */
-	chardata* name;
+	chardata *name;
 	/** The number of fragments available for this stream. */
 	count_t chunksno;
 	/** The number of tracks available for this stream. */
@@ -182,6 +186,10 @@ typedef struct
 	 * in the presentation.
 	 */
 	chardata *parent;
+	/** Pointer to a NULL terminated array of child tracks. */
+	Track **tracks;
+	/** Pointer to a NULL terminated array of child chunks. */
+	Chunk **chunks;
 } Stream;
 
 /** \brief Holds the manifest data of the opened stream. */
@@ -216,7 +224,7 @@ typedef struct
 	 */
 	base64data *armor;
 	/** Pointer to the streams array (NULL terminated). */
-	Stream* streams;
+	Stream **streams;
 } Manifest;
 
 /** The manifest was successfully parsed. */

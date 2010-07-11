@@ -1,6 +1,8 @@
 /*
  * Copyright (C) 2010 Stefano Sanfilippo
  *
+ * smth-manifest-parser.c: parses a SmoothStream XML manifest.
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
  * by the Free Software Foundation; either version 2 of the License, or
@@ -36,14 +38,14 @@
 #define atoint64(x) atol(x)
 /** \brief Converts a string into a boolean value.
  *
- *  We can safely assume that if a token is not true, it is false.
+ *  \note We can safely assume that if a token is not \c (t)rue, it is \c false.
  */
 #define atobool(x) (tolower(attr[i + 1][0]) == 't')
 
 /**
  * \brief Checks whether a string is a valid identifier.
  *
- * This is a paranoid check to prevent buffer based pointer injections.
+ * \note This is a paranoid check to prevent buffer based pointer injections.
  *
  * \param s The string to check.
  * \return  true if the string is sane.
@@ -70,8 +72,14 @@ static bool stringissane(const char* s)
 error_t parsemanifest(Manifest *m, FILE *stream)
 {
 	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
-	ManifestBox root = {m, false, false, NULL, NULL, MANIFEST_SUCCESS}; //FIXME
+	ManifestBox root;
 	error_t result;
+
+	root.m = m;
+	root.state = MANIFEST_SUCCESS;
+	root.armorwaiting = false;
+	root.manifestparsed = false;
+
 	bool done = false;
 
 	memset(m, 0x00, sizeof (Manifest)); /* reset memory */
@@ -118,15 +126,68 @@ error_t parsemanifest(Manifest *m, FILE *stream)
  *
  * \param m The manifest to be destroyed.
  */
-void disposemanifest(Manifest* m)
-{   if (m->armor) free(m->armor);
+void disposemanifest(Manifest* m) //TODO chiarire il comportamento di free
+{   
+	if (m->armor) free(m->armor);
+	if (m->streams)
+	{   int i;
+		for (i = 0; m->streams[i]; i++)
+		{
+			Stream *tmpstream = m->streams[i];
+			if (tmpstream->name) free(tmpstream->name);
+			if (tmpstream->parent) free(tmpstream->parent);
+			if (tmpstream->tracks)
+			{   int j;
+				for (j = 0; tmpstream->tracks[j]; j++)
+				{   Track *tmptrack;
+					if (tmptrack->header) free(tmptrack->header);
+					if (tmptrack->attributes)
+					{	int n;
+						for (n = 0; tmptrack->attributes[n]; n++)
+						{   Attribute *tmpattribute = tmptrack->attributes[n];
+							if (tmpattribute->key) free(tmpattribute->key);
+							if (tmpattribute->value) free(tmpattribute->value);
+							free(tmpattribute);
+						}
+						free(tmptrack->attributes);
+					}
+					free(tmptrack);
+				}
+			}
+			if (tmpstream->chunks)
+			{	for (i = 0; tmpstream->chunks[i]; i++)
+				{   int j;
+					Chunk *tmpchunk = tmpstream->chunks[i];
+					if (tmpchunk->fragments)
+					{	for (j = 0; tmpchunk->fragments[j]; j++)
+						{   ChunkIndex *tmpindex = tmpchunk->fragments[j];
+							if (tmpindex->content) free(tmpindex->content);
+							free(tmpindex);
+						}
+						free(tmpchunk->fragments);
+					}
+					free(tmpchunk);
+				}
+				free(tmpstream->chunks);
+			}
+			free(tmpstream);
+		}
+		free(m->streams);
+	}
+
 	/* destroy even the reference. */
 	m->armor = NULL;
+	m->streams = (Stream**) NULL;
 }
 
 /*--------------------- HIC QUOQUE SUNT LEONES (CODICIS) ---------------------*/
 
-/** \brief expat tag start event callback. */
+/** \brief expat tag start event callback.
+ *
+ * Every time a block is opened, the current dynamic list for the appropriate
+ * element is reset. Each called parser should assign the dynamic field to the
+ * correct \c DynList::list
+ */
 static void XMLCALL startblock(void *data, const char *el, const char **attr)
 {
 	ManifestBox *mb = data;
@@ -146,11 +207,14 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   mb->state = parsestream(mb, attr);
+	{   preparelist(&mb->tmpchunks);
+		preparelist(&mb->tmptracks);
+		mb->state = parsestream(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   mb->state = parsetrack(mb, attr);
+	{   preparelist(&mb->tmpattributes);
+		mb->state = parsetrack(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ATTRS_ELEMENT))
@@ -158,11 +222,13 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   mb->state = parsechunk(mb, attr);
+	{   preparelist(&mb->tmpfragments);
+		mb->state = parsechunk(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   mb->state = parsefragindex(mb, attr);
+	{   preparelist(&mb->tmpembedded);
+		mb->state = parsefragindex(mb, attr);
 		return;
 	}
 
@@ -177,38 +243,34 @@ static void XMLCALL endblock(void *data, const char *el)
 	//fprintf(stderr, "<: %s\n", el); //DEBUG
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   mb->manifestparsed = true;
+	{   if(!finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
+		//TODO qualcosa come seterrorandreturn.		
+		mb->manifestparsed = true; //XXX
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   mb->armorwaiting = false; //copia l'armatura e la lunghezza...
+	{   mb->armorwaiting = false; //FIXME copia l'armatura e la lunghezza...
 		return;
 	}
-	if (!strcmp(el, MANIFEST_STREAM_ELEMENT)) //XXX sono proprio necessari??
-	{   mb->activeStream.list = NULL;
+	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
+	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
+		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   mb->activeTrack.list = NULL;
+	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
 		return;
 	}
 	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   mb->activeChunk.list = NULL;
+	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   mb->activeFragment.list = NULL;
+	{   if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY;
 		return;
 	}
 }
-
-//----------------------------------------XXX-----------------------------------
-//+--Stream
-//   +--Track
-//   |  `--Attributes
-//	 `--StreamFragment
-//      `--XML_BASE64
 
 /** \brief expat text event callback. */
 static void XMLCALL textblock(void *data, const char *text, int length)
@@ -220,7 +282,7 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 //FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
 		if (length > 0)
 		{	
-			base64data *tmp = malloc(length+1);
+			base64data *tmp = malloc(length+1); //non +1!!!
 			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
 			memcpy(tmp, text, length);
 			tmp[length] = (base64data) 0; //FIXME non è l'ultimo!!!
@@ -231,7 +293,7 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 		mb->armorwaiting = false;
 		return;
 	}
-	if (mb->activeFragment.list)
+//	if (mb->activeFragment.list)
 	{   //TODO track embedded
 //FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
 //	  (se le chiamate sono piu` di una)??
@@ -242,9 +304,9 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 }
 
 //XXX convenience macros.
+// variabile elattrs in ogni funzione
 #define insertcustomattr(...) true
-#define parseurlpattern(...) NULL
-#define addtolist(...) true
+#define  parseurlpattern(...) NULL
 
 /**
  * \brief Parses a SmoothStreamingMedia.
@@ -253,8 +315,8 @@ static void XMLCALL textblock(void *data, const char *text, int length)
  * required by the client to play back the content. The parser scans for
  * known attributes and sets corresponding fields in Manifest. Attributes may
  * appear in any order, but MajorVersion, MinorVersion and Duration must be
- * present. We take advantage of \c atoint32|64 implementation, which sets to 0 all
- * invalid fields (i.e. containing non-numeric characters).
+ * present. We take advantage of \c atoint32|64 implementation, which sets to 0
+ * all invalid fields (i.e. containing non-numeric characters).
  *
  * \param m    The manifest to be filled with parsed data.
  * \param attr The attributes to parse.
@@ -263,6 +325,9 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 static error_t parsemedia(ManifestBox *mb, const char **attr)
 {
 	count_t i;
+
+	preparelist(&mb->tmpstreams);
+		
 	for (i = 0; attr[i]; i += 2)
 	{
 		if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
@@ -301,10 +366,12 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		/* else */
-		if (!insertcustomattr(&attr[i], mb->m)) return MANIFEST_NO_MEMORY;
+		if (!insertcustomattr(&attr[i], mb->m)) return MANIFEST_NO_MEMORY; //FIXME DynList custom attrs;
 	}
 	/* if the field is null, set it to default, as required by specs. */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
+
+	mb->tmpstreams.list = (void**) mb->m->streams;
 
 	return MANIFEST_SUCCESS;
 }
@@ -379,7 +446,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
 		{   if (!stringissane(attr[i+1])) return MANIFEST_INVALID_IDENTIFIER;
-			tmp->name = malloc(strlen(attr[i+1])+1); /* including a \0 sigil */
+			tmp->name = malloc(strlen(attr[i+1])+ sizeof (chardata)); /* including a \0 sigil */
 			if (!tmp->name) return MANIFEST_NO_MEMORY;  
 			strcpy(tmp->name, attr[i+1]);
 			continue;
@@ -437,16 +504,13 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
-	//XXX insert
-	free(tmp->name);
-	free(tmp);
+	if (!addtolist(tmp, &mb->tmpstreams)) return MANIFEST_NO_MEMORY;
 
-	if (!addtolist(tmp, mb->activeStream)) return MANIFEST_NO_MEMORY; //FIXME
+	mb->tmptracks.list = (void**) tmp->tracks;
+	mb->tmpchunks.list = (void**) tmp->chunks;
 
 	return MANIFEST_SUCCESS;
 }
-
-//FIXME deve essere azzerato
 
 /**
  * \brief TrackElement parser.
@@ -513,8 +577,8 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 			/* else (not null, not 4 letters) keep it NULL */
 		}
 		if (!strcmp(attr[i], MANIFEST_TRACK_HEADER))
-		{
-			tmp->header = malloc(strlen(attr[i+1]));
+		{	
+			tmp->header = malloc(strlen(attr[i+1]) + sizeof (chardata));
 			if(!tmp->header) return MANIFEST_NO_MEMORY;
 			/* data is not unhexlified because vendor extensions could put
 			 * here anything, even text. */
@@ -538,22 +602,17 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
-	mb->activeTrack.list = tmp;
+	if (!addtolist(tmp, &mb->tmptracks)) return MANIFEST_NO_MEMORY;
 
-	//TODO insert into list
-	if (tmp) free(tmp);
+	mb->tmpattributes.list = (void**) tmp->attributes;
 
 	return MANIFEST_SUCCESS;
 }
-//TODO isnertcustom... come array terminato da NULL
-//TODO quando finisce un Track, resettare a zero il puntatore
-
-// <CustomAttributesElementName>
 
 /**
  * \brief Attribute (metadata that disambiguates tracks in a stream) parser.
  *
- * Tags different from Name and Value will be graciously ignored.
+ * \warning Tags different from Name and Value will be graciously ignored.
  *
  * \param m    The Manifest struct wrapper to be filled with parsed data.
  * \param attr The attributes to parse.
@@ -563,8 +622,6 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
-
-	if (!mb->activeTrack.list) return MANIFEST_UNEXPECTED_ATTRS;
 
 	Attribute *tmp = calloc(1, sizeof (Attribute));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -587,15 +644,10 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		}
 	}
 
-	//TODO insert into list
-	free(tmp);
+	if (!addtolist(tmp, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
 }
-
-//	mb->fillwithattrs = tmp; FIXME lista dinamica. azzerare alla chisura
-
-//TODO add pointer to right fragment... fillwithchunks
 
 /**
  * \brief StreamFragment (metadata for a set of Related fragments) parser.
@@ -611,6 +663,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 static error_t parsechunk(ManifestBox *mb, const char **attr)
 {
 	count_t i;
+
 	Chunk *tmp = calloc(1, sizeof (Chunk));
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
@@ -632,11 +685,12 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
-	//free(tmp); //XXX FIXME perche` fa saltare tutto??
+	if (!addtolist(tmp, &mb->tmpchunks)) return MANIFEST_NO_MEMORY;
+
+	mb->tmpfragments.list = (void**) tmp->fragments;
+
 	return MANIFEST_SUCCESS;
 }
-
-////////////////////////////////////////////////////////////////////////////////
 
 #if 0
 FIXME fare in modo che siano impostati correttamente.
@@ -656,8 +710,14 @@ FIXME fare in modo che siano impostati correttamente.
 	tick_t time;
 #endif
 
+/////////////////////////////////////TODO///////////////////////////////////////
 //FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
 //FIXME (NAL) unit. The default value is 4.
+//----------------------------------------XXX-----------------------------------
+//XXX tutti avranno un campo attrs, cambiare il nome di quello di 
+//	mb->fillwithattrs = tmp; FIXME lista dinamica. azzerare alla chisura
+//TODO add pointer to right fragment... fillwithchunks
+//FIXME chiarire se serve assegnare ad una variabile...
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
@@ -673,8 +733,8 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 {
 	count_t i;
 
-	FragmentIndex *tmp = calloc(1, sizeof (Chunk));
-	mb->activeFragment.list = tmp;
+	ChunkIndex *tmp = calloc(1, sizeof (Chunk));
+//	mb->activeFragment.list = tmp;
 
 	if (!tmp) return MANIFEST_NO_MEMORY;
 

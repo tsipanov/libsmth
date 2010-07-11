@@ -36,8 +36,8 @@ int main()
 		return 1;
 	}
 
-	printf("%d\n%s\n", m.dvrwindow, m.armor);
+	printf("%d\n", m.dvrwindow);
 
 	fclose(f);
-	if (m.armor) free(m.armor);
+	disposemanifest(&m);
 }

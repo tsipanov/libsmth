@@ -32,12 +32,13 @@
 
 /**
  * \brief Adds a \c item pointer to a DynList.
- * \warning Allocation and deallocation of inserted items is up to the programmer.
+ * \warning    Allocation and deallocation of inserted items is up to the
+ *             programmer.
  * \param item The item to be inserted into the list.
  * \param list The list in which to insert the \c item.
- * \return \c true on success or \c false if there was no memory left. In this
- *         case, data is left untouched and the programmer may ignore this
- *         message, as appropriate.
+ * \return     \c true on success or \c false if there was no memory left.
+ *             In this case, data is left untouched and the programmer may
+ *             ignore this message, as appropriate.
  */
 bool addtolist(void *item, DynList *list)
 {
@@ -45,7 +46,7 @@ bool addtolist(void *item, DynList *list)
 	if (list->index == list->slots)
 	{	
 		list->slots = list->slots? list->slots * 2: 3;
-		void *tmp = realloc(list->list, list->slots * sizeof (list->list));
+		void **tmp = realloc(list->list, list->slots * sizeof (list->list)); //TODO check **
 		if (!tmp) return false;
 		list->list = tmp;
 	}
@@ -56,6 +57,7 @@ bool addtolist(void *item, DynList *list)
 	return true;
 }
 
+//FIXME macro...
 void preparelist(DynList *list)
 {	memset(list, 0x0, sizeof(DynList));
 }
@@ -68,12 +70,15 @@ void preparelist(DynList *list)
  * unused pointer slots, but it is not necessary to call it before any operation
  * on the list. The list of pointers is closed by a NULL pointer.
  *
+ * \warning Finalizing an uninitialised array (i.e. not processed via
+ *          \c preparelist() may have unexpected results.
+ *
  * \param list The list to be finalized.
- * \return \c true on success or \c false.
+ * \return     \c true on success or \c false.
  */
 bool finalizelist(DynList *list)
 {
-	void *tmp = realloc(list->list, list->index * sizeof (list->list)+1);
+	void **tmp = realloc(list->list, (list->index + 1) * sizeof (void*));
 	if (!tmp) return false;
 	list->list = tmp;
 	list->list[list->index] = NULL;

@@ -42,16 +42,20 @@ typedef struct
 	/** The parser has finished parsing, anything coming after should
 		be ignored. */
 	bool manifestparsed;
-	/** The track to be filled with key/value metadata pairs. */
-	DynList activeTrack;
-	/** The Stream to be filled with \c Track metadata. */
-	DynList activeStream;
-	/** The chunk to be filled with \c FragmentIndex(es). */
-	DynList activeChunk;
-	/** The Fragment to be filled with embedded data. */
-	DynList activeFragment;
-	/** The error code reported by a parsing handler. */
+	/** The error code reported by a parser handler. */
 	error_t state;
+	/** The \c Manifest::streams to fill with Stream data. */
+	DynList tmpstreams;
+	/** The \c Stream::tracks to be filled with \c Track metadata. */
+	DynList tmptracks;
+	/** The \c Stream::chunks to be filled with \c Chunk metadata. */
+	DynList tmpchunks;
+	/** The \c Track::attributes to be filled with key/value metadata pairs. */
+	DynList tmpattributes;
+	/** The \c Chunk::fragments to be filled with \c FragmentIndex(es). */ //FIXME
+	DynList tmpfragments;
+	/** The \c FragmentIndex::content to be filled with embedded data. */ //FIXME
+	DynList tmpembedded;
 } ManifestBox;
 
 /** The xml tag identifying a SmoothStream (root) section */
@@ -63,7 +67,7 @@ typedef struct
 	/** The xml attribute signaling whether the fragment is part of live content */
 	#define MANIFEST_MEDIA_IS_LIVE			"IsLive"
 	/** The xml attribute representing server cache size in Fragments */
-	#define MANIFEST_MEDIA_LOOKAHEAD		"LookaheadCount"
+	#define MANIFEST_MEDIA_LOOKAHEAD		"LookAheadFragmentCount"
 	/** The xml attribute representing the major version of the Manifest */
 	#define MANIFEST_MEDIA_MAJOR_VERSION	"MajorVersion"
 	/** The xml attribute representing the minor version of the Manifest */
@@ -167,7 +171,6 @@ typedef struct
 /** The default NAL lenght for tracks. */
 #define NAL_DEFAULT_LENGHT				4
 
-/*@unused@*/
 static bool stringissane(const char* s);
  
 static error_t     parsemedia(ManifestBox *mb, const char **attr);
