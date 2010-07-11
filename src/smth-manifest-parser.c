@@ -168,7 +168,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 
 	mb->state = MANIFEST_UNKNOWN_BLOCK; /* it should never arrive here */
 }
-//parserare due volte o inserire davvero la lunghezza dinamica??
+
 /** \brief expat tag end event callback. */
 static void XMLCALL endblock(void *data, const char *el)
 {  

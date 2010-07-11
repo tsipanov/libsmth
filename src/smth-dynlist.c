@@ -27,20 +27,63 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <smth-dynlist.h>
 
-static error_t addtolist(void *item, DynList *list)
+/**
+ * \brief Adds a \c item pointer to a DynList.
+ * \warning Allocation and deallocation of inserted items is up to the programmer.
+ * \param item The item to be inserted into the list.
+ * \param list The list in which to insert the \c item.
+ * \return LIST_SUCCESS or LIST_NO_MEMORY, if there was no memory left. In this
+ *         case, data is left untouched and the programmer may ignore this
+ *         message, as appropriate.
+ */
+error_t addtolist(void *item, DynList *list)
 {
 	/* if too small, doubles the capiency. */
 	if (list->index == list->slots)
 	{	
 		list->slots = list->slots? list->slots * 2: 3;
 		void *tmp = realloc(list->list, list->slots * sizeof (list->list));
-		if (!tmp) return FRAGMENT_NO_MEMORY;
+		if (!tmp) return LIST_NO_MEMORY;
 		list->list = tmp;
 	}
 
 	list->list[list->index] = item;
 	list->index++;
 
-	return FRAGMENT_SUCCESS;
+	return LIST_SUCCESS;
+}
+
+void preparelist(DynList *list)
+{	memset(list, 0x0, sizeof(DynList));
+}
+
+/**
+ * \brief Throws away empty slots and sigils the array.
+ *
+ * After a call to \c finalizelist(), \c DynList::list can be assigned to any
+ * pointer or reused. This function is useful to save memory by eliminating
+ * unused pointer slots, but it is not necessary to call it before any operation
+ * on the list. The list of pointers is closed by a NULL pointer.
+ *
+ * \param list The list to be finalized.
+ * \return LIST_SUCCESS or an appropriate error code.
+ */
+error_t finalizelist(DynList *list)
+{
+	void *tmp = realloc(list->list, list->index * sizeof (list->list)+1);
+	if (!tmp) return LIST_NO_MEMORY;
+	list->list = tmp;
+	list->list[list->index] = NULL;
+	return LIST_SUCCESS;
+}
+
+/**
+ * \brief Destroys a dynamic list, appropriately.
+ * \param list The list to be destroyed.
+ */
+void disposelist(DynList *list)
+{	free(list->list);
 }

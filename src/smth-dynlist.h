@@ -33,16 +33,25 @@
 
 /** \brief Holds dynamic list metadata and queue pointer.
  *
- *  Warning: To achieve universality, the list exploits a \c void pointer,
+ *  \warning To achieve universality, the list exploits a \c void pointer,
  *  so that the compiler will not complain about the type of the assignement.
- *  Triple check your assignements or you will introduce a bug!
+ *  Triple check your assignements to \c DynList::list or you will have
+ *  introduced a bug!
  *
  *  \sa addtolist()
  */
 typedef struct
 {   count_t slots; /**< The number of allocated slots. */
 	count_t index; /**< The number of filled slots. */
-	void *list;    /**< Pointer to the head of the list. */
+	void **list;   /**< Pointer to the head of the list. */
 } DynList;
+
+#define LIST_SUCCESS   (0)
+#define LIST_NO_MEMORY (-24)
+
+error_t addtolist(void *item, DynList *list);
+error_t finalizelist(DynList *list);
+void preparelist(DynList *list);
+void disposelist(DynList *list);
 
 #endif /* __SMTH_DYNLIST_H__ */
