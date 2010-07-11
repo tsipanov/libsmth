@@ -32,6 +32,7 @@
 #include <endian.h>
 #include <smth-fragment-parser.h>
 #include <smth-common-defs.h>
+#include <smth-dynlist.h>
 
 /** The type of the Box being parsed. */
 typedef enum {  MOOF,    /**< main metadata container                */
@@ -49,10 +50,10 @@ typedef enum {  MOOF,    /**< main metadata container                */
 typedef struct
 {   signedlenght_t bsize;	/**< size of the incoming block	body			*/
 	signedlenght_t tsize;	/**< size of the incoming block (total)			*/
-	count_t	allocext;	    /**< number of allocated Extension slots		*/
-	BoxType  type;			/**< type of the incoming block					*/
+	DynList	extlist;	    /**< Extension dynamic list					    */
+	BoxType type;			/**< type of the incoming block					*/
 	FILE *stream;			/**< input stream								*/
-	Fragment *f;			/**< Fragment to be filled with extracted data  */
+	Fragment *f;			/**< Fragment to be filled with extracted data. */
 } Box;
 
 /** The tfhd Box has a BaseDataOffset field			*/

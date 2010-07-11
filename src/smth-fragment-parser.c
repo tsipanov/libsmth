@@ -43,14 +43,16 @@ error_t parsefragment(Fragment *f, FILE *stream)
 {   Box root;
 	root.stream = stream;
 	root.f = f;
+	error_t result;
 
 	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
+	preparelist(&root.extlist);
 
 //FIXME should work with `while`, but it does not...
 //	while (!feof(root.stream))
 	int i; for ( i = 0; i < 2; i++)
-	{
-		error_t result = parsebox(&root); //TODO aggiungere END_OF_FILE??
+	{   
+		result = parsebox(&root); //TODO aggiungere END_OF_FILE??
 		if (result == FRAGMENT_SUCCESS)
 		{
 			switch (root.type)
@@ -58,19 +60,28 @@ error_t parsefragment(Fragment *f, FILE *stream)
 				case MDAT: result = parsemdat(&root); break;
 				default: result = FRAGMENT_INAPPROPRIATE; break;
 			}
-			if (result != FRAGMENT_SUCCESS)
-			{   disposefragment(root.f);
-				return result;
-			}
+			if (result != FRAGMENT_SUCCESS) break;
 		}
-		else
-		{   disposefragment(root.f);
-			return result;
-		}
+		else break;
 	}
 
-	/* XXX if it is not EOF */
-	if (feof(stream)) return FRAGMENT_BIGGER_THAN_DECLARED;
+	if (result != FRAGMENT_SUCCESS) 
+	{   disposefragment(root.f);
+		return result;
+	}
+
+	/* if it is not EOF */
+	if (feof(stream))
+	{   disposefragment(root.f);
+		return FRAGMENT_BIGGER_THAN_DECLARED;
+	}
+
+	if (!finalizelist(&root.extlist))
+	{   disposefragment(root.f);
+		return FRAGMENT_NO_MEMORY;
+	}
+
+	root.f->extensions = (Extension **) root.extlist.list;
 
 	return FRAGMENT_SUCCESS;
 }
@@ -84,6 +95,11 @@ error_t parsefragment(Fragment *f, FILE *stream)
  */
 void disposefragment(Fragment *f)
 {
+	int i;
+	for(i = 0; f->extensions[i]; i++)
+	{   free(f->extensions[i]->data);
+		free(f->extensions[i]);
+	}
 	if (f->data) free(f->data);
 	if (f->samples) free(f->samples);
 	if (f->extensions) free(f->extensions);
@@ -610,9 +626,11 @@ static error_t parseuuid(Box* root)
 	}
 	tmp->data = tmpdata;
 
-	//TODO posizionare nell'array... (ed eliminare i due free sotto)
-	free(tmpdata);
-	free(tmp);
+	if (!addtolist(tmp, &root->extlist))
+	{   free(tmp);
+		free(tmpdata);
+		return FRAGMENT_NO_MEMORY;
+	}
 
 	return FRAGMENT_SUCCESS;
 }

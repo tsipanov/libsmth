@@ -35,25 +35,25 @@
  * \warning Allocation and deallocation of inserted items is up to the programmer.
  * \param item The item to be inserted into the list.
  * \param list The list in which to insert the \c item.
- * \return LIST_SUCCESS or LIST_NO_MEMORY, if there was no memory left. In this
+ * \return \c true on success or \c false if there was no memory left. In this
  *         case, data is left untouched and the programmer may ignore this
  *         message, as appropriate.
  */
-error_t addtolist(void *item, DynList *list)
+bool addtolist(void *item, DynList *list)
 {
 	/* if too small, doubles the capiency. */
 	if (list->index == list->slots)
 	{	
 		list->slots = list->slots? list->slots * 2: 3;
 		void *tmp = realloc(list->list, list->slots * sizeof (list->list));
-		if (!tmp) return LIST_NO_MEMORY;
+		if (!tmp) return false;
 		list->list = tmp;
 	}
 
 	list->list[list->index] = item;
 	list->index++;
 
-	return LIST_SUCCESS;
+	return true;
 }
 
 void preparelist(DynList *list)
@@ -69,15 +69,15 @@ void preparelist(DynList *list)
  * on the list. The list of pointers is closed by a NULL pointer.
  *
  * \param list The list to be finalized.
- * \return LIST_SUCCESS or an appropriate error code.
+ * \return \c true on success or \c false.
  */
-error_t finalizelist(DynList *list)
+bool finalizelist(DynList *list)
 {
 	void *tmp = realloc(list->list, list->index * sizeof (list->list)+1);
-	if (!tmp) return LIST_NO_MEMORY;
+	if (!tmp) return false;
 	list->list = tmp;
 	list->list[list->index] = NULL;
-	return LIST_SUCCESS;
+	return true;
 }
 
 /**
