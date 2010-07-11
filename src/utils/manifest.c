@@ -28,10 +28,12 @@
 int main()
 {
 	FILE *f = fopen("/home/Sanfi/Progetti/libsmth/.junk/rai.Manifest.xml", "r");
+
 	Manifest m;
+
 	int r = parsemanifest(&m, f);
 
-	if(r != MANIFEST_SUCCESS)
+	if (r != MANIFEST_SUCCESS)
 	{	fprintf(stderr, "Error n.%d\n", r);
 		return 1;
 	}

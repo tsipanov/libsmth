@@ -199,7 +199,8 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   mb->state = parsemedia(mb, attr);
+	{   preparelist(&mb->tmpstreams);
+		mb->state = parsemedia(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
@@ -243,8 +244,9 @@ static void XMLCALL endblock(void *data, const char *el)
 	//fprintf(stderr, "<: %s\n", el); //DEBUG
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   if(!finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
-		//TODO qualcosa come seterrorandreturn.		
+	{	if(!finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
+		mb->m->streams = (Stream**) mb->tmpstreams.list;
+		//TODO qualcosa come seterrorandreturn che blocchi il parser.
 		mb->manifestparsed = true; //XXX
 		return;
 	}
@@ -253,17 +255,22 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
+	{
+//		tmp->tracks = (Track**) mb->tmptracks.list; // FIXME e mo? anche il puntatore in piu`
+//		tmp->chunks = (Chunk**) mb->tmpchunks.list;
+		if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
 		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
 	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
+//		tmp->attributes = (Attribute**) mb->tmpattributes.list;
 		return;
 	}
 	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
 	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;
+//		tmp->fragments = (Chunk**) mb->tmpfragments.list;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
@@ -325,8 +332,6 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 static error_t parsemedia(ManifestBox *mb, const char **attr)
 {
 	count_t i;
-
-	preparelist(&mb->tmpstreams);
 		
 	for (i = 0; attr[i]; i += 2)
 	{
@@ -370,8 +375,6 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 	}
 	/* if the field is null, set it to default, as required by specs. */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
-
-	mb->tmpstreams.list = (void**) mb->m->streams;
 
 	return MANIFEST_SUCCESS;
 }
@@ -506,9 +509,6 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 
 	if (!addtolist(tmp, &mb->tmpstreams)) return MANIFEST_NO_MEMORY;
 
-	mb->tmptracks.list = (void**) tmp->tracks;
-	mb->tmpchunks.list = (void**) tmp->chunks;
-
 	return MANIFEST_SUCCESS;
 }
 
@@ -604,8 +604,6 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 
 	if (!addtolist(tmp, &mb->tmptracks)) return MANIFEST_NO_MEMORY;
 
-	mb->tmpattributes.list = (void**) tmp->attributes;
-
 	return MANIFEST_SUCCESS;
 }
 
@@ -687,11 +685,10 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 
 	if (!addtolist(tmp, &mb->tmpchunks)) return MANIFEST_NO_MEMORY;
 
-	mb->tmpfragments.list = (void**) tmp->fragments;
-
 	return MANIFEST_SUCCESS;
 }
 
+/////////////////////////////////////TODO///////////////////////////////////////
 #if 0
 FIXME fare in modo che siano impostati correttamente.
 	/** The duration of the fragment in ticks. If the FragmentDuration field
@@ -710,7 +707,6 @@ FIXME fare in modo che siano impostati correttamente.
 	tick_t time;
 #endif
 
-/////////////////////////////////////TODO///////////////////////////////////////
 //FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
 //FIXME (NAL) unit. The default value is 4.
 //----------------------------------------XXX-----------------------------------
