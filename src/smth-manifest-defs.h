@@ -31,13 +31,7 @@
 
 #include <smth-common-defs.h>
 #include <smth-manifest-parser.h>
-
-typedef struct
-{
-	count_t allocated; /**< The number of allocated variable slots. */
-	count_t filled;    /**< The number of filled slots. */
-	void *list;        /**< The head of the list. */
-} DynElement;
+#include <smth-dynlist.h>
 
 /** \brief Holds data and metadata for the Manifest parser. */
 typedef struct
@@ -49,13 +43,13 @@ typedef struct
 		be ignored. */
 	bool manifestparsed;
 	/** The track to be filled with key/value metadata pairs. */
-	DynElement activeTrack;
+	DynList activeTrack;
 	/** The Stream to be filled with \c Track metadata. */
-	DynElement activeStream;
+	DynList activeStream;
 	/** The chunk to be filled with \c FragmentIndex(es). */
-	DynElement activeChunk;
+	DynList activeChunk;
 	/** The Fragment to be filled with embedded data. */
-	DynElement activeFragment;
+	DynList activeFragment;
 	/** The error code reported by a parsing handler. */
 	error_t state;
 } ManifestBox;

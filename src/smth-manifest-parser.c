@@ -70,7 +70,7 @@ static bool stringissane(const char* s)
 error_t parsemanifest(Manifest *m, FILE *stream)
 {
 	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
-	ManifestBox root = {m, false, false, NULL, NULL, MANIFEST_SUCCESS};
+	ManifestBox root = {m, false, false, NULL, NULL, MANIFEST_SUCCESS}; //FIXME
 	error_t result;
 	bool done = false;
 
@@ -181,24 +181,24 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   mb->armorwaiting = false;
+	{   mb->armorwaiting = false; //copia l'armatura e la lunghezza...
 		return;
 	}
-	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   mb->activeStream = NULL;
+	if (!strcmp(el, MANIFEST_STREAM_ELEMENT)) //XXX sono proprio necessari??
+	{   mb->activeStream.list = NULL;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   mb->activeTrack = NULL;
+	{   mb->activeTrack.list = NULL;
 		return;
 	}
 	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   mb->activeChunk = NULL;
+	{   mb->activeChunk.list = NULL;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   mb->activeFragment = NULL;
+	{   mb->activeFragment.list = NULL;
 		return;
 	}
 }
@@ -211,19 +211,19 @@ static void XMLCALL endblock(void *data, const char *el)
 //      `--XML_BASE64
 
 /** \brief expat text event callback. */
-static void XMLCALL textblock(void *data, const char *text, int lenght)
+static void XMLCALL textblock(void *data, const char *text, int length)
 {
 	ManifestBox *mb = data;
 //FIXME skip trailing blanks
 	if (mb->armorwaiting)
 	{
 //FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
-		if (lenght > 0)
+		if (length > 0)
 		{	
-			base64data *tmp = malloc(lenght+1);
+			base64data *tmp = malloc(length+1);
 			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
-			memcpy(tmp, text, lenght);
-			tmp[lenght] = (base64data) 0;
+			memcpy(tmp, text, length);
+			tmp[length] = (base64data) 0; //FIXME non è l'ultimo!!!
 			mb->m->armor = tmp;
 		}
 		else mb->m->armor = NULL;
@@ -231,20 +231,20 @@ static void XMLCALL textblock(void *data, const char *text, int lenght)
 		mb->armorwaiting = false;
 		return;
 	}
-	if (mb->activeFragment)
+	if (mb->activeFragment.list)
 	{   //TODO track embedded
 //FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
 //	  (se le chiamate sono piu` di una)??
 		return;
 	}
-
+	//fwrite(text, 1, length, stdout); //DEBUG
 //	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
 }
 
-//XXX
-#define insertcustomattr(x,y) true
-#define parseurlpattern(x,y) NULL
-#define addtolist(x,y,z,a) true
+//XXX convenience macros.
+#define insertcustomattr(...) true
+#define parseurlpattern(...) NULL
+#define addtolist(...) true
 
 /**
  * \brief Parses a SmoothStreamingMedia.
@@ -441,7 +441,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 	free(tmp->name);
 	free(tmp);
 
-	if (!addtolist(tmp, mb->activeStream) return MANIFEST_NO_MEMORY; //FIXME
+	if (!addtolist(tmp, mb->activeStream)) return MANIFEST_NO_MEMORY; //FIXME
 
 	return MANIFEST_SUCCESS;
 }
@@ -538,7 +538,7 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
-	mb->activeTrack = tmp;
+	mb->activeTrack.list = tmp;
 
 	//TODO insert into list
 	if (tmp) free(tmp);
@@ -564,7 +564,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
 
-	if (!mb->activeTrack) return MANIFEST_UNEXPECTED_ATTRS;
+	if (!mb->activeTrack.list) return MANIFEST_UNEXPECTED_ATTRS;
 
 	Attribute *tmp = calloc(1, sizeof (Attribute));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -672,8 +672,10 @@ FIXME fare in modo che siano impostati correttamente.
 static error_t parsefragindex(ManifestBox *mb, const char **attr)
 {
 	count_t i;
-	//TODO add pointer to right one...
+
 	FragmentIndex *tmp = calloc(1, sizeof (Chunk));
+	mb->activeFragment.list = tmp;
+
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
 	for (i = 0; attr[i]; i += 2)
