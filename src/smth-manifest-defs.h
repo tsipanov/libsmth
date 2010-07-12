@@ -200,6 +200,9 @@ static error_t      parseattr(ManifestBox *mb, const char **attr);
 static error_t     parsechunk(ManifestBox *mb, const char **attr);
 static error_t parsefragindex(ManifestBox *mb, const char **attr);
 
+static error_t parsearmorpayload(ManifestBox *mb, const char *text, int length);
+static error_t parsechunkpayload(ManifestBox *mb, const char *text, int length);
+
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);
 static void XMLCALL  textblock(void *data, const char *text, int length);

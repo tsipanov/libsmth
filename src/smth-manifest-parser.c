@@ -122,7 +122,10 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
  */
 void SMTH_disposemanifest(Manifest* m)
 {   
-	if (m->armor) disposeembedded(m->armor);
+	if (m->armor)
+	{   disposeembedded(m->armor);
+		free(m->armor);
+	}
 	if (m->streams)
 	{   count_t i;
 		for (i = 0; m->streams[i]; i++)
@@ -327,6 +330,27 @@ static void XMLCALL endblock(void *data, const char *el)
 		}
 		return;
 	}
+}
+
+/** \brief expat text event callback
+ *
+ *  Searches and stores embedded data, decoding base64
+ */
+static void XMLCALL textblock(void *data, const char *text, int length)
+{
+	ManifestBox *mb = data;
+
+	//fwrite(text, 1, length, stderr); //DEBUG
+//  FIXME skip trailing blanks
+
+	if (mb->armorwaiting)
+	{   mb->state = parsearmorpayload(mb, text, length);
+	}
+//	if (mb->activefragment) FIXME
+//	{   mb->state = parsechunkpayload(mb, text, length);
+//	}
+
+//  mb->state = MANIFEST_UNEXPECTED_TRAILING; FIXME
 }
 
 /**
@@ -791,61 +815,48 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	return MANIFEST_SUCCESS;
 }
 
-/////////////////////////////////////TODO///////////////////////////////////////
-//TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
-//E se finalize ritornasse la lunghezza?
-//TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
+/**
+ * \brief Decodes (base64) the given \c text of length \c length and appends
+ *        it to Manifest::armor::content.
+ *
+ * \param mb The active Manifest parsing context.
+ * \param text   The text to be decoded.
+ * \param length The length of \c text. If \c text is longer, only first
+ *               \c length bytes will be decoded, if it is shorter, a memory
+ *               error will be likely (never attempt!).
+ */
+static error_t parsearmorpayload(ManifestBox *mb, const char *text, int length)
+{
+	if (length > 0)
+	{	if (!mb->m->armor)
+		{   EmbeddedData *tmparmor = calloc(1, sizeof (EmbeddedData));
+			if (!tmparmor) return MANIFEST_NO_MEMORY;
+			mb->m->armor = tmparmor;
+		}
+
+		length_t newlength =  mb->m->armor->length + length;
+		/* In case this is the first time, it will be equivalent to a malloc */
+		base64data *tmp = realloc(mb->m->armor->content, newlength);
+		if (!tmp) mb->state = MANIFEST_NO_MEMORY;
+		/* Append */
+		memcpy(&tmp[mb->m->armor->length], text, length); //FIXME DECODE...
+
+		mb->m->armor->content = tmp;
+		mb->m->armor->length = newlength;
+	}
+	else mb->m->armor = NULL;
+
+	return MANIFEST_SUCCESS;
+}
+
+static error_t parsechunkpayload(ManifestBox *mb, const char *text, int length)
+{   
+		return MANIFEST_SUCCESS;
+}
+//ManifestBox::embedded(lenght|content)
+// TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
+// E se finalize ritornasse la lunghezza?
 // Chiarire se manifestparsed serve...
 // Trasformare anche metrics in un array...
-//
-//Manifest::armor
-//ManifestBox::embedded
 
-/** \brief expat text event callback
- *
- *  Searches and stores embedded data, decoding base64
- */
-static void XMLCALL textblock(void *data, const char *text, int length)
-{
-	ManifestBox *mb = data;
-//FIXME skip trailing blanks
-	if (mb->armorwaiting)
-	{
-//FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
-		if (length > 0)
-		{	
-			base64data *tmp = malloc(length+1); //non +1!!!
-			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
-			memcpy(tmp, text, length);
-			tmp[length] = (base64data) 0; //FIXME non è l'ultimo!!!
-//			mb->m->armor = tmp;
-			free(tmp);
-		}
-		else mb->m->armor = NULL;
-
-		mb->armorwaiting = false;
-		return;
-	}
-//	if (mb->activeFragment.list)
-	{   //TODO track embedded
-//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
-//	  (se le chiamate sono piu` di una)??
-		return;
-	}
-	//fwrite(text, 1, length, stdout); //DEBUG
-//	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
-}
-//TODO una funzione che toglie base64 e stipa....
-//mb->embeddeddata
-/*  //if too small, doubles the capiency. */
-/*	if (list->index == list->slots)*/
-/*	{	*/
-/*		list->slots = list->slots? list->slots * 2: 3;*/
-/*		void **tmp = realloc(list->list, list->slots * sizeof (list->list));*/
-/*		if (!tmp) return false;*/
-/*		list->list = tmp;*/
-/*	}*
-/*	list->list[list->index] = item;*/
-/*	list->index++;*/
-/*	return true;*/
 /* vim: set ts=4 sw=4 tw=0: */
