@@ -540,16 +540,16 @@ static error_t parseencr(Box* root)
 	if (boxflags & ENCR_SAMPLE_ENCRYPTION_BOX_OPTIONAL_FIELDS_PRESENT)
 	{
 		if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
-		flags_t keytype = (flags_t) (boxflags & ENCRYPTION_KEY_TYPE_MASK); //FIXME usare xor
-		if (keytype) /* if it is encrypted */
-		{	for (enc = AES_CTR, root->f->armor.type = UNSET; enc < UNSET; enc++)
-				if (keytype == EncryptionTypeID[enc])
-				{   root->f->armor.type = enc;
-					break;
-				}
-			if (root->f->armor.type == UNSET) return FRAGMENT_UNKNOWN_ENCRYPTION;
+
+		flags_t keytype = (flags_t) (boxflags & ENCRYPTION_KEY_TYPE_MASK);
+		for (enc = NONE, root->f->armor.type = UNSET; enc < UNSET; enc++)
+		{	if (!(keytype ^ EncryptionTypeID[enc])) /* match only if are equal */
+			{   root->f->armor.type = enc;
+				break;
+			}
 		}
-		else root->f->armor.type = NONE;
+		/* If it is still unknown */
+		if (root->f->armor.type == UNSET) return FRAGMENT_UNKNOWN_ENCRYPTION;
 
 		root->f->armor.vectorsize = (byte_t)(boxflags & ENCRYPTION_KEY_SIZE_MASK);
 

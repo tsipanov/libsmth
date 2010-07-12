@@ -35,7 +35,7 @@
 /** \brief Converts a string into a 32bit integer. */
 #define atoint32(x) atoi(x)
 /** \brief Converts a string into a 64bit integer. */
-#define atoint64(x) atol(x)
+#define atoint64(x) atoll(x)
 /** \brief Converts a string into a boolean value.
  *
  *  \note We can safely assume that if a token is not \c (t)rue, it is \c false.
@@ -129,9 +129,6 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
 void SMTH_disposemanifest(Manifest* m)
 {   
 	if (m->armor) free(m->armor);
-	/* the second form is another paranoid check. It will not slow down the
-	 * execution, as it is normally short circuited (note for all you paranoids).
-	 */
 	if (m->streams)
 	{   count_t i;
 		for (i = 0; m->streams[i]; i++)
@@ -683,11 +680,11 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_CHUNK_DURATION))
-		{   tmp->duration = (tick_t) atoint32(attr[i+1]);
+		{   tmp->duration = (tick_t) atoint64(attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_CHUNK_TIME))
-		{   tmp->time = (tick_t) atoint32(attr[i+1]);
+		{   tmp->time = (tick_t) atoint64(attr[i+1]);
 			continue;
 		}
 		/* else */

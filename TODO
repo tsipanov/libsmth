@@ -25,3 +25,30 @@ trasformare boxishuge in una macro.
 rendere opzionale i metadati e/o i dati nella traccia
 
 height => heigth
+
+#if 0
+	ChunkIndex **fragments;
+} Chunk;
+
+	count_t index;
+	base64data* content;
+} ChunkIndex;
+
+
+	UrlPattern url;
+	Chunk **chunks;
+} Manifest;
+	Attribute **attributes;
+} Track;
+
+
+	chardata *key;
+	chardata *value;
+} Attribute;
+
+{   byte_t* data;    /**< Data. */
+	length_t length; /**< Lenght of the data. */
+} Embedded; //XXX unisci a quelle sotto....
+#endif
+
+forse bisognerebbe anche segnalare il tipo del padre da cui proviene una uuidbox
