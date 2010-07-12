@@ -21,6 +21,10 @@
 #ifndef __SMTH_H__
 #define __SMTH_H__
 
+#include <smth-manifest-parser.h>
+#include <smth-fragment-parser.h>
+#include <smth-dump.h>
+
 /*
  * 1. Packet (`Box`) structure
  * ===========================
@@ -35,14 +39,14 @@
  *    ~-----------+------+-----------------+------------+-------------~
  *
  * where:
- *  + `Length`     is the lenght of the box in bytes, encoded in network format.
+ *  + `Length`     is the length of the box in bytes, encoded in network format.
  *                 If the value of the field is "\0\0\0\1", the BoxLongLength
  *                 field must be present. Otherwise, we assert that it is not
  *                 present. Size includes all the fields, even BoxLenght itself.
  *  + `Name`       is a 4B non null-terminated string identifying the type of
  *                 the block. There are seven different types, as it will be
  *                 explained in the appropriate section.
- *  + `LongLenght` is the lenght of the Box in bytes, encoded in network format. 
+ *  + `LongLenght` is the length of the Box in bytes, encoded in network format. 
  *                 This field is present only if the size of the `Box` is larger
  *                 than BoxLenght max size (32B).
  *  + `Fields` &   are respectively the attributes and the content of the `Box`

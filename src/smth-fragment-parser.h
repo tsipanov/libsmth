@@ -43,7 +43,7 @@ typedef enum {  NONE,    /**< non encrypted sample							  */
 typedef struct
 {   uuid_t  uuid;   /**< The UUID of the extension block	*/
 	byte_t *data;   /**< The body of the Box				*/
-	lenght_t size;  /**< The size of the Box				*/
+	length_t size;  /**< The size of the Box				*/
 } Extension;
 
 /** \brief Holds the encryption metadata for the samples
@@ -170,7 +170,7 @@ typedef struct
 	/** Vendor-specific boxes, as a NULL terminated array */
 	Extension **extensions;
 	/** The size of the allocated data block [synthetic] */
-	lenght_t size;
+	length_t size;
 	/** The fragment data. Sample boundaries in the MdatBox are defined
 	 *  by the values of the DefaultSampleSize and SampleSize fields
 	 *  in the TrunBox. */

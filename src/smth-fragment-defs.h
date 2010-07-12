@@ -48,8 +48,8 @@ typedef enum {  MOOF,    /**< main metadata container                */
 
 /** \brief Holds stream and metadata of currently parsed Box */
 typedef struct
-{   signedlenght_t bsize;	/**< size of the incoming block	body			*/
-	signedlenght_t tsize;	/**< size of the incoming block (total)			*/
+{   signedlength_t bsize;	/**< size of the incoming block	body			*/
+	signedlength_t tsize;	/**< size of the incoming block (total)			*/
 	DynList	extlist;	    /**< Extension dynamic list					    */
 	BoxType type;			/**< type of the incoming block					*/
 	FILE *stream;			/**< input stream								*/
@@ -153,7 +153,7 @@ static error_t parsetfxd(Box* root);
 static error_t parseencr(Box* root);
 static error_t parsesdtp(Box* root);
 static error_t parsetfrf(Box* root);
-static error_t  scanuuid(Box* root, signedlenght_t boxsize);
+static error_t  scanuuid(Box* root, signedlength_t boxsize);
 static bool isencrbox(Box* root);
 static bool readbox(void *dest, size_t size, Box* root);
 

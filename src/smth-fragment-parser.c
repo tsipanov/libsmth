@@ -168,7 +168,7 @@ static bool getflags(flags_t *defaultflags, Box *root)
  *         FRAGMENT_INAPPROPRIATE if an out-of-context Box was parsed, or
  *         or FRAGMENT_SUCCESS on successful parse.
  */
-static error_t scanuuid(Box* root, signedlenght_t boxsize)
+static error_t scanuuid(Box* root, signedlength_t boxsize)
 {
 	while (boxsize > 0)
 	{   error_t result = parsebox(root);
@@ -199,12 +199,12 @@ static error_t scanuuid(Box* root, signedlenght_t boxsize)
  */
 static error_t parsebox(Box* root)
 {
-	lenght_t tmpsize;
+	length_t tmpsize;
 	word_t name;
 	BoxType element;
-	shortlenght_t offset = sizeof (shortlenght_t) + sizeof (name);
+	shortlength_t offset = sizeof (shortlength_t) + sizeof (name);
 
-	if (!readbox(&tmpsize, sizeof (shortlenght_t), root)) return FRAGMENT_IO_ERROR;
+	if (!readbox(&tmpsize, sizeof (shortlength_t), root)) return FRAGMENT_IO_ERROR;
 	if (!getflags(&name, root)) return FRAGMENT_IO_ERROR;
 	for (element = 0, root->type = UNKNOWN; element < UNKNOWN; element++)
 	{
@@ -220,9 +220,9 @@ static error_t parsebox(Box* root)
 	{
 		if (!readbox(&root->bsize, sizeof (root->bsize), root)) return FRAGMENT_IO_ERROR;
 		offset += sizeof (root->bsize);
-		root->bsize = (signedlenght_t) be64toh(root->bsize);
+		root->bsize = (signedlength_t) be64toh(root->bsize);
 	}
-	else root->bsize = (signedlenght_t) be32toh(tmpsize);
+	else root->bsize = (signedlength_t) be32toh(tmpsize);
 
 	root->tsize = root->bsize;
 	root->bsize -= offset;
@@ -243,7 +243,7 @@ static error_t parsebox(Box* root)
  */
 static error_t parsemoof(Box* root)
 {
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 
 	while (boxsize > 0)
 	{   
@@ -280,7 +280,7 @@ static error_t parsemoof(Box* root)
 
 static error_t parsemfhd(Box* root)
 {
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 	count_t tmpsize;
 
 	XXX_SKIP_4B_QUIRK;
@@ -307,7 +307,7 @@ static error_t parsemfhd(Box* root)
 static error_t parsetraf(Box* root)
 {
 	error_t result;
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 
 	while (boxsize > 0)
 	{   
@@ -345,7 +345,7 @@ static error_t parsetraf(Box* root)
  */
 static error_t parsetfhd(Box* root)
 {
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 	flags_t boxflags;
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 	boxsize -= sizeof (boxflags);
@@ -388,7 +388,7 @@ static error_t parsetfhd(Box* root)
  */
 static error_t parsetrun(Box* root)
 {
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 	flags_t boxflags;
 	Sample* tmp;
 
@@ -489,7 +489,7 @@ static error_t parsemdat(Box* root)
 static error_t parsetfxd(Box* root)
 {
 	flags_t boxflags;
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 	boxsize -= sizeof(boxflags);
@@ -533,7 +533,7 @@ static error_t parsetfxd(Box* root)
 static error_t parseencr(Box* root)
 {
 	EncryptionType enc;
-	signedlenght_t boxsize = root->bsize;
+	signedlength_t boxsize = root->bsize;
 	flags_t boxflags; /* first used to retrieve box flags, then encryption flags */
 	if (!getflags(&boxflags, root)) return FRAGMENT_IO_ERROR;
 
@@ -562,15 +562,15 @@ static error_t parseencr(Box* root)
 	if (!readbox(&root->f->armor.vectorno, sizeof(count_t), root))
 		return FRAGMENT_IO_ERROR;
 
-	lenght_t vectorlenght = root->f->armor.vectorsize * root->f->armor.vectorno;
-	byte_t *tmp = malloc(vectorlenght);
+	length_t vectorlength = root->f->armor.vectorsize * root->f->armor.vectorno;
+	byte_t *tmp = malloc(vectorlength);
 	if (!tmp) return FRAGMENT_NO_MEMORY;
-	if (!readbox(tmp, vectorlenght, root))
+	if (!readbox(tmp, vectorlength, root))
 	{   free(tmp);
 		return FRAGMENT_IO_ERROR;
 	}
 
-	boxsize -= vectorlenght;
+	boxsize -= vectorlength;
 
 	error_t result = scanuuid(root, boxsize);
 	if(result != FRAGMENT_SUCCESS)
@@ -612,7 +612,7 @@ static error_t parseuuid(Box* root)
 	Extension *tmp = malloc(sizeof (Extension));
 	if (!tmp) return FRAGMENT_NO_MEMORY;
 	/* Data size */
-	tmp->size = (lenght_t) root->bsize;
+	tmp->size = (length_t) root->bsize;
 	if(!memcpy(uuid, tmp->uuid, sizeof(uuid_t)))
 	{   free(tmp);
 		return FRAGMENT_IO_ERROR;

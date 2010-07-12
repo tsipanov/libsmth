@@ -1,10 +1,10 @@
 /*
  * Copyright (C) 2010 Stefano Sanfilippo
  *
- * dissector.c: relying on the internal API, verbosely analizes the Manifest
- *              of a given SmoothStream.
+ * manifest.c: relying on the internal API, verbosely analizes the Manifest
+ *             of a given SmoothStream.
  *
- * 3rd July 2010
+ * 10th-12th July 2010
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -21,9 +21,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-#include <smth-manifest-parser.h>
 #include <stdio.h>
-#include <stdlib.h>
+#include <smth.h>
 
 int main()
 {
@@ -31,15 +30,15 @@ int main()
 
 	Manifest m;
 
-	int r = parsemanifest(&m, f);
+	error_t r = SMTH_parsemanifest(&m, f);
 
 	if (r != MANIFEST_SUCCESS)
 	{	fprintf(stderr, "Error n.%d\n", r);
 		return 1;
 	}
 
-	printf("%d\n", m.dvrwindow);
+	SMTH_dumpmanifest(&m, stdout);
+	SMTH_disposemanifest(&m);
 
 	fclose(f);
-	disposemanifest(&m);
 }

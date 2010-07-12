@@ -69,7 +69,7 @@ static bool stringissane(const char* s)
  * \param stream The stream containing the manifest to be parsed.
  * \return       MANIFEST_SUCCESS or an appropriate error code.
  */
-error_t parsemanifest(Manifest *m, FILE *stream)
+error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
 {
 	chardata chunk[MANIFEST_XML_BUFFER_SIZE];
 	ManifestBox root;
@@ -94,8 +94,8 @@ error_t parsemanifest(Manifest *m, FILE *stream)
 
 	while (!done)
 	{
-		lenght_t len;
-		len = (lenght_t) fread(chunk, sizeof(byte_t), sizeof(chunk), stream);
+		length_t len;
+		len = (length_t) fread(chunk, sizeof(byte_t), sizeof(chunk), stream);
 		done = feof(stream);
 
 		if (ferror(stdin))
@@ -126,7 +126,7 @@ error_t parsemanifest(Manifest *m, FILE *stream)
  *
  * \param m The manifest to be destroyed.
  */
-void disposemanifest(Manifest* m)
+void SMTH_disposemanifest(Manifest* m)
 {   
 	if (m->armor) free(m->armor);
 	/* the second form is another paranoid check. It will not slow down the
@@ -258,7 +258,8 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   mb->armorwaiting = false; //FIXME copia l'armatura e la lunghezza...
+	{   //FIXME copia l'armatura e la lunghezza...
+		mb->armorwaiting = false;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
@@ -277,7 +278,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	}
 	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;  //LEAK
+	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;
 		mb->activechunk->fragments = (ChunkIndex**) mb->tmpfragments.list;
 		mb->activechunk = NULL;
 		return;
@@ -375,7 +376,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_MEDIA_DVR_WINDOW))
-		{   mb->m->dvrwindow = (lenght_t) atoint64(attr[i+1]);
+		{   mb->m->dvrwindow = (length_t) atoint64(attr[i+1]);
 			continue;
 		}
 		/* else */
@@ -404,7 +405,7 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
 
 	if (strcmp(attr[0], MANIFEST_PROTECTION_ID))
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
-	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGHT)
+	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGTH)
 		return MANIFEST_MALFORMED_ARMOR_UUID;
 //  mb->m->armorID = attr[1]; TODO 9A04F079-9840-4286-AB92E65BE0885F95
 	mb->armorwaiting = true; /* waiting for the body to be parsed. */
@@ -602,9 +603,9 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		{   tmp->bitspersample = (unit_t) atoint32(attr[i+1]);
 			continue;
 		}
-		if (!strcmp(attr[i], MANIFEST_TRACK_NAL_LENGHT))
-		{   tmp->nalunitlenght = (unit_t) atoint32(attr[i+1]);
-			if (!tmp->nalunitlenght) tmp->nalunitlenght = NAL_DEFAULT_LENGHT;
+		if (!strcmp(attr[i], MANIFEST_TRACK_NAL_LENGTH))
+		{   tmp->nalunitlength = (unit_t) atoint32(attr[i+1]);
+			if (!tmp->nalunitlength) tmp->nalunitlength = NAL_DEFAULT_LENGTH;
 			continue;
 		}
 		/* else */
@@ -631,7 +632,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
 
-	Attribute *tmp = calloc(1, sizeof (Attribute));
+	Attribute *tmp = calloc(1, sizeof (Attribute)); //FIXME sostituire con array
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
 	for (i = 0; attr[i]; i += 2)
@@ -639,7 +640,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		chardata *tmpvalue = malloc(strlen(attr[i+1]));
 		if (!tmpvalue) return MANIFEST_NO_MEMORY;
 
-		/* the lenght must not change (_const_ char **) */
+		/* the length must not change (_const_ char **) */
 		strcpy(tmpvalue, attr[i+1]);
 
 		if (!strcmp(attr[i], MANIFEST_ATTRS_KEY))
@@ -732,6 +733,9 @@ FIXME fare in modo che siano impostati correttamente.
 //TODO chiarire il comportamento di free
 //E se finalize ritornasse la lunghezza?
 //TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
+//Chiarire se manofestparsed serve...
+//
+// Trasformare anche metrics in un array...
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.

@@ -39,10 +39,10 @@
 
 typedef uint64_t tick_t;			/**< A time interval					*/
 typedef uint64_t offset_t;			/**< A memory offset					*/
-typedef uint64_t lenght_t;			/**< A memory lenght					*/
-typedef  int64_t signedlenght_t;	/**< A lenght that can be negative. Used
+typedef uint64_t length_t;			/**< A memory length					*/
+typedef  int64_t signedlength_t;	/**< A length that can be negative. Used
 									 **  for overflow check.				*/
-typedef uint32_t shortlenght_t;	    /**< Short memory lenght				*/
+typedef uint32_t shortlength_t;	    /**< Short memory length				*/
 typedef uint32_t count_t;		    /**< An ordinal number					*/
 typedef uint32_t bitrate_t;		    /**< A bitrate or a samplerate			*/
 typedef uint32_t metric_t;		    /**< Something concerning screen size   */

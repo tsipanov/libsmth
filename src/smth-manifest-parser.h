@@ -32,7 +32,7 @@
 #include <smth-http.h>
 
 /** The size of a Track::fourcc attribute string. */
-#define MANIFEST_TRACK_FOURCC_SIZE 4
+#define MANIFEST_TRACK_FOURCC_SIZE   4
 /** The size of a Stream::subtype attribute string. */
 #define MANIFEST_STREAM_SUBTYPE_SIZE 4
 
@@ -45,7 +45,7 @@ typedef struct
 /** \brief Holds embedded track data. */
 typedef struct
 {   byte_t* data;    /**< Data. */
-	lenght_t lenght; /**< Lenght of the data. */
+	length_t length; /**< Lenght of the data. */
 } Embedded; //XXX unisci a quelle sotto....
 //TODO una funzione che toglie base64 e stipa....
 
@@ -141,7 +141,7 @@ typedef struct
 	 *  Layer (NAL) unit. This field SHOULD be omitted unless the value of the
 	 *  FourCC field is "H264". The default value is 4.
 	 */
-	unit_t nalunitlenght;
+	unit_t nalunitlength;
 	/** A set of attributes as a NULL terminated array that identify the Track. */
 	Attribute **attributes;
 } Track;
@@ -178,7 +178,7 @@ typedef struct
 	 *  each sample in a text track. However, the FourCC field, is used to
 	 *  identify the media format for each sample.
 	 */
-	chardata subtype[MANIFEST_STREAM_SUBTYPE_SIZE+1]; //XXX
+	chardata subtype[MANIFEST_STREAM_SUBTYPE_SIZE+1];
 	/**
 	 * Specifies the non-sparse stream that is used to transmit timing
 	 * information for this stream. If the ParentStream field is present, it
@@ -215,7 +215,7 @@ typedef struct
 	 *  effectively infinite. This field must not appear in on-demand
 	 *  presentations.
 	 */
-	lenght_t dvrwindow;
+	length_t dvrwindow;
 	/** A UUID that uniquely identifies the Content Protection System.
 	 *  For instance: \c {9A04F079-9840-4286-AB92E65BE0885F95}
 	 */
@@ -261,8 +261,8 @@ typedef struct
 /** A string identifier contained characters other than [A-Za-z/-] . */
 #define MANIFEST_INVALID_IDENTIFIER		 (-23)
 
-error_t parsemanifest(Manifest *m, FILE *stream);
-void  disposemanifest(Manifest *m);
+error_t SMTH_parsemanifest(Manifest *m, FILE *stream);
+void  SMTH_disposemanifest(Manifest *m);
 
 #endif /* __SMTH_MANIFEST_PARSER_H__ */
 

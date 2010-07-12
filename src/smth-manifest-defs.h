@@ -140,7 +140,7 @@ typedef struct
 	/** The xml attribute name for Track::SampleBitRate */
 	#define MANIFEST_TRACK_BITSPERSAMPLE 	"BitsPerSample"
 	/** The xml attribute name for Track::NalSize */
-	#define MANIFEST_TRACK_NAL_LENGHT		"NALUnitLengthField"
+	#define MANIFEST_TRACK_NAL_LENGTH		"NALUnitLengthField"
 
 /** The xml tag name for a single attribute. */
 #define MANIFEST_ATTRS_ELEMENT				"Attribute"
@@ -172,10 +172,10 @@ typedef struct
 #define MANIFEST_MEDIA_DEFAULT_TICKS	10000000
 /** The size of the parser buffer, in bytes. */
 #define MANIFEST_XML_BUFFER_SIZE		8192
-/** The lenght of a UUID string in bytes. */
-#define MANIFEST_ARMOR_UUID_LENGHT		35
-/** The default NAL lenght for tracks. */
-#define NAL_DEFAULT_LENGHT				4
+/** The length of a UUID string in bytes. */
+#define MANIFEST_ARMOR_UUID_LENGTH		35
+/** The default NAL length for tracks. */
+#define NAL_DEFAULT_LENGTH				4
 
 static bool stringissane(const char* s);
  
@@ -189,7 +189,7 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr);
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);
-static void XMLCALL  textblock(void *data, const char *text, int lenght);
+static void XMLCALL  textblock(void *data, const char *text, int length);
 
 #endif /* __SMTH_MANIFEST_DEFS_H__ */
 
