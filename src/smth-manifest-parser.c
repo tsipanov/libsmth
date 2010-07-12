@@ -166,7 +166,7 @@ void disposemanifest(Manifest* m)
 				for (j = 0; tmpstream->chunks[j]; j++)
 				{   Chunk *tmpchunk = tmpstream->chunks[j];
 					count_t n;
-					if (tmpchunk->fragments && *tmpchunk->fragments)
+					if (tmpchunk->fragments)
 					{	for (n = 0; tmpchunk->fragments[n]; n++)
 						{   ChunkIndex *tmpfragment = tmpchunk->fragments[n];
 							if (tmpfragment->content) free(tmpfragment->content);
@@ -236,7 +236,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   //preparelist(&mb->tmpembedded); TODO
+	{   preparelist(&mb->tmpembedded);
 		mb->state = parsefragindex(mb, attr);
 		return;
 	}
@@ -254,8 +254,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	if (!strcmp(el, MANIFEST_ELEMENT))
 	{	if(!finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
 		mb->m->streams = (Stream**) mb->tmpstreams.list;
-		//TODO qualcosa come seterrorandreturn che blocchi il parser.
-		mb->manifestparsed = true; //XXX
+		mb->manifestparsed = true;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
@@ -265,14 +264,13 @@ static void XMLCALL endblock(void *data, const char *el)
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
 	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
 		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
-		mb->activestream->tracks = (Track**) mb->tmptracks.list; //E se ritornasse la lunghezza?
+		mb->activestream->tracks = (Track**) mb->tmptracks.list;
 		mb->activestream->chunks = (Chunk**) mb->tmpchunks.list;
 		mb->activestream = NULL;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;  //LEAK
-		printf("%p\n", *mb->tmpattributes.list); //DEBUG
+	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
 		mb->activetrack->attributes = (Attribute**) mb->tmpattributes.list;
 		mb->activetrack = NULL;
 		return;
@@ -285,8 +283,7 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   //if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY;
-		//TODO
+	{   //if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY; TODO
 		//free(mb->tmpembedded.list);
 		return;
 	}
@@ -733,6 +730,8 @@ FIXME fare in modo che siano impostati correttamente.
 // variabile elattrs in ogni funzione
 //FIXME il tempo va in overflow
 //TODO chiarire il comportamento di free
+//E se finalize ritornasse la lunghezza?
+//TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
