@@ -30,3 +30,10 @@ struct {
 #endif
 
 forse bisognerebbe anche segnalare il tipo del padre da cui proviene una uuidbox
+
+FIXME il decoder base64!!
+// TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
+// E se finalize ritornasse la lunghezza?
+// Chiarire se manifestparsed serve...
+// Trasformare anche metrics in un array...
+

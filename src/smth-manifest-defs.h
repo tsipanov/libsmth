@@ -39,8 +39,6 @@ typedef struct
 	XML_Parser parser;
 	/** The manifest to be filled with parsed data. */
 	Manifest *m;
-	/** Whether the parser is waiting for encryption armor data. */
-	bool armorwaiting;
 	/** The parser has finished parsing, anything coming after should
 		be ignored. */
 	bool manifestparsed;
@@ -200,8 +198,7 @@ static error_t      parseattr(ManifestBox *mb, const char **attr);
 static error_t     parsechunk(ManifestBox *mb, const char **attr);
 static error_t parsefragindex(ManifestBox *mb, const char **attr);
 
-static error_t parsearmorpayload(ManifestBox *mb, const char *text, int length);
-static error_t parsechunkpayload(ManifestBox *mb, const char *text, int length);
+static error_t parsepayload(EmbeddedData *ed, const char *text, int length);
 
 static void XMLCALL startblock(void *data, const char *el, const char **attr);
 static void XMLCALL   endblock(void *data, const char *el);

@@ -75,10 +75,9 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
 	ManifestBox root;
 	error_t result;
 
+	memset(&root, 0x00, sizeof(ManifestBox)); /* reset memory */
 	root.m = m;
 	root.state = MANIFEST_SUCCESS;
-	root.armorwaiting = false;
-	root.manifestparsed = false;
 
 	bool done = false;
 
@@ -272,8 +271,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   mb->embedded = NULL;
-		mb->state = parsefragindex(mb, attr);
+	{   mb->state = parsefragindex(mb, attr);
 		return;
 	}
 
@@ -298,10 +296,7 @@ static void XMLCALL endblock(void *data, const char *el)
 		mb->manifestparsed = true;
 		return;
 	}
-	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   mb->armorwaiting = false;
-		return;
-	}
+	//if (!strcmp(el, MANIFEST_ARMOR_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
 	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
 		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
@@ -327,6 +322,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	{   if (mb->embedded)
 		{   mb->activefragment->embedded = mb->embedded;
 			mb->embedded = NULL;
+			mb->activefragment = NULL;
 		}
 		return;
 	}
@@ -341,16 +337,18 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 	ManifestBox *mb = data;
 
 	//fwrite(text, 1, length, stderr); //DEBUG
-//  FIXME skip trailing blanks
+//  FIXME skip trailing blanks and reactivate error code below
 
-	if (mb->armorwaiting)
-	{   mb->state = parsearmorpayload(mb, text, length);
+	if (mb->m->armor)
+	{   mb->state = parsepayload(mb->m->armor, text, length);
+		return;
 	}
-//	if (mb->activefragment) FIXME
-//	{   mb->state = parsechunkpayload(mb, text, length);
-//	}
+	if (mb->activefragment)
+	{   mb->state = parsepayload(mb->activefragment->embedded, text, length);
+		return;
+	}
 
-//  mb->state = MANIFEST_UNEXPECTED_TRAILING; FIXME
+//  mb->state = MANIFEST_UNEXPECTED_TRAILING;
 }
 
 /**
@@ -418,7 +416,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
 
 	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
-	mb->m->vendorattrs = (chardata**) vendordata.list; //LEAK
+	mb->m->vendorattrs = (chardata**) vendordata.list;
 
 	return MANIFEST_SUCCESS;
 }
@@ -442,8 +440,15 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
 		return MANIFEST_INAPPROPRIATE_ATTRIBUTE;
 	if (strlen(attr[1]) != MANIFEST_ARMOR_UUID_LENGTH)
 		return MANIFEST_MALFORMED_ARMOR_UUID;
+
 //  mb->m->armorID = attr[1]; TODO 9A04F079-9840-4286-AB92E65BE0885F95
-	mb->armorwaiting = true; /* waiting for the body to be parsed. */
+
+	if (mb->m->armor) free(mb->m->armor); /* only one armor, please... */
+	
+	/* build new armor struct */
+	EmbeddedData *tmparmor = calloc(1, sizeof (EmbeddedData));
+	if (!tmparmor) return MANIFEST_NO_MEMORY;
+	mb->m->armor = tmparmor;
 
 	return MANIFEST_SUCCESS;
 }
@@ -810,7 +815,15 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	if (!addtolist(tmp, &mb->tmpfragments)) return MANIFEST_NO_MEMORY;
 
 	/* content may be present only if it is flagged into active Stream */
-	if (mb->activestream->isembedded) mb->activefragment = tmp;
+	if (mb->activestream->isembedded)
+	{   EmbeddedData *tmpembedded = calloc(1, sizeof (EmbeddedData));
+		if (!tmpembedded)
+		{   free(tmp);
+			return MANIFEST_NO_MEMORY;
+		}
+		tmp->embedded = tmpembedded;
+		mb->activefragment = tmp;
+	}
 	
 	return MANIFEST_SUCCESS;
 }
@@ -819,44 +832,29 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
  * \brief Decodes (base64) the given \c text of length \c length and appends
  *        it to Manifest::armor::content.
  *
- * \param mb The active Manifest parsing context.
+ * \param dest   The EmbeddedData to fill
  * \param text   The text to be decoded.
  * \param length The length of \c text. If \c text is longer, only first
  *               \c length bytes will be decoded, if it is shorter, a memory
  *               error will be likely (never attempt!).
  */
-static error_t parsearmorpayload(ManifestBox *mb, const char *text, int length)
+static error_t parsepayload(EmbeddedData *ed, const char *text, int length)
 {
 	if (length > 0)
-	{	if (!mb->m->armor)
-		{   EmbeddedData *tmparmor = calloc(1, sizeof (EmbeddedData));
-			if (!tmparmor) return MANIFEST_NO_MEMORY;
-			mb->m->armor = tmparmor;
-		}
-
-		length_t newlength =  mb->m->armor->length + length;
+	{
+		length_t newlength =  ed->length + length;
 		/* In case this is the first time, it will be equivalent to a malloc */
-		base64data *tmp = realloc(mb->m->armor->content, newlength);
-		if (!tmp) mb->state = MANIFEST_NO_MEMORY;
+		base64data *tmp = realloc(ed->content, newlength);
+		if (!tmp) return MANIFEST_NO_MEMORY;
 		/* Append */
-		memcpy(&tmp[mb->m->armor->length], text, length); //FIXME DECODE...
+		memcpy(&tmp[ed->length], text, length);
 
-		mb->m->armor->content = tmp;
-		mb->m->armor->length = newlength;
+		ed->content = tmp;
+		ed->length = newlength;
 	}
-	else mb->m->armor = NULL;
+	else ed = NULL;
 
 	return MANIFEST_SUCCESS;
 }
-
-static error_t parsechunkpayload(ManifestBox *mb, const char *text, int length)
-{   
-		return MANIFEST_SUCCESS;
-}
-//ManifestBox::embedded(lenght|content)
-// TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
-// E se finalize ritornasse la lunghezza?
-// Chiarire se manifestparsed serve...
-// Trasformare anche metrics in un array...
 
 /* vim: set ts=4 sw=4 tw=0: */
