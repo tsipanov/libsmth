@@ -37,8 +37,7 @@
  *
  * \warning To achieve universality, the list exploits a \c void pointer,
  * so that the compiler will not complain about the type of the assignement.
- * Triple check your assignements to \c DynList::list or you will have
- * introduced a bug!
+ * Triple check your assignements to \c DynList::list or you will introduce a bug!
  *
  * \sa addtolist()
  */
@@ -54,3 +53,5 @@ void preparelist(DynList *list);
 void disposelist(DynList *list);
 
 #endif /* __SMTH_DYNLIST_H__ */
+
+/* vim: set ts=4 sw=4 tw=0: */

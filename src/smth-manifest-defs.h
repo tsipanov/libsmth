@@ -44,6 +44,12 @@ typedef struct
 	bool manifestparsed;
 	/** The error code reported by a parser handler. */
 	error_t state;
+	/** Pointer to the active Stream. */
+	Stream *activestream;
+	/** Pointer to the active Track. */
+	Track *activetrack;
+	/** Pointer to the active Chunk. */
+	Chunk *activechunk;
 	/** The \c Manifest::streams to fill with Stream data. */
 	DynList tmpstreams;
 	/** The \c Stream::tracks to be filled with \c Track metadata. */

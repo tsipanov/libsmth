@@ -93,3 +93,5 @@ bool finalizelist(DynList *list)
 void disposelist(DynList *list)
 {	free(list->list);
 }
+
+/* vim: set ts=4 sw=4 tw=0: */

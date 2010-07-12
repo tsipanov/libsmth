@@ -23,7 +23,7 @@
  * \file   smth-manifest-parser.c
  * \brief  XML manifest parser
  * \author Stefano Sanfilippo
- * \date   30th June - 1st July/5th July 2010
+ * \date   30th June - 1st July/5th July/11th-12th July 2010
  */
 
 #include <stdbool.h>
@@ -126,23 +126,29 @@ error_t parsemanifest(Manifest *m, FILE *stream)
  *
  * \param m The manifest to be destroyed.
  */
-void disposemanifest(Manifest* m) //TODO chiarire il comportamento di free
+void disposemanifest(Manifest* m)
 {   
 	if (m->armor) free(m->armor);
+	/* the second form is another paranoid check. It will not slow down the
+	 * execution, as it is normally short circuited (note for all you paranoids).
+	 */
 	if (m->streams)
-	{   int i;
+	{   count_t i;
 		for (i = 0; m->streams[i]; i++)
 		{
 			Stream *tmpstream = m->streams[i];
+
 			if (tmpstream->name) free(tmpstream->name);
 			if (tmpstream->parent) free(tmpstream->parent);
+			/* if the pointer and its content are not NULL */
 			if (tmpstream->tracks)
-			{   int j;
+			{   count_t j;
 				for (j = 0; tmpstream->tracks[j]; j++)
-				{   Track *tmptrack;
+				{   Track *tmptrack = tmpstream->tracks[j];
+
 					if (tmptrack->header) free(tmptrack->header);
 					if (tmptrack->attributes)
-					{	int n;
+					{	count_t n;
 						for (n = 0; tmptrack->attributes[n]; n++)
 						{   Attribute *tmpattribute = tmptrack->attributes[n];
 							if (tmpattribute->key) free(tmpattribute->key);
@@ -153,16 +159,18 @@ void disposemanifest(Manifest* m) //TODO chiarire il comportamento di free
 					}
 					free(tmptrack);
 				}
+				free(tmpstream->tracks);
 			}
 			if (tmpstream->chunks)
-			{	for (i = 0; tmpstream->chunks[i]; i++)
-				{   int j;
-					Chunk *tmpchunk = tmpstream->chunks[i];
-					if (tmpchunk->fragments)
-					{	for (j = 0; tmpchunk->fragments[j]; j++)
-						{   ChunkIndex *tmpindex = tmpchunk->fragments[j];
-							if (tmpindex->content) free(tmpindex->content);
-							free(tmpindex);
+			{	count_t j;
+				for (j = 0; tmpstream->chunks[j]; j++)
+				{   Chunk *tmpchunk = tmpstream->chunks[j];
+					count_t n;
+					if (tmpchunk->fragments && *tmpchunk->fragments)
+					{	for (n = 0; tmpchunk->fragments[n]; n++)
+						{   ChunkIndex *tmpfragment = tmpchunk->fragments[n];
+							if (tmpfragment->content) free(tmpfragment->content);
+							free(tmpfragment);
 						}
 						free(tmpchunk->fragments);
 					}
@@ -228,7 +236,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   preparelist(&mb->tmpembedded);
+	{   //preparelist(&mb->tmpembedded); TODO
 		mb->state = parsefragindex(mb, attr);
 		return;
 	}
@@ -255,26 +263,31 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{
-//		tmp->tracks = (Track**) mb->tmptracks.list; // FIXME e mo? anche il puntatore in piu`
-//		tmp->chunks = (Chunk**) mb->tmpchunks.list;
-		if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
+	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
 		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
+		mb->activestream->tracks = (Track**) mb->tmptracks.list; //E se ritornasse la lunghezza?
+		mb->activestream->chunks = (Chunk**) mb->tmpchunks.list;
+		mb->activestream = NULL;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
-//		tmp->attributes = (Attribute**) mb->tmpattributes.list;
+	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;  //LEAK
+		printf("%p\n", *mb->tmpattributes.list); //DEBUG
+		mb->activetrack->attributes = (Attribute**) mb->tmpattributes.list;
+		mb->activetrack = NULL;
 		return;
 	}
 	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;
-//		tmp->fragments = (Chunk**) mb->tmpfragments.list;
+	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;  //LEAK
+		mb->activechunk->fragments = (ChunkIndex**) mb->tmpfragments.list;
+		mb->activechunk = NULL;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY;
+	{   //if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY;
+		//TODO
+		//free(mb->tmpembedded.list);
 		return;
 	}
 }
@@ -310,10 +323,8 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 //	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
 }
 
-//XXX convenience macros.
-// variabile elattrs in ogni funzione
+//XXX convenience macro.
 #define insertcustomattr(...) true
-#define  parseurlpattern(...) NULL
 
 /**
  * \brief Parses a SmoothStreamingMedia.
@@ -371,7 +382,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		/* else */
-		if (!insertcustomattr(&attr[i], mb->m)) return MANIFEST_NO_MEMORY; //FIXME DynList custom attrs;
+		if (!insertcustomattr(&attr[i], mb->m)) return MANIFEST_NO_MEMORY;
 	}
 	/* if the field is null, set it to default, as required by specs. */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
@@ -449,7 +460,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
 		{   if (!stringissane(attr[i+1])) return MANIFEST_INVALID_IDENTIFIER;
-			tmp->name = malloc(strlen(attr[i+1])+ sizeof (chardata)); /* including a \0 sigil */
+			tmp->name = malloc(strlen(attr[i+1]) + sizeof (chardata)); /* including a \0 sigil */
 			if (!tmp->name) return MANIFEST_NO_MEMORY;  
 			strcpy(tmp->name, attr[i+1]);
 			continue;
@@ -507,6 +518,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
+	mb->activestream = tmp;
 	if (!addtolist(tmp, &mb->tmpstreams)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
@@ -602,6 +614,7 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
+	mb->activetrack = tmp;
 	if (!addtolist(tmp, &mb->tmptracks)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
@@ -683,6 +696,7 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
+	mb->activechunk = tmp;
 	if (!addtolist(tmp, &mb->tmpchunks)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
@@ -714,6 +728,11 @@ FIXME fare in modo che siano impostati correttamente.
 //	mb->fillwithattrs = tmp; FIXME lista dinamica. azzerare alla chisura
 //TODO add pointer to right fragment... fillwithchunks
 //FIXME chiarire se serve assegnare ad una variabile...
+//TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
+//FIXME DynList custom attrs;
+// variabile elattrs in ogni funzione
+//FIXME il tempo va in overflow
+//TODO chiarire il comportamento di free
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
@@ -745,7 +764,7 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	}
 	//TODO body BASE64_STRING solo se... tmp->content;
 
-	//TODO insert
+	//TODO insert (activefragment);
 	free(tmp); //XXX FIXME
 	return MANIFEST_SUCCESS;
 }

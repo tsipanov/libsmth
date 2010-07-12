@@ -29,7 +29,7 @@
 
 #include <stdio.h>
 #include <smth-common-defs.h>
-#include <smth-pattern-parser.h>
+#include <smth-http.h>
 
 /** The size of a Track::fourcc attribute string. */
 #define MANIFEST_TRACK_FOURCC_SIZE 4
@@ -46,7 +46,8 @@ typedef struct
 typedef struct
 {   byte_t* data;    /**< Data. */
 	lenght_t lenght; /**< Lenght of the data. */
-} Embedded; //XXX unisci a quella sotto
+} Embedded; //XXX unisci a quelle sotto....
+//TODO una funzione che toglie base64 e stipa....
 
 /** \brief Holds index metadata for a Fragment. */
 typedef struct
