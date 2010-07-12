@@ -42,16 +42,22 @@ typedef struct
 	metric_t width, height;
 } ScreenMetrics;
 
+/** \brief Holds embedded track data. */
+typedef struct
+{   length_t length; /**< Lenght of the embedded data. */
+	byte_t* content; /**< Embedded data. */
+} EmbeddedData;
+
 /** \brief Holds index metadata for a Fragment. */
 typedef struct
 {   /**  An ordinal that must match the value of the Index field for the track
 	 *   to which this TrackFragment field pertains.
 	 */
 	count_t index;
-	/** The raw bytes of the sample data for this fragment, only if
-	 *  Stream::isembedded is true.
+	/** The embedded of the sample data for this fragment, only if
+	 *  Stream::isembedded is true, otherwise NULL.
 	 */
-	base64data* content;
+	EmbeddedData *embedded;
 	/** A set of vendor specific attrs, as a sequence of key/name,
 	 *  NULL terminated. */
 	chardata **vendorattrs;
@@ -216,10 +222,8 @@ typedef struct
 	 *  For instance: \c {9A04F079-9840-4286-AB92E65BE0885F95}
 	 */
 	uuid_t armorID;
-	/** Opaque data that can use to enable playback for authorize users,
-	 *  encoded using Base64.
-	 */
-	base64data *armor;
+	/** Opaque data that can use to enable playback for authorize users */
+	EmbeddedData *armor;
 	/** Pointer to the streams array (NULL terminated). */
 	Stream **streams;
 	/** A set of vendor specific attrs, as a sequence of key/name,

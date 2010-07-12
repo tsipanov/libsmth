@@ -35,7 +35,9 @@
 
 /** \brief Holds data and metadata for the Manifest parser. */
 typedef struct
-{   /** The manifest to be filled with parsed data. */
+{	/** Handle of the active XML parser (for start/stop). */
+	XML_Parser parser;
+	/** The manifest to be filled with parsed data. */
 	Manifest *m;
 	/** Whether the parser is waiting for encryption armor data. */
 	bool armorwaiting;
@@ -66,6 +68,8 @@ typedef struct
 	DynList tmpattributes;
 	/** The \c Chunk::fragments to be filled with \c FragmentIndex(es). */
 	DynList tmpfragments;
+	/** Embedded data to be assigned to active \c ChunkIndex. */
+	EmbeddedData *embedded;
 } ManifestBox;
 
 /** The xml tag identifying a SmoothStream (root) section */
@@ -177,15 +181,17 @@ typedef struct
 /** The size of the parser buffer, in bytes. */
 #define MANIFEST_XML_BUFFER_SIZE		8192
 /** The length of a UUID string in bytes. */
-#define MANIFEST_ARMOR_UUID_LENGTH		35
+#define MANIFEST_ARMOR_UUID_LENGTH		(35 + 2)
 /** The default NAL length for tracks. */
 #define NAL_DEFAULT_LENGTH				4
 
 static bool stringissane(const char* s);
 
-void disposevendorattrs(chardata **vendorattrs);
-bool addvendorattrs(DynList *vendordata, const char **attr);
+static void disposevendorattrs(chardata **vendorattrs);
+static bool addvendorattrs(DynList *vendordata, const char **attr);
  
+static void inline disposeembedded(EmbeddedData *ed);
+
 static error_t     parsemedia(ManifestBox *mb, const char **attr);
 static error_t     parsearmor(ManifestBox *mb, const char **attr);
 static error_t    parsestream(ManifestBox *mb, const char **attr);

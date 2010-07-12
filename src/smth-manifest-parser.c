@@ -92,6 +92,8 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
 	XML_SetCharacterDataHandler(parser, textblock);
 	XML_SetUserData(parser, &root);
 
+	root.parser = parser;
+
 	while (!done)
 	{
 		length_t len;
@@ -102,19 +104,11 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
 		{   result = MANIFEST_IO_ERROR;
 			done = true;
 		}
-		if (XML_Parse(parser, chunk, len, done) == XML_STATUS_ERROR)
-		{	result = MANIFEST_PARSE_ERROR;
-			break; /* here we could put a done = true statement, but it would *
-			        * be ignored by XML_Parse, as `while` would trigger off.  */
-		}
-		if (root.state != MANIFEST_SUCCESS)
-		{   result = root.state;
-			break; /* same as above. */
-		}
+		(void) XML_Parse(parser, chunk, len, done);
 	}
 
 	XML_ParserFree(parser);
-	return result;
+	return root.state;
 }
 
 /**
@@ -128,7 +122,7 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
  */
 void SMTH_disposemanifest(Manifest* m)
 {   
-	if (m->armor) free(m->armor);
+	if (m->armor) disposeembedded(m->armor);
 	if (m->streams)
 	{   count_t i;
 		for (i = 0; m->streams[i]; i++)
@@ -163,7 +157,8 @@ void SMTH_disposemanifest(Manifest* m)
 					if (tmpchunk->fragments)
 					{	for (n = 0; tmpchunk->fragments[n]; n++)
 						{   ChunkIndex *tmpfragment = tmpchunk->fragments[n];
-							if (tmpfragment->content) free(tmpfragment->content);
+							if (tmpfragment->embedded)
+								disposeembedded(tmpfragment->embedded);
 							disposevendorattrs(tmpfragment->vendorattrs);
 							free(tmpfragment);
 						}
@@ -188,8 +183,10 @@ void SMTH_disposemanifest(Manifest* m)
 
 /*--------------------- HIC QUOQUE SUNT LEONES (CODICIS) ---------------------*/
 
-/** \brief Destroys a vendor data attrs sequence. */
-void disposevendorattrs(chardata **vendorattrs)
+/** \brief             Destroys a vendor data attrs sequence.
+ *  \param vendorattrs The structure to be destroyed.
+ */
+static void disposevendorattrs(chardata **vendorattrs)
 {   if (vendorattrs)
 	{   int i;
 		for (i = 0; vendorattrs[i]; i++) free(vendorattrs[i]);
@@ -197,7 +194,13 @@ void disposevendorattrs(chardata **vendorattrs)
 	free(vendorattrs);
 }
 
-bool addvendorattrs(DynList *vendordata, const char **attr)
+/** \brief Add a tuple key/value to the specifiedd list.
+ *
+ *  \note The tuple is passed as a two element chardata* array
+ *  \param vendordata The list to which add the parameters
+ *  \param attr       The tuple to add
+ */
+static bool addvendorattrs(DynList *vendordata, const char **attr)
 {	chardata *key = malloc(strlen(attr[0]) + sizeof(chardata));
 	chardata *value = malloc(strlen(attr[1]) + sizeof(chardata));
 	strcpy(key, attr[0]);
@@ -210,6 +213,15 @@ bool addvendorattrs(DynList *vendordata, const char **attr)
 	}
 	return true;
 }
+
+/** \brief Appropriately destroy an embedded content struct
+ *
+ *  \param ed Pointer to the \c EmbeddedData struct to free.
+ */
+static void inline disposeembedded(EmbeddedData *ed)
+{   free(ed->content);
+}
+
 /** \brief expat tag start event callback.
  *
  * Every time a block is opened, the current dynamic list for the appropriate
@@ -257,7 +269,8 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   mb->state = parsefragindex(mb, attr);
+	{   mb->embedded = NULL;
+		mb->state = parsefragindex(mb, attr);
 		return;
 	}
 
@@ -270,6 +283,11 @@ static void XMLCALL endblock(void *data, const char *el)
 	ManifestBox *mb = data;
 
 	//fprintf(stderr, "<: %s\n", el); //DEBUG
+
+	if (mb->state != MANIFEST_SUCCESS)
+	{   SMTH_disposemanifest(mb->m);
+		XML_StopParser(mb->parser, XML_FALSE);
+	}
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
 	{	if(!finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
@@ -303,7 +321,10 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   mb->activefragment = NULL;
+	{   if (mb->embedded)
+		{   mb->activefragment->embedded = mb->embedded;
+			mb->embedded = NULL;
+		}
 		return;
 	}
 }
@@ -432,6 +453,8 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 
 	for (i = 0; attr[i]; i += 2)
 	{
+		if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
+
 		if (!strcmp(attr[i], MANIFEST_STREAM_TYPE))
 		{
 			switch (tolower(attr[i+1][0]))
@@ -547,6 +570,8 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 
 	for (i = 0; attr[i]; i += 2)
 	{
+		if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
+
 		if (!strcmp(attr[i], MANIFEST_TRACK_INDEX))
 		{   tmp->index = (count_t) atoint32(attr[i+1]);
 			continue;
@@ -637,7 +662,9 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 	chardata *key, *value;
 
 	for (i = 0; attr[i]; i += 2)
-	{   /* including a \0 sigil */
+	{	if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
+
+		/* including a \0 sigil */
 		chardata *tmpvalue = malloc(strlen(attr[i+1]) + sizeof (char));
 		if (!tmpvalue) return MANIFEST_NO_MEMORY;
 
@@ -654,8 +681,11 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		}
 	}
 
-	if (!addtolist(key, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
-	if (!addtolist(value, &mb->tmpattributes)) return MANIFEST_NO_MEMORY; //XXX
+	if (!addtolist(key, &mb->tmpattributes) || !addtolist(value, &mb->tmpattributes))
+	{   free(key);
+		free(value);
+		return MANIFEST_NO_MEMORY;
+	}
 
 	return MANIFEST_SUCCESS;
 }
@@ -680,6 +710,8 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 
 	for (i = 0; attr[i]; i += 2)
 	{
+		if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
+
 		if (!strcmp(attr[i], MANIFEST_CHUNK_INDEX))
 		{   tmp->index = (count_t) atoint32(attr[i+1]);
 			continue;
@@ -735,6 +767,8 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 
 	for (i = 0; attr[i]; i += 2)
 	{
+		if (!attr[i+1]) return MANIFEST_PARSER_ERROR;
+
 		if (!strcmp(attr[i], MANIFEST_FRAGMENT_INDEX))
 		{	tmp->index = (count_t) atoint32(attr[i+1]);
 			continue;
@@ -750,47 +784,27 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	tmp->vendorattrs = (chardata**) vendordata.list;
 
 	if (!addtolist(tmp, &mb->tmpfragments)) return MANIFEST_NO_MEMORY;
+
 	/* content may be present only if it is flagged into active Stream */
 	if (mb->activestream->isembedded) mb->activefragment = tmp;
-
+	
 	return MANIFEST_SUCCESS;
 }
 
 /////////////////////////////////////TODO///////////////////////////////////////
-//XXX tutti avranno un campo attrs, cambiare il nome di quello di 
-//FIXME chiarire se serve assegnare ad una variabile...
 //TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
-//FIXME DynList custom attrs;
-//variabile elattrs in ogni funzione
 //E se finalize ritornasse la lunghezza?
 //TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
-//Chiarire se manifestparsed serve...
+// Chiarire se manifestparsed serve...
 // Trasformare anche metrics in un array...
+//
+//Manifest::armor
+//ManifestBox::embedded
 
-//mb->activefragment
-
-	/* if too small, doubles the capiency. */
-/*	if (list->index == list->slots)*/
-/*	{	*/
-/*		list->slots = list->slots? list->slots * 2: 3;*/
-/*		void **tmp = realloc(list->list, list->slots * sizeof (list->list));*/
-/*		if (!tmp) return false;*/
-/*		list->list = tmp;*/
-/*	}*/
-
-/*	list->list[list->index] = item;*/
-/*	list->index++;*/
-
-/*	return true;*/
-/** \brief Holds embedded track data. */
-//typedef struct
-//{   byte_t* data;    /**< Data. */
-//	length_t length; /**< Lenght of the data. */
-//} Embedded; //XXX unisci a quelle sotto....
-//TODO una funzione che toglie base64 e stipa....
-
-
-/** \brief expat text event callback. */
+/** \brief expat text event callback
+ *
+ *  Searches and stores embedded data, decoding base64
+ */
 static void XMLCALL textblock(void *data, const char *text, int length)
 {
 	ManifestBox *mb = data;
@@ -804,7 +818,8 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
 			memcpy(tmp, text, length);
 			tmp[length] = (base64data) 0; //FIXME non è l'ultimo!!!
-			mb->m->armor = tmp;
+//			mb->m->armor = tmp;
+			free(tmp);
 		}
 		else mb->m->armor = NULL;
 
@@ -820,5 +835,17 @@ static void XMLCALL textblock(void *data, const char *text, int length)
 	//fwrite(text, 1, length, stdout); //DEBUG
 //	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
 }
-
+//TODO una funzione che toglie base64 e stipa....
+//mb->embeddeddata
+/*  //if too small, doubles the capiency. */
+/*	if (list->index == list->slots)*/
+/*	{	*/
+/*		list->slots = list->slots? list->slots * 2: 3;*/
+/*		void **tmp = realloc(list->list, list->slots * sizeof (list->list));*/
+/*		if (!tmp) return false;*/
+/*		list->list = tmp;*/
+/*	}*
+/*	list->list[list->index] = item;*/
+/*	list->index++;*/
+/*	return true;*/
 /* vim: set ts=4 sw=4 tw=0: */

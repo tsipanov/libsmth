@@ -16,39 +16,17 @@ trasformare le iterazioni su array in
 
 controllare gli errori sul atoi e che 't' sia piu` affidabile
 (tolower(attr[i + 1][0]) == 't'); semplificare
-magari unificare maxwidth, height..
 
 sistemare i nuovi frammenti
 
-trasformare boxishuge in una macro.
-
-rendere opzionale i metadati e/o i dati nella traccia
-
-height => heigth
-
 #if 0
-	ChunkIndex **fragments;
-} Chunk;
-
+struct {
 	count_t index;
 	base64data* content;
 } ChunkIndex;
 
-
-	UrlPattern url;
-	Chunk **chunks;
-} Manifest;
-
-	Attribute **attributes;
-} Track;
-
-	chardata *key;
-	chardata *value;
-} Attribute;
-
-{   byte_t* data;    /**< Data. */
-	length_t length; /**< Lenght of the data. */
-} Embedded; //XXX unisci a quelle sotto....
+ Manifest->url
+ Manifest->chunks[i]->fragments[j]->
 #endif
 
 forse bisognerebbe anche segnalare il tipo del padre da cui proviene una uuidbox
