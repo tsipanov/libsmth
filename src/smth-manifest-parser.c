@@ -142,7 +142,6 @@ void SMTH_disposemanifest(Manifest* m)
 			{   count_t j;
 				for (j = 0; tmpstream->tracks[j]; j++)
 				{   Track *tmptrack = tmpstream->tracks[j];
-
 					if (tmptrack->header) free(tmptrack->header);
 					if (tmptrack->attributes)
 					{	count_t n;
@@ -151,6 +150,7 @@ void SMTH_disposemanifest(Manifest* m)
 						}
 						free(tmptrack->attributes);
 					}
+					disposevendorattrs(tmptrack->vendorattrs);
 					free(tmptrack);
 				}
 				free(tmpstream->tracks);
@@ -164,6 +164,7 @@ void SMTH_disposemanifest(Manifest* m)
 					{	for (n = 0; tmpchunk->fragments[n]; n++)
 						{   ChunkIndex *tmpfragment = tmpchunk->fragments[n];
 							if (tmpfragment->content) free(tmpfragment->content);
+							disposevendorattrs(tmpfragment->vendorattrs);
 							free(tmpfragment);
 						}
 						free(tmpchunk->fragments);
@@ -172,18 +173,43 @@ void SMTH_disposemanifest(Manifest* m)
 				}
 				free(tmpstream->chunks);
 			}
+			disposevendorattrs(tmpstream->vendorattrs);
 			free(tmpstream);
 		}
 		free(m->streams);
 	}
+	disposevendorattrs(m->vendorattrs);
 
 	/* destroy even the reference. */
 	m->armor = NULL;
 	m->streams = (Stream**) NULL;
+	m->vendorattrs = (chardata**) NULL;
 }
 
 /*--------------------- HIC QUOQUE SUNT LEONES (CODICIS) ---------------------*/
 
+/** \brief Destroys a vendor data attrs sequence. */
+void disposevendorattrs(chardata **vendorattrs)
+{   if (vendorattrs)
+	{   int i;
+		for (i = 0; vendorattrs[i]; i++) free(vendorattrs[i]);
+	}
+	free(vendorattrs);
+}
+
+bool addvendorattrs(DynList *vendordata, const char **attr)
+{	chardata *key = malloc(strlen(attr[0]) + sizeof(chardata));
+	chardata *value = malloc(strlen(attr[1]) + sizeof(chardata));
+	strcpy(key, attr[0]);
+	strcpy(value, attr[1]);
+	if (!addtolist(key, vendordata) || !addtolist(value, vendordata))
+	{   disposelist(vendordata);
+		free(key);
+		free(value);
+		return false;
+	}
+	return true;
+}
 /** \brief expat tag start event callback.
  *
  * Every time a block is opened, the current dynamic list for the appropriate
@@ -252,8 +278,7 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
-	{   //FIXME copia l'armatura e la lunghezza...
-		mb->armorwaiting = false;
+	{   mb->armorwaiting = false;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
@@ -283,9 +308,6 @@ static void XMLCALL endblock(void *data, const char *el)
 	}
 }
 
-//XXX convenience macro.
-#define insertcustomattr(...) true
-
 /**
  * \brief Parses a SmoothStreamingMedia.
  *
@@ -303,6 +325,9 @@ static void XMLCALL endblock(void *data, const char *el)
 static error_t parsemedia(ManifestBox *mb, const char **attr)
 {
 	count_t i;
+
+	DynList vendordata;
+	preparelist(&vendordata);
 		
 	for (i = 0; attr[i]; i += 2)
 	{
@@ -342,10 +367,13 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		/* else */
-		if (!insertcustomattr(&attr[i], mb->m)) return MANIFEST_NO_MEMORY;
+		if(!addvendorattrs(&vendordata, &attr[i])) return MANIFEST_NO_MEMORY;
 	}
 	/* if the field is null, set it to default, as required by specs. */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
+
+	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	mb->m->vendorattrs = (chardata**) vendordata.list; //LEAK
 
 	return MANIFEST_SUCCESS;
 }
@@ -395,6 +423,9 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
 static error_t parsestream(ManifestBox *mb, const char **attr)
 {
 	count_t i;
+
+	DynList vendordata;
+	preparelist(&vendordata);
 
 	Stream *tmp = calloc(1, sizeof(Stream));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -475,8 +506,11 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		}
 		//TODO SubtypeControlEvents: Control events for applications on the client.
 		/* else */
-		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
+		if(!addvendorattrs(&vendordata, &attr[i])) return MANIFEST_NO_MEMORY;
 	}
+
+	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	tmp->vendorattrs = (chardata**) vendordata.list;
 
 	mb->activestream = tmp;
 	if (!addtolist(tmp, &mb->tmpstreams)) return MANIFEST_NO_MEMORY;
@@ -504,6 +538,9 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 static error_t parsetrack(ManifestBox *mb, const char **attr)
 {
 	count_t i;
+
+	DynList vendordata;
+	preparelist(&vendordata);
 
 	Track *tmp = calloc(1, sizeof(Track));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -571,8 +608,11 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		/* else */
-		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
+		if(!addvendorattrs(&vendordata, &attr[i])) return MANIFEST_NO_MEMORY;
 	}
+
+	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	tmp->vendorattrs = (chardata**) vendordata.list;
 
 	mb->activetrack = tmp;
 	if (!addtolist(tmp, &mb->tmptracks)) return MANIFEST_NO_MEMORY;
@@ -594,14 +634,11 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
 
-//	Attribute *tmp = calloc(1, sizeof (Attribute));
 	chardata *key, *value;
 
-//	if (!tmp) return MANIFEST_NO_MEMORY;
-
 	for (i = 0; attr[i]; i += 2)
-	{
-		chardata *tmpvalue = malloc(strlen(attr[i+1]));
+	{   /* including a \0 sigil */
+		chardata *tmpvalue = malloc(strlen(attr[i+1]) + sizeof (char));
 		if (!tmpvalue) return MANIFEST_NO_MEMORY;
 
 		/* the length must not change (_const_ char **) */
@@ -618,7 +655,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 	}
 
 	if (!addtolist(key, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
-	if (!addtolist(value, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
+	if (!addtolist(value, &mb->tmpattributes)) return MANIFEST_NO_MEMORY; //XXX
 
 	return MANIFEST_SUCCESS;
 }
@@ -655,8 +692,6 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 		{   tmp->time = (tick_t) atoint64(attr[i+1]);
 			continue;
 		}
-		/* else */
-		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
 	if (!tmp->duration)
@@ -667,8 +702,12 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 	mb->previousduration = tmp->duration;
 	mb->previoustime = tmp->time;
 
+	if (!addtolist(tmp, &mb->tmpchunks))
+	{   free(tmp);
+		return MANIFEST_NO_MEMORY;
+	}
+
 	mb->activechunk = tmp;
-	if (!addtolist(tmp, &mb->tmpchunks)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
 }
@@ -687,6 +726,9 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 {
 	count_t i;
 
+	DynList vendordata;
+	preparelist(&vendordata);
+
 	ChunkIndex *tmp = calloc(1, sizeof (Chunk));
 
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -698,8 +740,14 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		/* else */
-		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
+		if(!addvendorattrs(&vendordata, &attr[i]))
+		{   free(tmp);
+			return MANIFEST_NO_MEMORY;
+		}
 	}
+
+	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	tmp->vendorattrs = (chardata**) vendordata.list;
 
 	if (!addtolist(tmp, &mb->tmpfragments)) return MANIFEST_NO_MEMORY;
 	/* content may be present only if it is flagged into active Stream */
@@ -714,15 +762,26 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 //TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
 //FIXME DynList custom attrs;
 //variabile elattrs in ogni funzione
-//FIXME il tempo va in overflow
-//TODO chiarire il comportamento di free
 //E se finalize ritornasse la lunghezza?
 //TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
 //Chiarire se manifestparsed serve...
 // Trasformare anche metrics in un array...
-//if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY; TODO
-//free(mb->tmpembedded.list);
+
 //mb->activefragment
+
+	/* if too small, doubles the capiency. */
+/*	if (list->index == list->slots)*/
+/*	{	*/
+/*		list->slots = list->slots? list->slots * 2: 3;*/
+/*		void **tmp = realloc(list->list, list->slots * sizeof (list->list));*/
+/*		if (!tmp) return false;*/
+/*		list->list = tmp;*/
+/*	}*/
+
+/*	list->list[list->index] = item;*/
+/*	list->index++;*/
+
+/*	return true;*/
 /** \brief Holds embedded track data. */
 //typedef struct
 //{   byte_t* data;    /**< Data. */

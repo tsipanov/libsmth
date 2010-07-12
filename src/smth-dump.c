@@ -109,8 +109,21 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 						rootbar, waitingchunks, trackbar, track->header);
 					fprintf(output, "    %c  %c  %c  +-no. of channels: %d\n",
 						rootbar, waitingchunks, trackbar, track->channelsno);
-					fprintf(output, "    %c  %c  %c  `-NAL unit length: %dB\n",
+					fprintf(output, "    %c  %c  %c  +-NAL unit length: %dB\n",
 						rootbar, waitingchunks, trackbar, track->nalunitlength);
+
+					if (track->attributes)
+					{   count_t m;
+						fprintf(output, "    %c  %c  %c  `-attributes\n",
+							rootbar, waitingchunks, trackbar);
+
+						for(m = 0; track->attributes[m]; m+=2)
+						{   char attrcorner = track->attributes[m+2]? '+': '`';
+							fprintf(output, "    %c  %c  %c     %c-%s = %s\n",
+								rootbar, waitingchunks, trackbar, attrcorner,
+								track->attributes[i], track->attributes[i+1]);
+						}
+					}
 				}
 			}
 			if (stream->chunks)

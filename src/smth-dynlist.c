@@ -40,13 +40,13 @@
  *             In this case, data is left untouched and the programmer may
  *             ignore this message, as appropriate.
  */
-bool addtolist(void *item, DynList *list)
+bool addtolist(const void *item, DynList *list)
 {
 	/* if too small, doubles the capiency. */
 	if (list->index == list->slots)
 	{	
 		list->slots = list->slots? list->slots * 2: 3;
-		void **tmp = realloc(list->list, list->slots * sizeof (list->list)); //TODO check **
+		const void **tmp = realloc(list->list, list->slots * sizeof (list->list));
 		if (!tmp) return false;
 		list->list = tmp;
 	}
@@ -78,7 +78,7 @@ void preparelist(DynList *list)
  */
 bool finalizelist(DynList *list)
 {
-	void **tmp = realloc(list->list, (list->index + 1) * sizeof (void*));
+	const void **tmp = realloc(list->list, (list->index + 1) * sizeof (void*));
 	if (!tmp) return false;
 	list->list = tmp;
 	list->list[list->index] = NULL;

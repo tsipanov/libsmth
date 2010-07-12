@@ -44,10 +44,10 @@
 typedef struct
 {   count_t slots; /**< The number of allocated slots.   */
 	count_t index; /**< The number of filled slots.      */
-	void **list;   /**< Pointer to the head of the list. */
+	const void **list;   /**< Pointer to the head of the list. */
 } DynList;
 
-bool addtolist(void *item, DynList *list);
+bool addtolist(const void *item, DynList *list);
 bool finalizelist(DynList *list);
 void preparelist(DynList *list);
 void disposelist(DynList *list);

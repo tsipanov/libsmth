@@ -52,6 +52,9 @@ typedef struct
 	 *  Stream::isembedded is true.
 	 */
 	base64data* content;
+	/** A set of vendor specific attrs, as a sequence of key/name,
+	 *  NULL terminated. */
+	chardata **vendorattrs;
 } ChunkIndex;
 
 /** \brief Holds metadata for a single chunk. */
@@ -131,6 +134,9 @@ typedef struct
 	 *  even slots are keys, odd slots are values.
 	 */
 	chardata **attributes;
+	/** A set of vendor specific attrs, as a sequence of key/name,
+	 *  NULL terminated. */
+	chardata **vendorattrs;
 } Track;
 
 /** The Stream content type. */
@@ -178,6 +184,9 @@ typedef struct
 	Track **tracks;
 	/** Pointer to a NULL terminated array of child chunks. */
 	Chunk **chunks;
+	/** A set of vendor specific attrs, as a sequence of key/name,
+	 *  NULL terminated. */
+	chardata **vendorattrs;
 } Stream;
 
 /** \brief Holds the manifest data of the opened stream. */
@@ -213,6 +222,9 @@ typedef struct
 	base64data *armor;
 	/** Pointer to the streams array (NULL terminated). */
 	Stream **streams;
+	/** A set of vendor specific attrs, as a sequence of key/name,
+	 *  NULL terminated. */
+	chardata **vendorattrs;
 } Manifest;
 
 /** The manifest was successfully parsed. */

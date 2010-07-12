@@ -26,7 +26,7 @@
 
 int main()
 {
-	FILE *f = fopen("/home/Sanfi/Progetti/libsmth/.junk/rai.Manifest.xml", "r");
+	FILE *f = fopen("/home/Sanfi/Progetti/libsmth/.junk/Manifest.xml", "r");
 
 	Manifest m;
 

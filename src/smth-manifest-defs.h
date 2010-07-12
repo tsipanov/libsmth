@@ -182,6 +182,9 @@ typedef struct
 #define NAL_DEFAULT_LENGTH				4
 
 static bool stringissane(const char* s);
+
+void disposevendorattrs(chardata **vendorattrs);
+bool addvendorattrs(DynList *vendordata, const char **attr);
  
 static error_t     parsemedia(ManifestBox *mb, const char **attr);
 static error_t     parsearmor(ManifestBox *mb, const char **attr);
@@ -198,3 +201,6 @@ static void XMLCALL  textblock(void *data, const char *text, int length);
 #endif /* __SMTH_MANIFEST_DEFS_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
+
+//XXX convenience macro.
+#define insertcustomattr(...) true
