@@ -830,7 +830,7 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 
 /**
  * \brief Decodes (base64) the given \c text of length \c length and appends
- *        it to Manifest::armor::content.
+ *        it to a \c EmbeddedData.
  *
  * \param dest   The EmbeddedData to fill
  * \param text   The text to be decoded.
@@ -847,7 +847,7 @@ static error_t parsepayload(EmbeddedData *ed, const char *text, int length)
 		base64data *tmp = realloc(ed->content, newlength);
 		if (!tmp) return MANIFEST_NO_MEMORY;
 		/* Append */
-		memcpy(&tmp[ed->length], text, length);
+		memcpy(&tmp[ed->length], text, length); //FIXME decode
 
 		ed->content = tmp;
 		ed->length = newlength;
