@@ -42,13 +42,6 @@ typedef struct
 	metric_t width, height;
 } ScreenMetrics;
 
-/** \brief Holds embedded track data. */
-typedef struct
-{   byte_t* data;    /**< Data. */
-	length_t length; /**< Lenght of the data. */
-} Embedded; //XXX unisci a quelle sotto....
-//TODO una funzione che toglie base64 e stipa....
-
 /** \brief Holds index metadata for a Fragment. */
 typedef struct
 {   /**  An ordinal that must match the value of the Index field for the track
@@ -84,14 +77,6 @@ typedef struct
 	/** The subfragments of a \c Chunk. */
 	ChunkIndex **fragments;
 } Chunk;
-
-/** \brief Metadata expressed as key/value pairs that disambiguates tracks. */
-typedef struct
-{   /** The name of a custom Attribute for a track. */
-	chardata *key;
-	/** The value of a custom Attribute for a track. */
-	chardata *value;
-} Attribute;
 
 /** \brief Track specific metadata. */
 typedef struct
@@ -142,8 +127,10 @@ typedef struct
 	 *  FourCC field is "H264". The default value is 4.
 	 */
 	unit_t nalunitlength;
-	/** A set of attributes as a NULL terminated array that identify the Track. */
-	Attribute **attributes;
+	/** A set of attributes as a NULL terminated array that identify the Track.
+	 *  even slots are keys, odd slots are values.
+	 */
+	chardata **attributes;
 } Track;
 
 /** The Stream content type. */

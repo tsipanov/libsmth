@@ -147,10 +147,7 @@ void SMTH_disposemanifest(Manifest* m)
 					if (tmptrack->attributes)
 					{	count_t n;
 						for (n = 0; tmptrack->attributes[n]; n++)
-						{   Attribute *tmpattribute = tmptrack->attributes[n];
-							if (tmpattribute->key) free(tmpattribute->key);
-							if (tmpattribute->value) free(tmpattribute->value);
-							free(tmpattribute);
+						{   free(tmptrack->attributes[n]);
 						}
 						free(tmptrack->attributes);
 					}
@@ -215,6 +212,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
 	{   preparelist(&mb->tmpchunks);
 		preparelist(&mb->tmptracks);
+		mb->previoustime = mb->previousduration = 0;
 		mb->state = parsestream(mb, attr);
 		return;
 	}
@@ -233,8 +231,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   preparelist(&mb->tmpembedded);
-		mb->state = parsefragindex(mb, attr);
+	{   mb->state = parsefragindex(mb, attr);
 		return;
 	}
 
@@ -269,7 +266,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
 	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
-		mb->activetrack->attributes = (Attribute**) mb->tmpattributes.list;
+		mb->activetrack->attributes = (chardata**) mb->tmpattributes.list;
 		mb->activetrack = NULL;
 		return;
 	}
@@ -281,41 +278,9 @@ static void XMLCALL endblock(void *data, const char *el)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_FRAGMENT_ELEMENT))
-	{   //if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY; TODO
-		//free(mb->tmpembedded.list);
+	{   mb->activefragment = NULL;
 		return;
 	}
-}
-
-/** \brief expat text event callback. */
-static void XMLCALL textblock(void *data, const char *text, int length)
-{
-	ManifestBox *mb = data;
-//FIXME skip trailing blanks
-	if (mb->armorwaiting)
-	{
-//FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
-		if (length > 0)
-		{	
-			base64data *tmp = malloc(length+1); //non +1!!!
-			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
-			memcpy(tmp, text, length);
-			tmp[length] = (base64data) 0; //FIXME non è l'ultimo!!!
-			mb->m->armor = tmp;
-		}
-		else mb->m->armor = NULL;
-
-		mb->armorwaiting = false;
-		return;
-	}
-//	if (mb->activeFragment.list)
-	{   //TODO track embedded
-//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
-//	  (se le chiamate sono piu` di una)??
-		return;
-	}
-	//fwrite(text, 1, length, stdout); //DEBUG
-//	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
 }
 
 //XXX convenience macro.
@@ -629,8 +594,10 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 {
 	count_t i;
 
-	Attribute *tmp = calloc(1, sizeof (Attribute)); //FIXME sostituire con array
-	if (!tmp) return MANIFEST_NO_MEMORY;
+//	Attribute *tmp = calloc(1, sizeof (Attribute));
+	chardata *key, *value;
+
+//	if (!tmp) return MANIFEST_NO_MEMORY;
 
 	for (i = 0; attr[i]; i += 2)
 	{
@@ -641,16 +608,17 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		strcpy(tmpvalue, attr[i+1]);
 
 		if (!strcmp(attr[i], MANIFEST_ATTRS_KEY))
-		{   tmp->key = tmpvalue;
+		{   key = tmpvalue;
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_ATTRS_VALUE))
-		{   tmp->value = tmpvalue;
+		{   value = tmpvalue;
 			continue;
 		}
 	}
 
-	if (!addtolist(tmp, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
+	if (!addtolist(key, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
+	if (!addtolist(value, &mb->tmpattributes)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
 }
@@ -691,48 +659,19 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
 
+	if (!tmp->duration)
+		tmp->duration = mb->previoustime? tmp->time - mb->previoustime: 0;
+	if (!tmp->time)
+		tmp->time = mb->previousduration? tmp->duration + mb->previousduration: 0;
+
+	mb->previousduration = tmp->duration;
+	mb->previoustime = tmp->time;
+
 	mb->activechunk = tmp;
 	if (!addtolist(tmp, &mb->tmpchunks)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
 }
-
-/////////////////////////////////////TODO///////////////////////////////////////
-#if 0
-FIXME fare in modo che siano impostati correttamente.
-	/** The duration of the fragment in ticks. If the FragmentDuration field
-	 *  is omitted, its implicit value must be computed by the client by
-	 *  subtracting the value of the preceding Chunk::time to the current
-	 *  Chunk::time. If the fragment is the first in the stream, the implicit
-	 *  value is 0.
-	 */
-	tick_t duration;
-	/** The time of the fragment, in ticks. If it is omitted, its implicit
-	 *  value must be computed by the client by adding the value of
-	 *  the preceding StreamFragmentElement's FragmentTime field to the value
-	 *  of this StreamFragmentElement's FragmentDuration field. If the fragment
-	 *  is the first in the stream, the implicit value is 0.
-	 */
-	tick_t time;
-#endif
-
-//FIXME aggiungere tipo di box aperto come controllo sulle chiusuere
-//FIXME (NAL) unit. The default value is 4.
-//----------------------------------------XXX-----------------------------------
-//XXX tutti avranno un campo attrs, cambiare il nome di quello di 
-//	mb->fillwithattrs = tmp; FIXME lista dinamica. azzerare alla chisura
-//TODO add pointer to right fragment... fillwithchunks
-//FIXME chiarire se serve assegnare ad una variabile...
-//TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
-//FIXME DynList custom attrs;
-// variabile elattrs in ogni funzione
-//FIXME il tempo va in overflow
-//TODO chiarire il comportamento di free
-//E se finalize ritornasse la lunghezza?
-//TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
-//Chiarire se manofestparsed serve...
-//
-// Trasformare anche metrics in un array...
 
 /**
  * \brief TrackFragmentElement (per-fragment specific metadata) parser.
@@ -749,7 +688,6 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	count_t i;
 
 	ChunkIndex *tmp = calloc(1, sizeof (Chunk));
-//	mb->activeFragment.list = tmp;
 
 	if (!tmp) return MANIFEST_NO_MEMORY;
 
@@ -762,11 +700,66 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 		/* else */
 		if (!insertcustomattr(&attr[i], tmp)) return MANIFEST_NO_MEMORY;
 	}
-	//TODO body BASE64_STRING solo se... tmp->content;
 
-	//TODO insert (activefragment);
-	free(tmp); //XXX FIXME
+	if (!addtolist(tmp, &mb->tmpfragments)) return MANIFEST_NO_MEMORY;
+	/* content may be present only if it is flagged into active Stream */
+	if (mb->activestream->isembedded) mb->activefragment = tmp;
+
 	return MANIFEST_SUCCESS;
+}
+
+/////////////////////////////////////TODO///////////////////////////////////////
+//XXX tutti avranno un campo attrs, cambiare il nome di quello di 
+//FIXME chiarire se serve assegnare ad una variabile...
+//TODO controllare nel corpo che il puntatore appropriato sia ancora azzerato che sia tutto ok.
+//FIXME DynList custom attrs;
+//variabile elattrs in ogni funzione
+//FIXME il tempo va in overflow
+//TODO chiarire il comportamento di free
+//E se finalize ritornasse la lunghezza?
+//TODO qualcosa come seterrorandreturn che blocchi il parser quando trova un errore.
+//Chiarire se manifestparsed serve...
+// Trasformare anche metrics in un array...
+//if(!finalizelist(&mb->tmpembedded)) mb->state = MANIFEST_NO_MEMORY; TODO
+//free(mb->tmpembedded.list);
+//mb->activefragment
+/** \brief Holds embedded track data. */
+//typedef struct
+//{   byte_t* data;    /**< Data. */
+//	length_t length; /**< Lenght of the data. */
+//} Embedded; //XXX unisci a quelle sotto....
+//TODO una funzione che toglie base64 e stipa....
+
+
+/** \brief expat text event callback. */
+static void XMLCALL textblock(void *data, const char *text, int length)
+{
+	ManifestBox *mb = data;
+//FIXME skip trailing blanks
+	if (mb->armorwaiting)
+	{
+//FIXME e se unserissi anche la lunghezza?? devi, se le chiamate sono + di una....
+		if (length > 0)
+		{	
+			base64data *tmp = malloc(length+1); //non +1!!!
+			if (!tmp) mb->state = MANIFEST_NO_MEMORY;
+			memcpy(tmp, text, length);
+			tmp[length] = (base64data) 0; //FIXME non è l'ultimo!!!
+			mb->m->armor = tmp;
+		}
+		else mb->m->armor = NULL;
+
+		mb->armorwaiting = false;
+		return;
+	}
+//	if (mb->activeFragment.list)
+	{   //TODO track embedded
+//FIXME inserire anche il fragment: in ogni caso, racccogli e aggiungi
+//	  (se le chiamate sono piu` di una)??
+		return;
+	}
+	//fwrite(text, 1, length, stdout); //DEBUG
+//	mb->state = MANIFEST_UNEXPECTED_TRAILING; //FIXME rimettere dopo
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

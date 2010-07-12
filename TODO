@@ -38,6 +38,7 @@ height => heigth
 	UrlPattern url;
 	Chunk **chunks;
 } Manifest;
+
 	Attribute **attributes;
 } Track;
 

@@ -21,10 +21,6 @@
 #ifndef __SMTH_H__
 #define __SMTH_H__
 
-#include <smth-manifest-parser.h>
-#include <smth-fragment-parser.h>
-#include <smth-dump.h>
-
 /*
  * 1. Packet (`Box`) structure
  * ===========================

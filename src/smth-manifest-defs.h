@@ -44,12 +44,18 @@ typedef struct
 	bool manifestparsed;
 	/** The error code reported by a parser handler. */
 	error_t state;
-	/** Pointer to the active Stream. */
+	/** The duration of the previous chunk in the active stream. */	 
+	tick_t previousduration;
+	/** The timestamp of the previous chunk in the active stream. */
+	tick_t previoustime;
+	/** Pointer to the active \c Stream. */
 	Stream *activestream;
-	/** Pointer to the active Track. */
+	/** Pointer to the active \c Track. */
 	Track *activetrack;
-	/** Pointer to the active Chunk. */
+	/** Pointer to the active \c Chunk. */
 	Chunk *activechunk;
+	/** Pointer to the active \c ChunkIndex. */
+	ChunkIndex *activefragment;
 	/** The \c Manifest::streams to fill with Stream data. */
 	DynList tmpstreams;
 	/** The \c Stream::tracks to be filled with \c Track metadata. */
@@ -58,10 +64,8 @@ typedef struct
 	DynList tmpchunks;
 	/** The \c Track::attributes to be filled with key/value metadata pairs. */
 	DynList tmpattributes;
-	/** The \c Chunk::fragments to be filled with \c FragmentIndex(es). */ //FIXME
+	/** The \c Chunk::fragments to be filled with \c FragmentIndex(es). */
 	DynList tmpfragments;
-	/** The \c FragmentIndex::content to be filled with embedded data. */ //FIXME
-	DynList tmpembedded;
 } ManifestBox;
 
 /** The xml tag identifying a SmoothStream (root) section */

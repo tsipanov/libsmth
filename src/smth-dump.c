@@ -21,6 +21,7 @@
  */
 
 /**
+ * \internal
  * \file   smth-dump.c
  * \brief  Manifest and Fragment dump.
  * \author Stefano Sanfilippo
@@ -113,7 +114,7 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 				}
 			}
 			if (stream->chunks)
-			{	fprintf(output, "    %c  +-chunks\n", rootbar);
+			{	fprintf(output, "    %c  `-chunks\n", rootbar);
 				for (j = 0; stream->chunks[j]; j++)
 				{	Chunk *chunk = stream->chunks[j];
 					char chunkbar = stream->chunks[j+1]? '|': ' ';

@@ -24,6 +24,7 @@
 #define __SMTH_DUMP_H__
 
 /**
+ * \internal
  * \file   smth-dump.h
  * \brief  Manifest and Fragment dump (header)
  * \author Stefano Sanfilippo

@@ -22,7 +22,7 @@
  */
 
 #include <stdio.h>
-#include <smth.h>
+#include <smth-dump.h>
 
 int main()
 {

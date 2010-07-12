@@ -48,12 +48,12 @@ typedef enum {  MOOF,    /**< main metadata container                */
 
 /** \brief Holds stream and metadata of currently parsed Box */
 typedef struct
-{   signedlength_t bsize;	/**< size of the incoming block	body			*/
-	signedlength_t tsize;	/**< size of the incoming block (total)			*/
-	DynList	extlist;	    /**< Extension dynamic list					    */
-	BoxType type;			/**< type of the incoming block					*/
-	FILE *stream;			/**< input stream								*/
-	Fragment *f;			/**< Fragment to be filled with extracted data. */
+{   signedlength_t bsize; /**< size of the incoming block body */
+	signedlength_t tsize; /**< size of the incoming block (total) */
+	DynList	extlist;      /**< Extension dynamic list */
+	BoxType type;	      /**< type of the incoming block	*/
+	FILE *stream;         /**< input stream */
+	Fragment *f;          /**< Fragment to be filled with extracted data. */ 
 } Box;
 
 /** The tfhd Box has a BaseDataOffset field			*/

@@ -23,7 +23,7 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <smth.h>
+#include <smth-dump.h>
 
 void dumpt(Fragment* vc, char* ifile);
 
