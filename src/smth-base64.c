@@ -1,6 +1,29 @@
 /*
+ * Copyright (C) 2010 Stefano Sanfilippo
+ *
+ * smth-base64.c: base64 decoder.
+ *
+ * 13th July 2010
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Library General Public License as published
+ * by the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+ */
+
+/*
  * \internal
- * \file base64.c
+ * \file smth-base64.c
+ * \brief Base64 decoder, for embedded data.
  * \date 13th July 2010
  * \author Stefano Sanfilippo
  *
@@ -33,7 +56,7 @@ static inline char value(char c)
 
 /**
  * \brief Decodes a base64 string to \c dest.
- *
+ * \bug This function is untested with EBCDIC encoded strings.
  * \param dest 
  */
 int unbase64(unsigned char *dest, const unsigned char *src, int srclen)
@@ -41,7 +64,8 @@ int unbase64(unsigned char *dest, const unsigned char *src, int srclen)
 	*dest = 0;
 	if (*src == 0) return 0;
 
-	if (srclen % 4 - 1) puts("error"); //FIXME
+	if (srclen % 4) puts("error"); //FIXME
+	srclen++; //FIXME
 
 	unsigned char *p = dest;
 

@@ -1,9 +1,6 @@
 SUBDIRS         = src src/utils
 ACLOCAL_AMFLAGS = -I m4
 
-#	    pkgconfig 
-#DIST_SUBDIRS=src pkgconfig
-
-#EXTRA_DIST      = libmms.spec \
-#                  AUTHORS COPYING.LIB NEWS README \
-#                  ChangeLog autogen.sh INSTALL TODO README.LICENSE
+EXTRA_DIST      = TODO BUGS #libmms.spec
+#                  AUTHORS COPYING.LIB NEWS README
+#                  ChangeLog autogen.sh INSTALL README.LICENSE

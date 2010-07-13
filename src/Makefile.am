@@ -11,7 +11,7 @@ libsmth_la_SOURCES = smth.c \
 						smth-manifest-defs.h \
 					 smth-dynlist.c smth-dynlist.h \
 					 smth-common-defs.h \
-					 base64.c
+					 smth-base64.c
 
 libsmth_la_LIBADD  = -lexpat -lcurl
 libsmth_la_LDFLAGS = -version-info 0:0:0

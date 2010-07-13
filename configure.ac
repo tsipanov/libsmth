@@ -19,5 +19,3 @@ AC_OUTPUT
 
 #AC_CONFIG_SRCDIR([src/foo.c])
 #AC_CONFIG_HEADERS([expat.h])
-
-
