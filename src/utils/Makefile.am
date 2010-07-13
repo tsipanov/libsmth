@@ -1,4 +1,5 @@
-bin_PROGRAMS      = dissector manifest
+#examplesdir       = bindir
+bin_PROGRAMS = dissector manifest
 
 AM_CFLAGS         = -I..
 

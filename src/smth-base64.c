@@ -33,6 +33,10 @@
 
 #include <string.h>
 #include <stdbool.h>
+#include <smth-common-defs.h>
+
+#define BASE64_INVALID_LENGTH (-25)
+#define BASE64_SUCCESS        (0)
 
 /** base64 symbols set */
 static const char base64chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -59,17 +63,17 @@ static inline char value(char c)
  * \bug This function is untested with EBCDIC encoded strings.
  * \param dest 
  */
-int unbase64(unsigned char *dest, const unsigned char *src, int srclen)
+error_t unbase64(unsigned char *dest, const unsigned char *src, int srclen)
 {
-	*dest = 0;
+	*dest = 0; //XXX
 	if (*src == 0) return 0;
 
-	if (srclen % 4) puts("error"); //FIXME
+	if (srclen % 4) return BASE64_INVALID_LENGTH;
 	srclen++; //FIXME
 
 	unsigned char *p = dest;
 
-	while (srclen-= 4)
+	while (srclen -= 4)
 	{
 		char a = value(src[0]);
 		char b = value(src[1]);
@@ -90,12 +94,13 @@ int unbase64(unsigned char *dest, const unsigned char *src, int srclen)
 
   		src += 4;
 
-  		while (*src && (*src == 13 || *src == 10)) src++;
+  		while (*src && (*src == '\n' || *src == '\r')) src++;
 	}
 
 	*p = 0;
 
-	return p - dest;
+	//return p - dest;
+	return BASE64_SUCCESS;
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

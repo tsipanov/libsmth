@@ -46,7 +46,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	error_t result;
 
 	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
-	preparelist(&root.extlist);
+	SMTH_preparelist(&root.extlist);
 
 //FIXME should work with `while`, but it does not...
 //	while (!feof(root.stream))
@@ -76,7 +76,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
 		return FRAGMENT_BIGGER_THAN_DECLARED;
 	}
 
-	if (!finalizelist(&root.extlist))
+	if (!SMTH_finalizelist(&root.extlist))
 	{   disposefragment(root.f);
 		return FRAGMENT_NO_MEMORY;
 	}
@@ -626,7 +626,7 @@ static error_t parseuuid(Box* root)
 	}
 	tmp->data = tmpdata;
 
-	if (!addtolist(tmp, &root->extlist))
+	if (!SMTH_addtolist(tmp, &root->extlist))
 	{   free(tmp);
 		free(tmpdata);
 		return FRAGMENT_NO_MEMORY;

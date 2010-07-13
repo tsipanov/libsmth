@@ -40,7 +40,7 @@
  *             In this case, data is left untouched and the programmer may
  *             ignore this message, as appropriate.
  */
-bool addtolist(const void *item, DynList *list)
+bool SMTH_addtolist(const void *item, DynList *list)
 {
 	/* if too small, doubles the capiency. */
 	if (list->index == list->slots)
@@ -58,7 +58,7 @@ bool addtolist(const void *item, DynList *list)
 }
 
 //FIXME macro...
-void preparelist(DynList *list)
+void SMTH_preparelist(DynList *list)
 {	memset(list, 0x0, sizeof(DynList));
 }
 
@@ -76,7 +76,7 @@ void preparelist(DynList *list)
  * \param list The list to be finalized.
  * \return     \c true on success or \c false.
  */
-bool finalizelist(DynList *list)
+bool SMTH_finalizelist(DynList *list)
 {
 	const void **tmp = realloc(list->list, (list->index + 1) * sizeof (void*));
 	if (!tmp) return false;
@@ -90,7 +90,7 @@ bool finalizelist(DynList *list)
  * \brief Destroys a dynamic list, appropriately.
  * \param list The list to be destroyed.
  */
-void disposelist(DynList *list)
+void SMTH_disposelist(DynList *list)
 {	free(list->list);
 }
 

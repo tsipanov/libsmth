@@ -47,10 +47,10 @@ typedef struct
 	const void **list;   /**< Pointer to the head of the list. */
 } DynList;
 
-bool addtolist(const void *item, DynList *list);
-bool finalizelist(DynList *list);
-void preparelist(DynList *list);
-void disposelist(DynList *list);
+bool SMTH_addtolist(const void *item, DynList *list);
+bool SMTH_finalizelist(DynList *list);
+void SMTH_preparelist(DynList *list);
+void SMTH_disposelist(DynList *list);
 
 #endif /* __SMTH_DYNLIST_H__ */
 

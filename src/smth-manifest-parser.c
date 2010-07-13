@@ -208,8 +208,8 @@ static bool addvendorattrs(DynList *vendordata, const char **attr)
 	chardata *value = malloc(strlen(attr[1]) + sizeof(chardata));
 	strcpy(key, attr[0]);
 	strcpy(value, attr[1]);
-	if (!addtolist(key, vendordata) || !addtolist(value, vendordata))
-	{   disposelist(vendordata);
+	if (!SMTH_addtolist(key, vendordata) || !SMTH_addtolist(value, vendordata))
+	{   SMTH_disposelist(vendordata);
 		free(key);
 		free(value);
 		return false;
@@ -242,7 +242,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{   preparelist(&mb->tmpstreams);
+	{   SMTH_preparelist(&mb->tmpstreams);
 		mb->state = parsemedia(mb, attr);
 		return;
 	}
@@ -251,14 +251,14 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   preparelist(&mb->tmpchunks);
-		preparelist(&mb->tmptracks);
+	{   SMTH_preparelist(&mb->tmpchunks);
+		SMTH_preparelist(&mb->tmptracks);
 		mb->previoustime = mb->previousduration = 0;
 		mb->state = parsestream(mb, attr);
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   preparelist(&mb->tmpattributes);
+	{   SMTH_preparelist(&mb->tmpattributes);
 		mb->state = parsetrack(mb, attr);
 		return;
 	}
@@ -267,7 +267,7 @@ static void XMLCALL startblock(void *data, const char *el, const char **attr)
 		return;
 	}
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   preparelist(&mb->tmpfragments);
+	{   SMTH_preparelist(&mb->tmpfragments);
 		mb->state = parsechunk(mb, attr);
 		return;
 	}
@@ -292,7 +292,7 @@ static void XMLCALL endblock(void *data, const char *el)
 	}
 
 	if (!strcmp(el, MANIFEST_ELEMENT))
-	{	if(!finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
+	{	if(!SMTH_finalizelist(&mb->tmpstreams)) mb->state = MANIFEST_NO_MEMORY;
 		mb->m->streams = (Stream**) mb->tmpstreams.list;
 		mb->manifestparsed = true;
 		return;
@@ -301,22 +301,22 @@ static void XMLCALL endblock(void *data, const char *el)
 	{   mb->activearmor = NULL;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
-		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
+	{   if(!SMTH_finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
+		if(!SMTH_finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
 		mb->activestream->tracks = (Track**) mb->tmptracks.list;
 		mb->activestream->chunks = (Chunk**) mb->tmpchunks.list;
 		mb->activestream = NULL;
 		return;
 	}
 	if (!strcmp(el, MANIFEST_TRACK_ELEMENT))
-	{   if(!finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
+	{   if(!SMTH_finalizelist(&mb->tmpattributes)) mb->state = MANIFEST_NO_MEMORY;
 		mb->activetrack->attributes = (chardata**) mb->tmpattributes.list;
 		mb->activetrack = NULL;
 		return;
 	}
 	//if (!strcmp(el, MANIFEST_ATTRS_ELEMENT)) not used.
 	if (!strcmp(el, MANIFEST_CHUNK_ELEMENT))
-	{   if(!finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;
+	{   if(!SMTH_finalizelist(&mb->tmpfragments)) mb->state = MANIFEST_NO_MEMORY;
 		mb->activechunk->fragments = (ChunkIndex**) mb->tmpfragments.list;
 		mb->activechunk = NULL;
 		return;
@@ -379,7 +379,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 	count_t i;
 
 	DynList vendordata;
-	preparelist(&vendordata);
+	SMTH_preparelist(&vendordata);
 		
 	for (i = 0; attr[i]; i += 2)
 	{
@@ -424,7 +424,7 @@ static error_t parsemedia(ManifestBox *mb, const char **attr)
 	/* if the field is null, set it to default, as required by specs. */
 	if (!mb->m->tick) mb->m->tick = MANIFEST_MEDIA_DEFAULT_TICKS;
 
-	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
 	mb->m->vendorattrs = (chardata**) vendordata.list;
 
 	return MANIFEST_SUCCESS;
@@ -485,7 +485,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 	count_t i;
 
 	DynList vendordata;
-	preparelist(&vendordata);
+	SMTH_preparelist(&vendordata);
 
 	Stream *tmp = calloc(1, sizeof(Stream));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -589,11 +589,11 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		if(!addvendorattrs(&vendordata, &attr[i])) return MANIFEST_NO_MEMORY;
 	}
 
-	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
 	tmp->vendorattrs = (chardata**) vendordata.list;
 
 	mb->activestream = tmp;
-	if (!addtolist(tmp, &mb->tmpstreams)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_addtolist(tmp, &mb->tmpstreams)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
 }
@@ -620,7 +620,7 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 	count_t i;
 
 	DynList vendordata;
-	preparelist(&vendordata);
+	SMTH_preparelist(&vendordata);
 
 	Track *tmp = calloc(1, sizeof(Track));
 	if (!tmp) return MANIFEST_NO_MEMORY;
@@ -693,11 +693,11 @@ static error_t parsetrack(ManifestBox *mb, const char **attr)
 		if(!addvendorattrs(&vendordata, &attr[i])) return MANIFEST_NO_MEMORY;
 	}
 
-	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
 	tmp->vendorattrs = (chardata**) vendordata.list;
 
 	mb->activetrack = tmp;
-	if (!addtolist(tmp, &mb->tmptracks)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_addtolist(tmp, &mb->tmptracks)) return MANIFEST_NO_MEMORY;
 
 	return MANIFEST_SUCCESS;
 }
@@ -738,7 +738,7 @@ static error_t parseattr(ManifestBox* mb, const char **attr)
 		}
 	}
 
-	if (!addtolist(key, &mb->tmpattributes) || !addtolist(value, &mb->tmpattributes))
+	if (!SMTH_addtolist(key, &mb->tmpattributes) || !SMTH_addtolist(value, &mb->tmpattributes))
 	{   free(key);
 		free(value);
 		return MANIFEST_NO_MEMORY;
@@ -791,7 +791,7 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 	mb->previousduration = tmp->duration;
 	mb->previoustime = tmp->time;
 
-	if (!addtolist(tmp, &mb->tmpchunks))
+	if (!SMTH_addtolist(tmp, &mb->tmpchunks))
 	{   free(tmp);
 		return MANIFEST_NO_MEMORY;
 	}
@@ -816,7 +816,7 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 	count_t i;
 
 	DynList vendordata;
-	preparelist(&vendordata);
+	SMTH_preparelist(&vendordata);
 
 	ChunkIndex *tmp = calloc(1, sizeof (Chunk));
 
@@ -837,10 +837,10 @@ static error_t parsefragindex(ManifestBox *mb, const char **attr)
 		}
 	}
 
-	if (!finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_finalizelist(&vendordata)) return MANIFEST_NO_MEMORY;
 	tmp->vendorattrs = (chardata**) vendordata.list;
 
-	if (!addtolist(tmp, &mb->tmpfragments)) return MANIFEST_NO_MEMORY;
+	if (!SMTH_addtolist(tmp, &mb->tmpfragments)) return MANIFEST_NO_MEMORY;
 
 	/* content may be present only if it is flagged into active Stream */
 	if (mb->activestream->isembedded)
