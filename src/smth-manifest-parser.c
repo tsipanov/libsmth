@@ -171,6 +171,7 @@ void SMTH_disposemanifest(Manifest* m)
 				free(tmpstream->chunks);
 			}
 			disposevendorattrs(tmpstream->vendorattrs);
+			disposeurlpattern(tmpstream->url);
 			free(tmpstream);
 		}
 		free(m->streams);
@@ -296,7 +297,9 @@ static void XMLCALL endblock(void *data, const char *el)
 		mb->manifestparsed = true;
 		return;
 	}
-	//if (!strcmp(el, MANIFEST_ARMOR_ELEMENT)) not used.
+	if (!strcmp(el, MANIFEST_ARMOR_ELEMENT))
+	{   mb->activearmor = NULL;
+	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
 	{   if(!finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
 		if(!finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
@@ -335,20 +338,26 @@ static void XMLCALL endblock(void *data, const char *el)
 static void XMLCALL textblock(void *data, const char *text, int length)
 {
 	ManifestBox *mb = data;
+	size_t i;
 
-	//fwrite(text, 1, length, stderr); //DEBUG
-//  FIXME skip trailing blanks and reactivate error code below
+	if (length < 1) return;
 
-	if (mb->m->armor)
-	{   mb->state = parsepayload(mb->m->armor, text, length);
+	for (i = 0; i < length && isspace(text[i]); i++); /* skip blanks */
+	if (length == i) return; /* no text, only blanks */
+	const char *sanetext = &text[i];
+	int sanelength = length - i;
+
+	//fwrite(sanetext, 1, sanelength, stderr); //DEBUG
+
+	if (mb->activearmor)
+	{   mb->state = parsepayload(mb->activearmor, sanetext, sanelength);
 		return;
 	}
 	if (mb->activefragment)
-	{   mb->state = parsepayload(mb->activefragment->embedded, text, length);
+	{   mb->state = parsepayload(mb->activefragment->embedded, sanetext, sanelength);
 		return;
 	}
-
-//  mb->state = MANIFEST_UNEXPECTED_TRAILING;
+	mb->state = MANIFEST_UNEXPECTED_TRAILING;
 }
 
 /**
@@ -449,7 +458,8 @@ static error_t parsearmor(ManifestBox *mb, const char **attr)
 	EmbeddedData *tmparmor = calloc(1, sizeof (EmbeddedData));
 	if (!tmparmor) return MANIFEST_NO_MEMORY;
 	mb->m->armor = tmparmor;
-
+	mb->activearmor = tmparmor; /* This is not really needed, but may help in *
+								 * case MS decides to add more than 1 armor.  */
 	return MANIFEST_SUCCESS;
 }
 
@@ -502,9 +512,15 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_NAME))
-		{   if (!stringissane(attr[i+1])) return MANIFEST_INVALID_IDENTIFIER;
+		{   if (!stringissane(attr[i+1]))
+			{   free(tmp);
+				return MANIFEST_INVALID_IDENTIFIER;
+			}
 			tmp->name = malloc(strlen(attr[i+1]) + sizeof (chardata)); /* including a \0 sigil */
-			if (!tmp->name) return MANIFEST_NO_MEMORY;  
+			if (!tmp->name)
+			{   free(tmp);
+				return MANIFEST_NO_MEMORY;  
+			}
 			strcpy(tmp->name, attr[i+1]);
 			continue;
 		}
@@ -542,18 +558,30 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			{   strcpy(tmp->subtype, attr[i+1]);
 				continue;
 			}
-			if (strlen(attr[i+1]) != 0) return MANIFEST_MALFORMED_SUBTYPE;
+			if (strlen(attr[i+1]) != 0)
+			{   free(tmp);
+				return MANIFEST_MALFORMED_SUBTYPE;
+			}
 			/* else (NULL) keep it NULL */
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_PARENT))
-		{   if (!stringissane(attr[i+1])) return MANIFEST_INVALID_IDENTIFIER;
+		{   if (!stringissane(attr[i+1]))
+			{   free(tmp);
+				return MANIFEST_INVALID_IDENTIFIER;
+			}
 			tmp->parent = malloc(strlen(attr[i+1])+1); /* including a \0 sigil */
-			if (!tmp->parent) return MANIFEST_NO_MEMORY;  
+			if (!tmp->parent)
+			{   free(tmp);
+				return MANIFEST_NO_MEMORY;
+			}
 			strcpy(tmp->parent, attr[i+1]);
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_URL))
-		{   parseurlpattern(&tmp->url, attr[i+1]);
+		{   if (!parseurlpattern(&tmp->url, attr[i+1]))
+			{   free(tmp);
+				return MANIFEST_MALFORMED_URL;
+			}
 			continue;
 		}
 		//TODO SubtypeControlEvents: Control events for applications on the client.
@@ -852,7 +880,6 @@ static error_t parsepayload(EmbeddedData *ed, const char *text, int length)
 		ed->content = tmp;
 		ed->length = newlength;
 	}
-	else ed = NULL;
 
 	return MANIFEST_SUCCESS;
 }

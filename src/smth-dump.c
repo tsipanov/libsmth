@@ -51,7 +51,9 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 	fprintf(output, " +-armor\n");
 	fprintf(output, " |  +-id: ");
 	fwrite(m->armorID, sizeof(byte_t), sizeof(uuid_t), stdout);
-	fprintf(output, "\n |  `-payload: %s\n", m->armor);
+	fprintf(output, "\n |  `-payload: ");
+	fwrite(m->armor->content, sizeof(byte_t), m->armor->length, output);
+	fprintf(output, "\n");
 	fprintf(output, " `-streams\n");
 	if (m->streams)
 	{	for (i = 0; m->streams[i]; i++)

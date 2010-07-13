@@ -56,6 +56,8 @@ typedef struct
 	Chunk *activechunk;
 	/** Pointer to the active \c ChunkIndex. */
 	ChunkIndex *activefragment;
+	/** Pointer to the active \c Manifest::armor. */
+	EmbeddedData *activearmor;
 	/** The \c Manifest::streams to fill with Stream data. */
 	DynList tmpstreams;
 	/** The \c Stream::tracks to be filled with \c Track metadata. */

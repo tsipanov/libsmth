@@ -263,6 +263,8 @@ typedef struct
 #define MANIFEST_UNEXPECTED_ATTRS		 (-22)
 /** A string identifier contained characters other than [A-Za-z/-] . */
 #define MANIFEST_INVALID_IDENTIFIER		 (-23)
+/** A malformed request URI was encountered */
+#define MANIFEST_MALFORMED_URL           (-24)
 
 error_t SMTH_parsemanifest(Manifest *m, FILE *stream);
 void  SMTH_disposemanifest(Manifest *m);
