@@ -1,8 +1,11 @@
-SUBDIRS=src \
-	    pkgconfig
+ACLOCAL_AMFLAGS = -I m4
+SUBDIRS         = src
 
-DIST_SUBDIRS=src \
-	         pkgconfig
+#\
+#	    pkgconfig
+
+#DIST_SUBDIRS=src \
+#	         pkgconfig
 
 #EXTRA_DIST=libmms.spec \
 #           AUTHORS COPYING.LIB NEWS README \
