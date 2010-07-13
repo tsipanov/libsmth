@@ -13,5 +13,5 @@ libsmth_la_SOURCES = smth.c \
 					 smth-common-defs.h \
 					 base64.c
 
-libsmth_la_LIBADD  = -lexpat
+libsmth_la_LIBADD  = -lexpat -lcurl
 libsmth_la_LDFLAGS = -version-info 0:0:0

@@ -22,11 +22,24 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <smth-dump.h>
 
-int main()
+int main(int argc, char **argv)
 {
-	FILE *f = fopen("/home/Sanfi/Progetti/libsmth/.junk/Manifest.xml", "r");
+	if (argc < 2)
+	{	fprintf(stderr, "SMTH manifest parser v0.1\nusage: %s filename\n", argv[0]);
+		return 0;
+	}
+
+	char* ifile = argv[1];
+
+	if (access(ifile, R_OK))
+	{	fprintf(stderr, "File specified does not exist or it is not readable.\n");
+		return 0;
+	}
+
+	FILE *f = fopen(ifile, "r");
 
 	Manifest m;
 

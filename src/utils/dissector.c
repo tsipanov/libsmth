@@ -25,16 +25,16 @@
 #include <unistd.h>
 #include <smth-dump.h>
 
-void dumpt(Fragment* vc, char* ifile);
-
 int main(int argc, char **argv)
 {
-	char* ifile = argv[1];
 
-	if (!ifile)
-	{	fprintf(stderr, "SMTH dissector v0.1\nusage: ismc filename\n");
+	if (argc < 2)
+	{	fprintf(stderr, "SMTH dissector v0.1\nusage: %s filename\n", argv[0]);
 		return 0;
 	}
+
+	char* ifile = argv[1];
+
 	if (access(ifile, R_OK))
 	{	fprintf(stderr, "File specified does not exist or it is not readable.\n");
 		return 0;
@@ -59,15 +59,4 @@ int main(int argc, char **argv)
 
 	fclose(input);
 	return 0;
-}
-
-#include <string.h>
-
-void dumpt(Fragment* vc, char* ifile)
-{
-	char ofile[strlen(ifile)+4];
-	sprintf(ofile, "%s.wmv", ifile);
-	FILE *output = fopen(ofile, "wb");
-	fwrite(vc->data, sizeof (byte_t), vc->size, output);
-	fclose(output);
 }
