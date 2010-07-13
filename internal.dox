@@ -13,7 +13,7 @@
 
 DOXYFILE_ENCODING      = UTF-8
 PROJECT_NAME           = libsmth
-PROJECT_NUMBER         = 0.0.1
+PROJECT_NUMBER         = 0.0.0
 
 # If a relative path is entered, it will be relative to the location
 # where doxygen was started. If left blank the current directory will be used.

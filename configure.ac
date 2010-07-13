@@ -1,11 +1,26 @@
-#AC_CONFIG_SRCDIR([src/foo.c])
-
-
-AC_INIT([libsmth], [0.0.1])
+AC_INIT([libsmth], [0.0.0])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+
 AC_PROG_CC
+AC_STDC_HEADERS
+AC_PROG_INSTALL
+
+AM_PROG_LIBTOOL
 AC_PROG_LIBTOOL
-#AC_CONFIG_HEADERS([config.h])
+
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_FILES([Makefile src/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/utils/Makefile])
 AC_OUTPUT
+
+#AC_CONFIG_SRCDIR([src/foo.c])
+#AC_CONFIG_HEADERS([config.h])
+#AC_CHECK_HEADER(stdio.h, [],
+#                [AC_MSG_WARN(missing required header file <stdio.h>)])
+
+#DX_PDF_FEATURE(ON)
+#DX_CHM_FEATURE(OFF)
+#DX_CHI_FEATURE(OFF)
+#DX_MAN_FEATURE(OFF)
+#DX_RTF_FEATURE(OFF)
+#DX_XML_FEATURE(OFF)
+#DX_PS_FEATURE(OFF)

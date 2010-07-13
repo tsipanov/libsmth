@@ -13,8 +13,5 @@ libsmth_la_SOURCES = smth.c \
 					 smth-common-defs.h \
 					 base64.c
 
+libsmth_la_LIBADD  = -lexpat
 libsmth_la_LDFLAGS = -version-info 0:0:0
-
-#     bin_PROGRAMS = hello
-#     hello_SOURCES = hello.c ...
-#     hello_LDADD = libgettext.la
