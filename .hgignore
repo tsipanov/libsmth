@@ -1,5 +1,6 @@
 .junk
-doc
+doc/html
+doc/latex
 
 Makefile
 Makefile.in

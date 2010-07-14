@@ -27,3 +27,5 @@ AC_CONFIG_MACRO_DIR([m4])
 #AC_CONFIG_HEADERS([expat.h])
 AC_CONFIG_FILES([Makefile src/Makefile src/utils/Makefile])
 AC_OUTPUT
+
+# vim: set ts=4 sw=4 tw=0:
