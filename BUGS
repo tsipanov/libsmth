@@ -2,3 +2,5 @@
 
 * possibile memory leak in parsetrun!! in caso di errore torna senza liberare
 * rimuovere XXX_SKIP_4B_QUIRK
+* il calcolo della durata e del numero di frammento è indefinito per il primo
+  se sia la lunghezza che il tempo sono nulli...

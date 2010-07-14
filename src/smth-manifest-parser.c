@@ -301,8 +301,13 @@ static void XMLCALL endblock(void *data, const char *el)
 	{   mb->activearmor = NULL;
 	}
 	if (!strcmp(el, MANIFEST_STREAM_ELEMENT))
-	{   if(!SMTH_finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
-		if(!SMTH_finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
+	{
+		if (!mb->activestream->tracksno)
+			mb->activestream->tracksno = mb->tmptracks.index;
+		if (!mb->activestream->chunksno)
+			mb->activestream->chunksno = mb->tmpchunks.index;
+		if (!SMTH_finalizelist(&mb->tmptracks)) mb->state = MANIFEST_NO_MEMORY;
+		if (!SMTH_finalizelist(&mb->tmpchunks)) mb->state = MANIFEST_NO_MEMORY;
 		mb->activestream->tracks = (Track**) mb->tmptracks.list;
 		mb->activestream->chunks = (Chunk**) mb->tmpchunks.list;
 		mb->activestream = NULL;

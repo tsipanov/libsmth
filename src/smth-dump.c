@@ -32,6 +32,11 @@
 #include <sys/stat.h>
 #include <smth-dump.h>
 
+
+static const char shortbar[] = "=======================";
+static const char  longbar[] = "==========================================\
+==================";
+
 /**
  * \brief Dumps the manifest content as an ASCII tree to specified file.
  *
@@ -41,13 +46,14 @@
 void SMTH_dumpmanifest(Manifest *m, FILE *output)
 {	count_t i;
 
-	fprintf(output, "\n=======================MANIFEST SUMMARY=====================\n\n");
+	fprintf(output, "\n%sMANIFEST SUMMARY%s\n\n", shortbar, shortbar);
 	fprintf(output, "Manifest\n");
 	fprintf(output, " +-duration: %llu ticks\n", m->duration);
-	fprintf(output, " +-tick scale: %llu\n", m->tick);
+	fprintf(output, " +-tick scale: %llu/s\n", m->tick);
 	fprintf(output, " +-the stream is live: %s\n", m->islive? "yes":"no");
 	fprintf(output, " +-no. of fragments cached: %d\n", m->lookahead);
-	fprintf(output, " +-DVR window length: %d\n", m->dvrwindow);
+	fprintf(output, " +-DVR window length: %.3Lfs\n",
+		m->dvrwindow / (long double) m->tick);
 
 	if (m->armor->content)
 	{	fprintf(output, " +-armor\n");
@@ -66,10 +72,14 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 			char rootbar = m->streams[i+1]? '|': ' ';
 			fprintf(output, "    %c-%s\n", rootcorner, stream->name);
 			fprintf(output, "    %c  +-type: %d\n", rootbar, stream->type);
-			fprintf(output, "    %c  +-subtype: %s\n", rootbar, stream->subtype);
+			if (stream->type == AUDIO)
+			{	fprintf(output, "    %c  +-subtype: %s\n", rootbar,
+					stream->subtype);
+			}
 			fprintf(output, "    %c  +-parent stream: %s\n",
 				rootbar, stream->parent);
-			fprintf(output, "    %c  +-tick scale: %llu\n", rootbar, stream->tick);
+			fprintf(output, "    %c  +-tick scale: %llu\n",
+				rootbar, stream->tick);
 			fprintf(output, "    %c  +-max size: %dx%dpx\n", rootbar,
 				stream->maxsize.width, stream->maxsize.height);
 			fprintf(output, "    %c  +-best size: %dx%dpx\n", rootbar,
@@ -118,7 +128,7 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 					fprintf(output, "    %c  %c  %c  +-NAL unit length: %dB\n",
 						rootbar, waitingchunks, trackbar, track->nalunitlength);
 
-					if (track->attributes)
+					if (*track->attributes) /* if the content is not NULL */
 					{   count_t m;
 						fprintf(output, "    %c  %c  %c  `-attributes\n",
 							rootbar, waitingchunks, trackbar);
@@ -138,17 +148,17 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 				{	Chunk *chunk = stream->chunks[j];
 					char chunkbar = stream->chunks[j+1]? '|': ' ';
 					char chunkcorner = stream->chunks[j+1]? '+': '`';
-					fprintf(output, "    %c     %c-chunk %d\n", rootbar,
+					fprintf(output, "    %c     %c-chunk no.%d\n", rootbar,
 						chunkcorner, chunk->index);
-					fprintf(output, "    %c     %c  +-duration: %llu ticks\n",
-						rootbar, chunkbar, chunk->duration);
-					fprintf(output, "    %c     %c  `-timestamp: %llu ticks\n",
-						rootbar, chunkbar, chunk->time);
+					fprintf(output, "    %c     %c  +-duration: %.3Lfs\n",
+						rootbar, chunkbar, chunk->duration / (long double)m->tick);
+					fprintf(output, "    %c     %c  `-timestamp: %.3Lfs\n",
+						rootbar, chunkbar, chunk->time / (long double)m->tick);
 				}
 			}
 		}
 	}
-	fprintf(output, "\n============================================================\n\n");
+	fprintf(output, "\n%s\n\n", longbar);
 }
 
 /**
@@ -161,7 +171,7 @@ void SMTH_dumpfragment(Fragment *vc, FILE *output)
 {
 	int i;
 
-	fprintf(output, "\n==========================DATA SUMMARY======================\n\n");
+	fprintf(output, "\n%sDATA SUMMARY%s\n\n", shortbar, shortbar);
 	fprintf(output, "Fragment no.%d [%d bytes of data]\n", vc->index, vc->size);
 	fprintf(output, " +-timestap: %llu\n", vc->timestamp);
 	fprintf(output, " +-duration: %llu\n", vc->duration);
@@ -190,13 +200,17 @@ void SMTH_dumpfragment(Fragment *vc, FILE *output)
 		char corner = (i == vc->sampleno - 1)? '`': '+';
 		char bar = (i == vc->sampleno - 1)? ' ': '|';
 		fprintf(output, "   %c-sample #%d\n", corner, i + 1);
-		fprintf(output, "   %c +-duration: %d ticks\n", bar, vc->samples[i].duration);
-		fprintf(output, "   %c +-size: %d bytes\n", bar, vc->samples[i].size);
-		fprintf(output, "   %c +-settings: 0x%08lx\n", bar, vc->samples[i].settings);
-		fprintf(output, "   %c `-offset: 0x%x\n", bar, vc->samples[i].timeoffset);
+		fprintf(output, "   %c +-duration: %d ticks\n",
+			bar, vc->samples[i].duration);
+		fprintf(output, "   %c +-size: %d bytes\n",
+			bar, vc->samples[i].size);
+		fprintf(output, "   %c +-settings: 0x%08lx\n",
+			bar, vc->samples[i].settings);
+		fprintf(output, "   %c `-offset: 0x%x\n",
+			bar, vc->samples[i].timeoffset);
 	}
 
-	fprintf(output, "\n============================================================\n\n");
+	fprintf(output, "\n%s\n\n", longbar);
 }
 
 /**

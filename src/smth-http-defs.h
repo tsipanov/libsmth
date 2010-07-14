@@ -34,7 +34,7 @@
 //3. fai buffer a sufficienza
 //4. scarica continuamente audio e video
 //5. apri un folder temporaneo
-
+#if 0
 $presentation   = "/path/$name.(ism|[\w]{1}[\w\d]*)";
 $manifest       = "$presentation/Manifest"; //mettere i punti di domanda dopo
 
@@ -83,6 +83,7 @@ $sparsepointer = "($header;)?ChildTrack=\"SparseStreamSet (; SparseStreamSet )*\
  *  message body field and the HTTP Status Code 412 Precondition Failed.
  */
 standard = "QualityLevels({bitrate},{CustomAttributes})/Fragments(video={start_time})"
+#endif 
 
 #endif /* __SMTH_HTTP_DEFS__ */
 
