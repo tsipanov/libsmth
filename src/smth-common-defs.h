@@ -58,6 +58,9 @@ typedef char base64data, hexdata, chardata, url_t;
 /** \brief State of a variable */
 typedef enum { UNDEF = 0, YES = 1, NO = 2} state_t;
 
+/* from smth-base64.c */
+error_t SMTH_unbase64(unsigned char *dest, const unsigned char *src, int srclen);
+
 #endif /* __SMTH_COMMON_DEFS_H__ */
 
 /* vim: set ts=4 sw=4 tw=0: */

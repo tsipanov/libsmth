@@ -48,12 +48,16 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 	fprintf(output, " +-the stream is live: %s\n", m->islive? "yes":"no");
 	fprintf(output, " +-no. of fragments cached: %d\n", m->lookahead);
 	fprintf(output, " +-DVR window length: %d\n", m->dvrwindow);
-	fprintf(output, " +-armor\n");
-	fprintf(output, " |  +-id: ");
-	fwrite(m->armorID, sizeof(byte_t), sizeof(uuid_t), stdout);
-	fprintf(output, "\n |  `-payload: ");
-	fwrite(m->armor->content, sizeof(byte_t), m->armor->length, output);
-	fprintf(output, "\n");
+
+	if (m->armor->content)
+	{	fprintf(output, " +-armor\n");
+		fprintf(output, " |  +-id: ");
+		fwrite(m->armorID, sizeof(byte_t), sizeof(uuid_t), stdout);
+		fprintf(output, "\n |  `-payload: ");
+		fwrite(m->armor->content, sizeof(byte_t), m->armor->length, output);
+		fprintf(output, "\n");
+	}
+
 	fprintf(output, " `-streams\n");
 	if (m->streams)
 	{	for (i = 0; m->streams[i]; i++)
@@ -162,11 +166,16 @@ void SMTH_dumpfragment(Fragment *vc, FILE *output)
 	fprintf(output, " +-timestap: %llu\n", vc->timestamp);
 	fprintf(output, " +-duration: %llu\n", vc->duration);
 	fprintf(output, " +-first settings: 0x%08lx\n", vc->settings);
-	fprintf(output, " +-armor\n");
-	fprintf(output, " | +-type: %d (0 = NONE)\n", vc->armor.type);
-	fprintf(output, " | +-id: ");
-	fwrite(vc->armor.id, sizeof(byte_t), sizeof(uuid_t), stdout);
-	fprintf(output, "\n | +-size of init vectors: %x\n", vc->armor.vectorsize);
+
+	if (vc->armor.type != NONE)
+	{	fprintf(output, " +-armor\n");
+		fprintf(output, " | +-type: %d\n", vc->armor.type);
+		fprintf(output, " | +-id: ");
+		fwrite(vc->armor.id, sizeof(byte_t), sizeof(uuid_t), stdout);
+		fprintf(output, "\n");
+	}
+
+	fprintf(output, " | +-size of init vectors: %x\n", vc->armor.vectorsize);
 	fprintf(output, " | `-number of init vectors: %d\n", vc->armor.vectorno);
 	fprintf(output, " +-fragment defaults\n");
 	fprintf(output, " | +-offset: 0x%x\n", vc->defaults.dataoffset);
@@ -175,6 +184,7 @@ void SMTH_dumpfragment(Fragment *vc, FILE *output)
 	fprintf(output, " | +-size: %d\n", vc->defaults.size);
 	fprintf(output, " | `-settings: 0x%08lx\n", vc->defaults.settings);
 	fprintf(output, " `-samples (%d in total)\n", vc->sampleno);
+
 	for ( i = 0; i < vc->sampleno; i++)
 	{
 		char corner = (i == vc->sampleno - 1)? '`': '+';
@@ -185,6 +195,7 @@ void SMTH_dumpfragment(Fragment *vc, FILE *output)
 		fprintf(output, "   %c +-settings: 0x%08lx\n", bar, vc->samples[i].settings);
 		fprintf(output, "   %c `-offset: 0x%x\n", bar, vc->samples[i].timeoffset);
 	}
+
 	fprintf(output, "\n============================================================\n\n");
 }
 

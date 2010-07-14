@@ -82,8 +82,8 @@ $sparsepointer = "($header;)?ChildTrack=\"SparseStreamSet (; SparseStreamSet )*\
 /*  The Fragment Not Yet Available message is an HTTP Response with an empty
  *  message body field and the HTTP Status Code 412 Precondition Failed.
  */
-
 standard = "QualityLevels({bitrate},{CustomAttributes})/Fragments(video={start_time})"
+
 #endif /* __SMTH_HTTP_DEFS__ */
 
 /* vim: set ts=4 sw=4 tw=0: */

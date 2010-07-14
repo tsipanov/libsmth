@@ -63,7 +63,7 @@ static inline char value(char c)
  * \bug This function is untested with EBCDIC encoded strings.
  * \param dest 
  */
-error_t unbase64(unsigned char *dest, const unsigned char *src, int srclen)
+error_t SMTH_unbase64(unsigned char *dest, const unsigned char *src, int srclen)
 {
 	*dest = 0; //XXX
 	if (*src == 0) return 0;
