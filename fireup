@@ -24,7 +24,7 @@ dispose_all()
 		doc/latex
 } > /dev/null
 
-# Rebuild the whole system (scripts, files & macros)
+# Inflates the whole system (scripts, files & macros)
 start_all()
 {   if [ ! -d m4 ]; then mkdir m4; fi
 	autoreconf --install

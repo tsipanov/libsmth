@@ -39,7 +39,7 @@
  * \return       FRAGMENT_SUCCESS on successful parse, or an appropriate error
  *               code.
  */
-error_t parsefragment(Fragment *f, FILE *stream)
+error_t SMTH_parsefragment(Fragment *f, FILE *stream)
 {   Box root;
 	root.stream = stream;
 	root.f = f;
@@ -48,7 +48,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	memset(f, 0x00, sizeof (Fragment)); /* reset memory */
 	SMTH_preparelist(&root.extlist);
 
-//FIXME should work with `while`, but it does not...
+//FIXME should work with `while`, but it does not... add multi box support...
 //	while (!feof(root.stream))
 	int i; for ( i = 0; i < 2; i++)
 	{   
@@ -66,18 +66,18 @@ error_t parsefragment(Fragment *f, FILE *stream)
 	}
 
 	if (result != FRAGMENT_SUCCESS) 
-	{   disposefragment(root.f);
+	{   SMTH_disposefragment(root.f);
 		return result;
 	}
 
 	/* if it is not EOF */
 	if (feof(stream))
-	{   disposefragment(root.f);
+	{   SMTH_disposefragment(root.f);
 		return FRAGMENT_BIGGER_THAN_DECLARED;
 	}
 
 	if (!SMTH_finalizelist(&root.extlist))
-	{   disposefragment(root.f);
+	{   SMTH_disposefragment(root.f);
 		return FRAGMENT_NO_MEMORY;
 	}
 
@@ -93,7 +93,7 @@ error_t parsefragment(Fragment *f, FILE *stream)
  *           as the internal data structure may vary heavily in the future.
  * \param f  The fragment  to be destroyed.
  */
-void disposefragment(Fragment *f)
+void SMTH_disposefragment(Fragment *f)
 {
 	int i;
 	for(i = 0; f->extensions[i]; i++)

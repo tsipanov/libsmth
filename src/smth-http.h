@@ -29,10 +29,23 @@
  * \date   12th-13th June 2010
  */
 
-//XXX stubs
-typedef char UrlPattern;
-#define parseurlpattern(...) true
-#define disposeurlpattern(...)
+#include <curl/multi.h>
+#include <smth-common-defs.h>
+
+/** Everything is ok. */
+#define FETCHER_SUCCESS            (0)
+/** Could not set fd_set descriptors. */
+#define FETCHER_FAILED_FDSET       1
+//(-26)
+/** Connection to server has reached timeout latency. */
+#define FETCHER_CONNECTION_TIMEOUT 2
+//(-27)
+/** Could not multiplex fd_set with \c select(). */
+#define FETCHER_NO_MULTIPLEX       3
+//(-28)
+
+error_t SMTH_initfetcher(CURLM **cm);
+void SMTH_disposefetcher(CURLM *cm);
 
 #endif /* __SMTH_HTTP_H__ */
 

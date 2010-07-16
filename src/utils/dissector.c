@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 
 	Fragment vc;
 
-	error_t exitcode = parsefragment(&vc, input);
+	error_t exitcode = SMTH_parsefragment(&vc, input);
 	if (exitcode != FRAGMENT_SUCCESS)
 	{	printf("Error no.%d!\n", exitcode);
 		return 1;
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 	printf("Dumping data to file...\n", vc.size);
 	SMTH_dumppayload(&vc, ifile); //dumpt
 
-	disposefragment(&vc);
+	SMTH_disposefragment(&vc);
 
 	fclose(input);
 	return 0;

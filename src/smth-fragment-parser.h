@@ -187,11 +187,11 @@ typedef struct
 #define FRAGMENT_NO_MEMORY			  (-3)
 /** A malformed Box was encountered */
 #define FRAGMENT_PARSE_ERROR		  (-4)
-/** A fragment that should not be in the current section was parsed */
+/** An element that should not be in the current section was parsed */
 #define FRAGMENT_INAPPROPRIATE		  (-5)
 /** The fragment is smaller than declared. This often means a parse error */
 #define FRAGMENT_OUT_OF_BOUNDS		  (-6)
-/** The fragment is encrypted in a new, non implemented, algorithm */
+/** The fragment is encrypted with a new, non implemented, algorithm */
 #define FRAGMENT_UNKNOWN_ENCRYPTION	  (-7)
 /** There are trailing bytes after a MdatBox that will not be parsed */
 #define FRAGMENT_BIGGER_THAN_DECLARED (-8)
@@ -218,7 +218,7 @@ typedef struct
 
 #if 0
 /** Fills a SampleSettings struct with data parsed from flagfield settings. */
-inline void fillsampleflags(SampleSettings *s, flags_t settings)
+static inline void fillsampleflags(SampleSettings *s, flags_t settings)
 {
 	s->priority 	= SAMPLE_PRIORITY (settings);
 	s->isdifference = SAMPLE_IS_DIFFERENCE (settings);
@@ -229,8 +229,8 @@ inline void fillsampleflags(SampleSettings *s, flags_t settings)
 }
 #endif
 
-error_t parsefragment(Fragment *f, FILE *stream);
-void disposefragment(Fragment *f);
+error_t SMTH_parsefragment(Fragment *f, FILE *stream);
+void SMTH_disposefragment(Fragment *f);
 
 #endif /* __SMTH_FRAGMENT_PARSER__ */
 

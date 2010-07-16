@@ -166,7 +166,7 @@ typedef struct
 	/** The suggested display size of a video sample, in pixels. */
 	ScreenMetrics bestsize;
 	/** A pattern used by the client to generate Fragment Request messages. */
-	UrlPattern url;
+	chardata* url;
 	/** Whether sample data for this stream are embedded in the Manifest as
 	 *  part of the ManifestOutputSample field.
 	 *  Otherwise, the ManifestOutputSample field for fragments that are part

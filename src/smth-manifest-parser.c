@@ -171,7 +171,7 @@ void SMTH_disposemanifest(Manifest* m)
 				free(tmpstream->chunks);
 			}
 			disposevendorattrs(tmpstream->vendorattrs);
-			disposeurlpattern(tmpstream->url);
+			free(tmpstream->url);
 			free(tmpstream);
 		}
 		free(m->streams);
@@ -583,11 +583,14 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 			continue;
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_URL))
-		{   if (!parseurlpattern(&tmp->url, attr[i+1]))
+		{
+			chardata* tmppattern = malloc(strlen(attr[i+1]) + sizeof (chardata));
+			if (!tmppattern)
 			{   free(tmp);
-				return MANIFEST_MALFORMED_URL;
+				return MANIFEST_NO_MEMORY;
 			}
-			continue;
+			strcpy(tmppattern, attr[i+1]);
+			tmp->url = tmppattern;
 		}
 		//TODO SubtypeControlEvents: Control events for applications on the client.
 		/* else */

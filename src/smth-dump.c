@@ -76,6 +76,7 @@ void SMTH_dumpmanifest(Manifest *m, FILE *output)
 			{	fprintf(output, "    %c  +-subtype: %s\n", rootbar,
 					stream->subtype);
 			}
+			fprintf(output, "    %c  +-url: <%s>\n", rootbar, stream->url);
 			fprintf(output, "    %c  +-parent stream: %s\n",
 				rootbar, stream->parent);
 			fprintf(output, "    %c  +-tick scale: %llu\n",

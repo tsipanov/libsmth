@@ -29,6 +29,8 @@
  * \date   13th June 2010
  */
 
+#include <smth-http.h>
+
 //1. scarica il Manifest
 //2. scopri quanto dura un frammento
 //3. fai buffer a sufficienza
