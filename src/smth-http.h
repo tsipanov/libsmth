@@ -32,20 +32,32 @@
 #include <curl/multi.h>
 #include <smth-common-defs.h>
 
-/** Everything is ok. */
-#define FETCHER_SUCCESS            (0)
-/** Could not set fd_set descriptors. */
-#define FETCHER_FAILED_FDSET       1
-//(-26)
-/** Connection to server has reached timeout latency. */
-#define FETCHER_CONNECTION_TIMEOUT 2
-//(-27)
-/** Could not multiplex fd_set with \c select(). */
-#define FETCHER_NO_MULTIPLEX       3
-//(-28)
+typedef struct
+{
+	CURLM *handle;
+} Fetcher;
 
-error_t SMTH_initfetcher(CURLM **cm);
-void SMTH_disposefetcher(CURLM *cm);
+/** Everything is ok. */
+#define FETCHER_SUCCESS                (0)
+/** Could not set fd_set descriptors. */
+#define FETCHER_FAILED_FDSET           (-26)
+/** Connection to server has reached timeout latency. */
+#define FETCHER_CONNECTION_TIMEOUT     (-27)
+/** Could not multiplex fd_set with \c select(). */
+#define FETCHER_NO_MULTIPLEX           (-28)
+/** Could not initialize libcurl backend. */
+#define FECTHER_FAILED_INIT		       (-29)
+/** There was no memory enough to instantiate another handle. */
+#define FECTHER_NO_MEMORY              (-30)
+/** Could not add a Fragment handler to the global \c Fetcher::handle */
+#define FECTHER_HANDLE_NOT_ADDED       (-31)
+/** Could not destroy a \c Fetcher::handle */
+#define FETCHER_HANDLE_NOT_CLEANED     (-32)
+/** Could not properly initialise an handle */
+#define FETCHER_HANDLE_NOT_INITIALISED (-33)
+
+error_t SMTH_initfetcher(Fetcher *f);
+error_t SMTH_disposefetcher(Fetcher *f);
 
 #endif /* __SMTH_HTTP_H__ */
 

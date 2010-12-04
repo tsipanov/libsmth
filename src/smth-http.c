@@ -28,68 +28,28 @@
 
 #include <smth-http-defs.h>
 
-typedef struct
-{
-} Fetcher;
-
-
+////////////////////////////////////////////////////////////////////////////////
 // char *mkdtemp(char *template);
 // inizializza 10 handlers per connettersi al sito (o il numero che vuoi)
 // con 6 urls da uno e 6 dall'altro...
 // Una volta che l'handler ha finito, gli cambi l'url...
-
-#define MAX_TRANSFERS 10 /* number of simultaneous transfers */
-
-//una directory per ogni fetcher...
-
-static bool globalinit = false;
-
-error_t SMTH_initfetcher(CURLM **cm) //aggiungi trackno
-{
-	count_t i;
-
-	if (!globalinit) /* do it only once. */
-	{   curl_global_init(CURL_GLOBAL_ALL); //rendere statico
-		globalinit = true;
-	}
-
-	CURLM *multi = curl_multi_init();
-
-	/* we can optionally limit the total amount of connections this multi handle uses */
-	curl_multi_setopt(multi, CURLMOPT_MAXCONNECTS, (long) MAX_TRANSFERS);
-
-	for (i = 0; i < MAX_TRANSFERS; i++)
-	{
-		CURL *eh = curl_easy_init(); //check
-
-		//int mkstemp(char *template) //CURLE_OK
-		char fname[36];
-		snprintf(fname, 36, "/home/Sanfi/Scrivania/test%d.all", i);
-		FILE* suca = fopen(fname, "w");
-
-		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, NULL);
-		curl_easy_setopt(eh, CURLOPT_WRITEDATA, suca);
-		curl_easy_setopt(eh, CURLOPT_HEADER, 0L);
-		curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631"); //sempre lo stesso handle...
-		curl_easy_setopt(eh, CURLOPT_PRIVATE, suca); //private data <- inserire con il file+timestamp+stream nella struct sopra...
-		curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L); //controllare errori...
-		/* some servers don't like requests that are made without
-		 * a user-agent field, so we provide one */
-		curl_easy_setopt(eh, CURLOPT_USERAGENT, "foo/bar");
-		/* with old versions of libcurl: no progress meter */
-		curl_easy_setopt(eh, CURLOPT_NOPROGRESS, 1L);
-
-		curl_multi_add_handle(multi, eh);
-	}
-
-	*cm = multi;
-
-	return FETCHER_SUCCESS;
-}
-
-void SMTH_disposefetcher(CURLM *cm)
-{	curl_multi_cleanup(cm);
-	curl_global_cleanup();
+// una directory per ogni fetcher...
+// per sicurezza, usiamo sempre e solo tmpfile....
+// aggiungi trackno
+// private data <- inserire con il file+timestamp+stream nella struct sopra...
+// tmpfile();
+//1. scarica il Manifest
+//2. scopri quanto dura un frammento
+//3. fai buffer a sufficienza
+//4. scarica continuamente audio e video
+//5. apri un folder temporaneo
+static bool reinithandle(Fetcher *f)
+{   char fname[36];
+/*	snprintf(fname, 36, "/home/Sanfi/Scrivania/test%d.all", i);*/
+/*	FILE* test = fopen(fname, "w"); //e se si usasse mkstemp? tmpfile(); //*/
+/*	curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631"); //sempre lo stesso handle...*/
+/*	curl_easy_setopt(eh, CURLOPT_WRITEDATA, suca);*/
+	return true;
 }
 
 #if 0
@@ -103,21 +63,57 @@ error_t compilechunkurl
 curl_easy_getinfo(curl_handle, CURLINFO_SPEED_DOWNLOAD, &val); //bytes/secondo double
 #endif
 
+////////////////////////////////////////////////////////////////////////////////
 
+/** The number of opened handles. */
+static count_t handles = 0;
 
+error_t SMTH_initfetcher(Fetcher *f)
+{
+	count_t i;
 
+	if (!handles) /* do it only once. */
+	{   if (curl_global_init(CURL_GLOBAL_ALL)) return FECTHER_FAILED_INIT;
+		handles++;
+	}
 
+	f->handle = curl_multi_init();
+	if (!f->handle) return FECTHER_NO_MEMORY;
 
+	/* limit the total amount of connections this multi handle uses */
+	curl_multi_setopt(f->handle, CURLMOPT_MAXCONNECTS, FETCHER_MAX_TRANSFERS);
 
+	for (i = 0; i < FETCHER_MAX_TRANSFERS; i++)
+	{
+		CURL *eh = curl_easy_init();
+		if (!eh) return FECTHER_NO_MEMORY;
 
+		if (!reinithandle(NULL)) return FETCHER_HANDLE_NOT_INITIALISED;
 
+		/* Use the default write function */
+		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, NULL);
+		/* Some servers don't like requests without a user-agent field... */
+		curl_easy_setopt(eh, CURLOPT_USERAGENT, FETCHER_USERAGENT);
+		/* No headers written, only body. */
+		curl_easy_setopt(eh, CURLOPT_HEADER, 0L);
+		/* No verbose messages. */
+		curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L);
+		/* with old versions of libcurl: no progress meter */
+		curl_easy_setopt(eh, CURLOPT_NOPROGRESS, 1L);
 
+		if (curl_multi_add_handle(f->handle, eh))
+		{   curl_easy_cleanup(eh);
+			return FECTHER_HANDLE_NOT_ADDED;
+		}
+	}
 
+	return FETCHER_SUCCESS;
+}
 
-
-
-
-
-
+error_t SMTH_disposefetcher(Fetcher *f)
+{	if (curl_multi_cleanup(f->handle)) return FETCHER_HANDLE_NOT_CLEANED;
+	handles--;
+	if (!handles) curl_global_cleanup();
+}
 
 /* vim: set ts=4 sw=4 tw=0: */

@@ -228,7 +228,7 @@ void SMTH_dumppayload(Fragment* vc, char* ifile)
 {
 	char ofile[strlen(ifile)+16];
 	int i, offset = 0;
-	//SECURE
+	//FIXME SECURE
 	for( i = 0; i < vc->sampleno; i++)
 	{
 		sprintf(ofile, "%s.d", ifile);

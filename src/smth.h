@@ -36,7 +36,7 @@
  *
  * where:
  *  + `Length`     is the length of the box in bytes, encoded in network format.
- *                 If the value of the field is "\0\0\0\1", the BoxLongLength
+ *                 If the value of the field is 1, the BoxLongLength
  *                 field must be present. Otherwise, we assert that it is not
  *                 present. Size includes all the fields, even BoxLenght itself.
  *  + `Name`       is a 4B non null-terminated string identifying the type of
@@ -67,8 +67,8 @@
  * 3. Manifest Response
  * ====================
  *
- * According to the specifications, the Manifest MUST be a Well-Formed XML
- * Document [XML] subject to the following constraints:
+ * According to the specifications, the Manifest must be a Well-Formed XML
+ * Document subject to the following constraints:
  *
  *   +The Document's XML Declaration's major version is 1.
  *   +The Document’s XML Declaration's minor version is 0.

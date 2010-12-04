@@ -68,7 +68,7 @@ error_t SMTH_unbase64(unsigned char *dest, const unsigned char *src, int srclen)
 	*dest = 0; //XXX
 	if (*src == 0) return 0;
 
-	if (srclen % 4) return BASE64_INVALID_LENGTH;
+	//if (srclen % 4) return BASE64_INVALID_LENGTH; //FIXME add = at the end...
 	srclen++; //FIXME
 
 	unsigned char *p = dest;

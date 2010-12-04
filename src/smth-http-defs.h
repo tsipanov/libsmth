@@ -31,11 +31,11 @@
 
 #include <smth-http.h>
 
-//1. scarica il Manifest
-//2. scopri quanto dura un frammento
-//3. fai buffer a sufficienza
-//4. scarica continuamente audio e video
-//5. apri un folder temporaneo
+/** The number of simultaneous transfers allowed per \c Fetcher::handle */
+#define FETCHER_MAX_TRANSFERS 10L
+/** The user agent string used by the fecther */
+#define FETCHER_USERAGENT     "libsmth/0"
+
 #if 0
 $presentation   = "/path/$name.(ism|[\w]{1}[\w\d]*)";
 $manifest       = "$presentation/Manifest"; //mettere i punti di domanda dopo
