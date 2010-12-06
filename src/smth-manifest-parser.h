@@ -29,7 +29,6 @@
 
 #include <stdio.h>
 #include <smth-common-defs.h>
-#include <smth-http.h>
 
 /** The size of a Track::fourcc attribute string. */
 #define MANIFEST_TRACK_FOURCC_SIZE   4
@@ -222,7 +221,7 @@ typedef struct
 	 *  For instance: \c {9A04F079-9840-4286-AB92E65BE0885F95}
 	 */
 	uuid_t armorID;
-	/** Opaque data that can use to enable playback for authorize users */
+	/** Opaque data that can use to enable playback for authorized users */
 	EmbeddedData *armor;
 	/** Pointer to the streams array (NULL terminated). */
 	Stream **streams;

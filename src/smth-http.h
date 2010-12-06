@@ -26,16 +26,11 @@
  * \file   smth-http.h
  * \brief  Web transfer glue (public header).
  * \author Stefano Sanfilippo
- * \date   12th-13th June 2010
+ * \date   12th-13th June 2010 ~ 6 Dic 2010
  */
 
-#include <curl/multi.h>
 #include <smth-common-defs.h>
-
-typedef struct
-{
-	CURLM *handle;
-} Fetcher;
+#include <smth-manifest-parser.h>
 
 /** Everything is ok. */
 #define FETCHER_SUCCESS                (0)
@@ -58,8 +53,7 @@ typedef struct
 /** Could not transfer the file from the Network */
 #define FETCHER_TRANFER_FAILED         (-34)
 
-error_t SMTH_initfetcher(Fetcher *f);
-error_t SMTH_disposefetcher(Fetcher *f);
+error_t SMTH_fetch(Manifest *m);
 
 #endif /* __SMTH_HTTP_H__ */
 
