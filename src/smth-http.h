@@ -55,6 +55,8 @@ typedef struct
 #define FETCHER_HANDLE_NOT_CLEANED     (-32)
 /** Could not properly initialise an handle */
 #define FETCHER_HANDLE_NOT_INITIALISED (-33)
+/** Could not transfer the file from the Network */
+#define FETCHER_TRANFER_FAILED         (-34)
 
 error_t SMTH_initfetcher(Fetcher *f);
 error_t SMTH_disposefetcher(Fetcher *f);

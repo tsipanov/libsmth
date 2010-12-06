@@ -43,13 +43,57 @@
 //3. fai buffer a sufficienza
 //4. scarica continuamente audio e video
 //5. apri un folder temporaneo
-static bool reinithandle(Fetcher *f)
-{   char fname[36];
-/*	snprintf(fname, 36, "/home/Sanfi/Scrivania/test%d.all", i);*/
-/*	FILE* test = fopen(fname, "w"); //e se si usasse mkstemp? tmpfile(); //*/
-/*	curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631"); //sempre lo stesso handle...*/
-/*	curl_easy_setopt(eh, CURLOPT_WRITEDATA, suca);*/
+
+/*	curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cb);*/
+/*	curl_easy_setopt(eh, CURLOPT_URL, url);*/
+/*	curl_easy_setopt(eh, CURLOPT_PRIVATE, url);*/
+/*				curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &url);*/
+
+static size_t cachefragment(char *d, size_t n, size_t l, void *p)
+{
+	FILE *test = fopen("/home/Stefano/Scrivania/test.html", "a");
+	int op = fwrite(d, n, l, test);
+	fclose(test);
+	return op;
+}
+
+static bool reinithandle(CURL *eh)
+{
+	curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631"); //sempre lo stesso handle...
+/*	curl_easy_setopt(f->handle, CURLOPT_WRITEDATA, test);*/
+	curl_easy_setopt(eh, CURLINFO_PRIVATE, "http://localhost:631");
 	return true;
+}
+
+error_t resetfd(Fetcher *f)
+{
+	long sleep_time;
+	int max_fd;
+	fd_set read, write, except;
+	struct timeval timeout;
+
+	FD_ZERO(&read); FD_ZERO(&write); FD_ZERO(&except);
+
+	if (curl_multi_fdset(f->handle, &read, &write, &except, &max_fd))
+		return FETCHER_FAILED_FDSET;
+
+	if (curl_multi_timeout(f->handle, &sleep_time))
+		return FETCHER_CONNECTION_TIMEOUT;
+
+	if (sleep_time == -1) sleep_time = 100;
+
+	if (max_fd == -1)
+	{	sleep(sleep_time / 1000); // Sleep(sleep_time);
+	}
+	else
+	{	timeout.tv_sec = sleep_time/1000;
+		timeout.tv_usec = (sleep_time%1000)*1000;
+
+		if (0 > select(max_fd+1, &read, &write, &except, &timeout))
+			return FETCHER_NO_MULTIPLEX;
+	}
+
+	return FETCHER_SUCCESS;
 }
 
 #if 0
@@ -72,10 +116,8 @@ error_t SMTH_initfetcher(Fetcher *f)
 {
 	count_t i;
 
-	if (!handles) /* do it only once. */
-	{   if (curl_global_init(CURL_GLOBAL_ALL)) return FECTHER_FAILED_INIT;
-		handles++;
-	}
+	if (!handles && curl_global_init(CURL_GLOBAL_ALL)) //TODO only needed
+		return FECTHER_FAILED_INIT; /* do it only once. */
 
 	f->handle = curl_multi_init();
 	if (!f->handle) return FECTHER_NO_MEMORY;
@@ -83,15 +125,15 @@ error_t SMTH_initfetcher(Fetcher *f)
 	/* limit the total amount of connections this multi handle uses */
 	curl_multi_setopt(f->handle, CURLMOPT_MAXCONNECTS, FETCHER_MAX_TRANSFERS);
 
-	for (i = 0; i < FETCHER_MAX_TRANSFERS; i++)
+	for (i = 0; i < FETCHER_MAX_TRANSFERS; ++i)
 	{
 		CURL *eh = curl_easy_init();
 		if (!eh) return FECTHER_NO_MEMORY;
 
-		if (!reinithandle(NULL)) return FETCHER_HANDLE_NOT_INITIALISED;
+		if (!reinithandle(eh)) return FETCHER_HANDLE_NOT_INITIALISED;
 
 		/* Use the default write function */
-		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, NULL);
+		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cachefragment);
 		/* Some servers don't like requests without a user-agent field... */
 		curl_easy_setopt(eh, CURLOPT_USERAGENT, FETCHER_USERAGENT);
 		/* No headers written, only body. */
@@ -107,12 +149,16 @@ error_t SMTH_initfetcher(Fetcher *f)
 		}
 	}
 
+	++handles;
 	return FETCHER_SUCCESS;
 }
 
 error_t SMTH_disposefetcher(Fetcher *f)
-{	if (curl_multi_cleanup(f->handle)) return FETCHER_HANDLE_NOT_CLEANED;
-	handles--;
+{
+	if (f->handle && curl_multi_cleanup(f->handle))
+		return FETCHER_HANDLE_NOT_CLEANED;
+
+	--handles;
 	if (!handles) curl_global_cleanup();
 }
 

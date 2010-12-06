@@ -36,6 +36,8 @@
 /** The user agent string used by the fecther */
 #define FETCHER_USERAGENT     "libsmth/0"
 
+#endif /* __SMTH_HTTP_DEFS__ */
+
 #if 0
 $presentation   = "/path/$name.(ism|[\w]{1}[\w\d]*)";
 $manifest       = "$presentation/Manifest"; //mettere i punti di domanda dopo
@@ -86,7 +88,5 @@ $sparsepointer = "($header;)?ChildTrack=\"SparseStreamSet (; SparseStreamSet )*\
  */
 standard = "QualityLevels({bitrate},{CustomAttributes})/Fragments(video={start_time})"
 #endif 
-
-#endif /* __SMTH_HTTP_DEFS__ */
 
 /* vim: set ts=4 sw=4 tw=0: */
