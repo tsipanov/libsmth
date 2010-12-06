@@ -34,15 +34,15 @@
 #include <smth-manifest-parser.h>
 
 /** The number of simultaneous transfers allowed per \c Fetcher::handle */
-#define FETCHER_MAX_TRANSFERS 10L
+#define FETCHER_MAX_TRANSFERS      1000L
 /** The user agent string used by the fecther */
-#define FETCHER_USERAGENT     "libsmth/0"
+#define FETCHER_USERAGENT          "libsmth/0"
+/** The template for the temp directory, one per \c Track */
+#define FETCHER_DIRECTOTY_TEMPLATE "/tmp/smth.XXXXXX"
 
 /** \brief Holds the Curl multi handle and fetcher metadata. */
 typedef struct
 {
-	/** How many transfers have been completed successfully. */
-	count_t alreadyok;
 	/** Handle to the active curl multi downloader. */
 	CURLM *handle;
 } Fetcher;

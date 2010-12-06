@@ -31,13 +31,13 @@
 /**
  * \brief Fetch all the fragments referred by a \c Manifest struct.
  *
- * The \c Manifest may be obtained via SMTH_fetchmanifest or directly parsed
+ * The \c Manifest may be obtained via \c SMTH_fetchmanifest or directly parsed
  * from local media.
  *
  * \param m The \c Manifest from which to fetch fragments.
  * \return  FETCHER_SUCCESS on successfull operation, or an appropriate error code.
  */
-error_t SMTH_fetch(Manifest *m) //FIXME error checking!
+error_t SMTH_fetch(Manifest *m)
 {
 	Fetcher f;
 	int running_no = -1;
@@ -53,7 +53,7 @@ error_t SMTH_fetch(Manifest *m) //FIXME error checking!
 
 		if (running_no)
 		{   error = resetfetcher(&f);
-			if (error) goto end;
+			if (error) goto end; //aumenta il numero di handlers...
 		}
 
 		error = execfetcher(&f);
@@ -87,9 +87,8 @@ static error_t execfetcher(Fetcher *f)
 	{
 		if (msg->msg == CURLMSG_DONE)
 		{
-			f->alreadyok++;
-			if (!reinithandle(f, msg->easy_handle))
-				return FETCHER_NOT_REASSIGNED;
+			curl_multi_remove_handle(f->handle, msg->easy_handle);
+			curl_easy_cleanup(msg->easy_handle);
 		}
 		else return FETCHER_TRANFER_FAILED;
 	}
@@ -108,8 +107,6 @@ static error_t initfetcher(Fetcher *f, Manifest *m)
 {
 	count_t i;
 
-	f->alreadyok = 0;
-
 	if (!handles && curl_global_init(CURL_GLOBAL_ALL))
 		return FECTHER_FAILED_INIT; /* do it only once. */
 
@@ -119,13 +116,18 @@ static error_t initfetcher(Fetcher *f, Manifest *m)
 	/* limit the total amount of connections this multi handle uses */
 	curl_multi_setopt(f->handle, CURLMOPT_MAXCONNECTS, FETCHER_MAX_TRANSFERS);
 
-	for (i = 0; i < FETCHER_MAX_TRANSFERS; ++i)
+	for (i = 0; i < 27; ++i) //FIXME < FETCHER_MAX_TRANSFERS
 	{
 		CURL *eh = curl_easy_init();
 		if (!eh) return FECTHER_NO_MEMORY;
 
-		if (!reinithandle(f, eh)) return FETCHER_HANDLE_NOT_INITIALISED;
+		/* The file to cache to */ //FIXME
+		FILE *output = fopen("test.html", "a"); 
+		/* Set the url from which to retrieve the chunk */
+		curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631");
 
+		/* Write to the provided file handler */
+		curl_easy_setopt(eh, CURLOPT_WRITEDATA, output);
 		/* Use the default write function */
 		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, NULL);
 		/* Some servers don't like requests without a user-agent field... */
@@ -200,110 +202,5 @@ static error_t resetfetcher(Fetcher *f)
 
 	return FETCHER_SUCCESS;
 }
-
-/////////////////////////////////////FIXME//////////////////////////////////////
-
-// char *mkdtemp(char *template);
-// inizializza 10 handlers per connettersi al sito (o il numero che vuoi)
-// con 6 urls da uno e 6 dall'altro...
-// Una volta che l'handler ha finito, gli cambi l'url...
-// una directory per ogni fetcher...
-// per sicurezza, usiamo sempre e solo tmpfile....
-// aggiungi trackno
-// private data <- inserire con il file+timestamp+stream nella struct sopra...
-// tmpfile();
-//1. scarica il Manifest
-//2. scopri quanto dura un frammento
-//3. fai buffer a sufficienza
-//4. scarica continuamente audio e video
-//5. apri un folder temporaneo
-//curl_easy_getinfo(curl_handle, CURLINFO_SPEED_DOWNLOAD, &val); //bytes/secondo double
-
-/**
- * \brief Reinit a \c Fetcher handle for downloading a new chunk, or destroys it
- *        if transfer is over.
- *
- * \param f  The fetcher to which belongs the handle.
- * \param eh The handle to reinit.
- * \return   \c true if successful, otherwise \c false.
- */
-static bool reinithandle(Fetcher *f, CURL *eh)
-{
-	if (f->alreadyok) 
-	{
-		FILE *test;
-		curl_easy_getinfo(eh, CURLINFO_PRIVATE, &test);
-/*		fclose(test);*/
-		curl_multi_remove_handle(f->handle, eh);
-		curl_easy_cleanup(eh);
-	}
-	else
-	{
-		FILE *test = fopen("test.html", "a");
-		curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631");
-		curl_easy_setopt(eh, CURLOPT_WRITEDATA, test);
-/*		curl_easy_setopt(eh, CURLINFO_PRIVATE, test);*/
-	}
-	return true;
-}
-
-FILE *SMTH_fetchmanifest()
-{
-	//TODO
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-#if 0
-$presentation   = "/path/$name.(ism|[\w]{1}[\w\d]*)";
-$manifest       = "$presentation/Manifest"; //mettere i punti di domanda dopo
-
-bitrate_t $bitrate; /* The bit rate of the Requested fragment. */
-tick_t $time;       /* The time of the Requested fragment.     */
-
-/* An Attribute of the Requested fragment used to disambiguate tracks. */
-$attribute		= "$key=$value"
-$key            = URISAFE_IDENTIFIER_NONNUMERIC;
-$value          = URISAFE_IDENTIFIER;
-/* The name of the requested stream */
-$name           = URISAFE_IDENTIFIER_NONNUMERIC;
-/* The type of response expected by the client. */
-$noun           = (	"Fragments"    |  /* FragmentsNounFullResponse */
-                    "FragmentInfo" |  /* FragmentsNounMetadataOnly */
-                    "RawFragments" |  /* FragmentsNounDataOnly */
-                    "KeyFrames"    ); /* FragmentsNounIndependentOnly */
-$fragment       = "$presentation/QualityLevels($bitrate(,$attribute)*)/$noun($name=$time)";
-
-/*  The SparseStreamPointer and related fields contain data required to locate
- *  the latest fragment of a sparse stream. This message is used in conjunction
- *  with a Fragment Response message.
- */
-
-/* The timestamp of the latest timestamp for a fragment for the SparseStream
- * that occurs at the same point in time or earlier than the presentation
- * than the requested fragment.
- */
-$timestamp = STRING_UINT64
-/* The stream Name of the related Sparse Name. The value of this field MUST
- * match the Name field of the StreamElement field that describes the stream,
- * specified in section 2.2.2.3, in the Manifest Response.
- */
-$name = CHARDATA
-/* The latest fragment pointer for a single related sparse stream. */
-$sparse = "$name=$timestamp"
-/* The set of latest fragment pointer for all sparse streams related to a
- * single requested fragment.
- */
-$sparseset = "$sparse(,$sparse)*"
-$header = 1*CHAR
-/* A set of data that indicates the latest fragment for all related sparse streams. */
-$sparsepointer = "($header;)?ChildTrack=\"SparseStreamSet (; SparseStreamSet )*\""
-
-/*  The Fragment Not Yet Available message is an HTTP Response with an empty
- *  message body field and the HTTP Status Code 412 Precondition Failed.
- */
-standard = "QualityLevels({bitrate},{CustomAttributes})/Fragments(video={start_time})"
-#endif 
-
 
 /* vim: set ts=4 sw=4 tw=0: */

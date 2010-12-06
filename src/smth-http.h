@@ -54,8 +54,6 @@
 #define FETCHER_TRANFER_FAILED         (-34)
 /** Could not destroy a \c Fetcher */
 #define FETCHER_NOT_CLEANED            (-35)
-/** Could not reassign properly a \c Fetcher handler. */
-#define FETCHER_NOT_REASSIGNED         (-36)
 
 error_t SMTH_fetch(Manifest *m);
 
