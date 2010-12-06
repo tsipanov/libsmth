@@ -28,24 +28,43 @@
 
 #include <smth-http-defs.h>
 
-error_t SMTH_fetch(Manifest *m)
+/**
+ * \brief Fetch all the fragments referred by a \c Manifest struct.
+ *
+ * The \c Manifest may be obtained via SMTH_fetchmanifest or directly parsed
+ * from local media.
+ *
+ * \param m The \c Manifest from which to fetch fragments.
+ * \return  FETCHER_SUCCESS on successfull operation, or an appropriate error code.
+ */
+error_t SMTH_fetch(Manifest *m) //FIXME error checking!
 {
 	Fetcher f;
 	int running_no = -1;
+	error_t error;
 
-	initfetcher(&f);
+	error = initfetcher(&f, m);
+	if (error) return error;
 
 	while (running_no)
 	{
 		/* Submit all transfers... */
 		while (CURLM_CALL_MULTI_PERFORM == curl_multi_perform(f.handle, &running_no));
-		if (running_no) resetfetcher(&f);
-		execfetcher(&f);
+
+		if (running_no)
+		{   error = resetfetcher(&f);
+			if (error) goto end;
+		}
+
+		error = execfetcher(&f);
+		if (error) goto end;
 	}
 
-	disposefetcher(&f);
+	error = FETCHER_SUCCESS; /* assigned only if everything went fine. */
 
-	return FETCHER_SUCCESS;
+end:
+	disposefetcher(&f);
+	return error;
 }
 
 /*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
@@ -53,6 +72,12 @@ error_t SMTH_fetch(Manifest *m)
 /** The number of opened handles. */
 static count_t handles = 0;
 
+/**
+ * \brief Runs a fetcher and wait until all the transfers are over.
+ *
+ * \param f The \c Fetcher to execute.
+ * \return  FETCHER_SUCCESS or an appropriate error code.
+ */
 static error_t execfetcher(Fetcher *f)
 {
 	CURLMsg *msg;
@@ -62,19 +87,28 @@ static error_t execfetcher(Fetcher *f)
 	{
 		if (msg->msg == CURLMSG_DONE)
 		{
-			CURL *e = msg->easy_handle;
-			curl_multi_remove_handle(f->handle, e); //TODO invece di rimuoverlo, cambia url... reinit_handle o elimina
-			curl_easy_cleanup(e);
+			f->alreadyok++;
+			if (!reinithandle(f, msg->easy_handle))
+				return FETCHER_NOT_REASSIGNED;
 		}
-		else return FETCHER_TRANFER_FAILED; // will leak...
+		else return FETCHER_TRANFER_FAILED;
 	}
 
 	return FETCHER_SUCCESS;
 }
 
-static error_t initfetcher(Fetcher *f)
+/**
+ * \brief Properly initialises a \c Fetcher before use.
+ *
+ * \param f Pointer to the fetcher structure to be initialised.
+ * \param m Pointer to the manifest from which to compile the Fetcher.
+ * \return  FETCHER_SUCCESS or an appropriate error code.
+ */
+static error_t initfetcher(Fetcher *f, Manifest *m)
 {
 	count_t i;
+
+	f->alreadyok = 0;
 
 	if (!handles && curl_global_init(CURL_GLOBAL_ALL))
 		return FECTHER_FAILED_INIT; /* do it only once. */
@@ -90,10 +124,10 @@ static error_t initfetcher(Fetcher *f)
 		CURL *eh = curl_easy_init();
 		if (!eh) return FECTHER_NO_MEMORY;
 
-		if (!reinithandle(eh)) return FETCHER_HANDLE_NOT_INITIALISED;
+		if (!reinithandle(f, eh)) return FETCHER_HANDLE_NOT_INITIALISED;
 
 		/* Use the default write function */
-		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cachefragment);
+		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, NULL);
 		/* Some servers don't like requests without a user-agent field... */
 		curl_easy_setopt(eh, CURLOPT_USERAGENT, FETCHER_USERAGENT);
 		/* No headers written, only body. */
@@ -113,6 +147,12 @@ static error_t initfetcher(Fetcher *f)
 	return FETCHER_SUCCESS;
 }
 
+/**
+ * \brief Properly disposes of a \c Fetcher.
+ *
+ * \param f The fetcher to be disposed.
+ * \return  FETCHER_SUCCESS or FETCHER_HANDLE_NOT_CLEANED if something bad happened.
+ */
 static error_t disposefetcher(Fetcher *f)
 {
 	if (f->handle && curl_multi_cleanup(f->handle))
@@ -120,8 +160,16 @@ static error_t disposefetcher(Fetcher *f)
 
 	--handles;
 	if (!handles) curl_global_cleanup();
+
+	return FETCHER_SUCCESS;
 }
 
+/**
+ * \brief Resets \c Fetcher internals.
+ *
+ * \param f The fetcher to be resetted.
+ * \return  FETCHER_SUCCESS or an appropriate error code.
+ */
 static error_t resetfetcher(Fetcher *f)
 {
 	long sleep_time;
@@ -140,7 +188,7 @@ static error_t resetfetcher(Fetcher *f)
 	if (sleep_time == -1) sleep_time = 100;
 
 	if (max_fd == -1)
-	{	sleep(sleep_time / 1000); /* on Windows, Sleep(sleep_time); */
+	{	sleep(sleep_time / 1000); /* on MS Windows, Sleep(sleep_time); */
 	}
 	else
 	{	timeout.tv_sec = sleep_time/1000;
@@ -153,7 +201,7 @@ static error_t resetfetcher(Fetcher *f)
 	return FETCHER_SUCCESS;
 }
 
-////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////FIXME//////////////////////////////////////
 
 // char *mkdtemp(char *template);
 // inizializza 10 handlers per connettersi al sito (o il numero che vuoi)
@@ -169,38 +217,40 @@ static error_t resetfetcher(Fetcher *f)
 //3. fai buffer a sufficienza
 //4. scarica continuamente audio e video
 //5. apri un folder temporaneo
+//curl_easy_getinfo(curl_handle, CURLINFO_SPEED_DOWNLOAD, &val); //bytes/secondo double
 
-/*	curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, cb);*/
-/*	curl_easy_setopt(eh, CURLOPT_URL, url);*/
-/*	curl_easy_setopt(eh, CURLOPT_PRIVATE, url);*/
-/*				curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &url);*/
-
-static size_t cachefragment(char *, size_t n, size_t l, void *p)
+/**
+ * \brief Reinit a \c Fetcher handle for downloading a new chunk, or destroys it
+ *        if transfer is over.
+ *
+ * \param f  The fetcher to which belongs the handle.
+ * \param eh The handle to reinit.
+ * \return   \c true if successful, otherwise \c false.
+ */
+static bool reinithandle(Fetcher *f, CURL *eh)
 {
-	FILE *test = fopen("/home/Stefano/Scrivania/test.html", "a");
-	int op = fwrite(d, n, l, test);
-	fclose(test);
-	return op;
-}
-
-static bool reinithandle(CURL *eh)
-{
-	curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631"); //sempre lo stesso handle...
-/*	curl_easy_setopt(f->handle, CURLOPT_WRITEDATA, test);*/
-/*	curl_easy_setopt(eh, CURLINFO_PRIVATE, "http://localhost:631");*/
+	if (f->alreadyok) 
+	{
+		FILE *test;
+		curl_easy_getinfo(eh, CURLINFO_PRIVATE, &test);
+/*		fclose(test);*/
+		curl_multi_remove_handle(f->handle, eh);
+		curl_easy_cleanup(eh);
+	}
+	else
+	{
+		FILE *test = fopen("test.html", "a");
+		curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631");
+		curl_easy_setopt(eh, CURLOPT_WRITEDATA, test);
+/*		curl_easy_setopt(eh, CURLINFO_PRIVATE, test);*/
+	}
 	return true;
 }
 
-#if 0
-error_t SMTH_fetchmanifest();
-error_t SMTH_fetchfragment();
-
-error_t compilemanifesturl
-error_t compilechunkurl
-
-/* check for average download speed */
-curl_easy_getinfo(curl_handle, CURLINFO_SPEED_DOWNLOAD, &val); //bytes/secondo double
-#endif
+FILE *SMTH_fetchmanifest()
+{
+	//TODO
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

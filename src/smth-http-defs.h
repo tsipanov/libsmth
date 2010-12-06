@@ -31,6 +31,7 @@
 
 #include <curl/multi.h>
 #include <smth-http.h>
+#include <smth-manifest-parser.h>
 
 /** The number of simultaneous transfers allowed per \c Fetcher::handle */
 #define FETCHER_MAX_TRANSFERS 10L
@@ -40,17 +41,18 @@
 /** \brief Holds the Curl multi handle and fetcher metadata. */
 typedef struct
 {
+	/** How many transfers have been completed successfully. */
+	count_t alreadyok;
 	/** Handle to the active curl multi downloader. */
 	CURLM *handle;
 } Fetcher;
 
-static error_t initfetcher(Fetcher *f);
+static error_t initfetcher(Fetcher *f, Manifest *m);
 static error_t disposefetcher(Fetcher *f);
 static error_t resetfetcher(Fetcher *f);
 static error_t execfetcher(Fetcher *f);
 
-static size_t cachefragment(char *data, size_t size, size_t nmemb, void *stream);
-static bool reinithandle(CURL *eh);
+static bool reinithandle(Fetcher *f, CURL *eh);
 
 #endif /* __SMTH_HTTP_DEFS__ */
 
