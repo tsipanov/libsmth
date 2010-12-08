@@ -1,10 +1,5 @@
 #examplesdir       = bindir
-bin_PROGRAMS = dissector manifest
+AM_CFLAGS = -I..
+LDADD  = ../libsmth.la
 
-AM_CFLAGS         = -I..
-
-dissector_SOURCES = dissector.c
-dissector_LDADD   = ../libsmth.la
-
-manifest_SOURCES  = manifest.c
-manifest_LDADD    = ../libsmth.la
+bin_PROGRAMS = smth-dissector smth-manifest smth-downloader

@@ -23,27 +23,34 @@
  * \file   smth-http.c
  * \brief  Web transfer glue.
  * \author Stefano Sanfilippo
- * \date   12th June 2010
+ * \date   12th June 2010 ~ 7 Dicember 2010
  */
 
 #include <smth-http-defs.h>
 
 /**
- * \brief Fetch all the fragments referred by a \c Manifest struct.
+ * \brief Fetch all the fragments referred by a \c Manifest::Stream field.
  *
  * The \c Manifest may be obtained via \c SMTH_fetchmanifest or directly parsed
  * from local media.
  *
- * \param m The \c Manifest from which to fetch fragments.
+ * \param m The \c Stream from which to fetch fragments.
  * \return  FETCHER_SUCCESS on successfull operation, or an appropriate error code.
  */
-error_t SMTH_fetch(Manifest *m)
+error_t SMTH_fetch(Stream *stream, count_t track_no)
 {
 	Fetcher f;
-	int running_no = -1;
+	int queue, running_no = -1; //XXX successivamente, finchè è pieno...
 	error_t error;
+	CURLMsg *msg;
 
-	error = initfetcher(&f, m);
+	if (!stream) return FETCHER_SUCCESS;
+
+	f.stream = stream;
+	f.track_no = track_no;
+	f.nextchunk = 0;
+
+	error = initfetcher(&f);
 	if (error) return error;
 
 	while (running_no)
@@ -53,11 +60,24 @@ error_t SMTH_fetch(Manifest *m)
 
 		if (running_no)
 		{   error = resetfetcher(&f);
-			if (error) goto end; //aumenta il numero di handlers...
+			if (error) goto end;
 		}
 
-		error = execfetcher(&f);
-		if (error) goto end;
+		while ((msg = curl_multi_info_read(f.handle, &queue)))
+		{
+			if (msg->msg == CURLMSG_DONE)
+			{
+				curl_multi_remove_handle(f.handle, msg->easy_handle);
+				curl_easy_cleanup(msg->easy_handle);
+
+				printf("%ld\n", f.nextchunk->time);
+				if (f.nextchunk) reinithandle(&f);
+			}
+			else
+			{   error = FETCHER_TRANFER_FAILED;
+				goto end;
+			}
+		}
 	}
 
 	error = FETCHER_SUCCESS; /* assigned only if everything went fine. */
@@ -73,37 +93,13 @@ end:
 static count_t handles = 0;
 
 /**
- * \brief Runs a fetcher and wait until all the transfers are over.
- *
- * \param f The \c Fetcher to execute.
- * \return  FETCHER_SUCCESS or an appropriate error code.
- */
-static error_t execfetcher(Fetcher *f)
-{
-	CURLMsg *msg;
-	int queue;
-
-	while ((msg = curl_multi_info_read(f->handle, &queue)))
-	{
-		if (msg->msg == CURLMSG_DONE)
-		{
-			curl_multi_remove_handle(f->handle, msg->easy_handle);
-			curl_easy_cleanup(msg->easy_handle);
-		}
-		else return FETCHER_TRANFER_FAILED;
-	}
-
-	return FETCHER_SUCCESS;
-}
-
-/**
  * \brief Properly initialises a \c Fetcher before use.
  *
  * \param f Pointer to the fetcher structure to be initialised.
- * \param m Pointer to the manifest from which to compile the Fetcher.
+ * \param m Pointer to the \c Stream from which to compile the Fetcher.
  * \return  FETCHER_SUCCESS or an appropriate error code.
  */
-static error_t initfetcher(Fetcher *f, Manifest *m)
+static error_t initfetcher(Fetcher *f)
 {
 	count_t i;
 
@@ -115,34 +111,10 @@ static error_t initfetcher(Fetcher *f, Manifest *m)
 
 	/* limit the total amount of connections this multi handle uses */
 	curl_multi_setopt(f->handle, CURLMOPT_MAXCONNECTS, FETCHER_MAX_TRANSFERS);
-
-	for (i = 0; i < 27; ++i) //FIXME < FETCHER_MAX_TRANSFERS
-	{
-		CURL *eh = curl_easy_init();
-		if (!eh) return FECTHER_NO_MEMORY;
-
-		/* The file to cache to */ //FIXME
-		FILE *output = fopen("test.html", "a"); 
-		/* Set the url from which to retrieve the chunk */
-		curl_easy_setopt(eh, CURLOPT_URL, "http://localhost:631");
-
-		/* Write to the provided file handler */
-		curl_easy_setopt(eh, CURLOPT_WRITEDATA, output);
-		/* Use the default write function */
-		curl_easy_setopt(eh, CURLOPT_WRITEFUNCTION, NULL);
-		/* Some servers don't like requests without a user-agent field... */
-		curl_easy_setopt(eh, CURLOPT_USERAGENT, FETCHER_USERAGENT);
-		/* No headers written, only body. */
-		curl_easy_setopt(eh, CURLOPT_HEADER, 0L);
-		/* No verbose messages. */
-		curl_easy_setopt(eh, CURLOPT_VERBOSE, 0L);
-		/* with old versions of libcurl: no progress meter */
-		curl_easy_setopt(eh, CURLOPT_NOPROGRESS, 1L);
-
-		if (curl_multi_add_handle(f->handle, eh))
-		{   curl_easy_cleanup(eh);
-			return FECTHER_HANDLE_NOT_ADDED;
-		}
+	/* Build the fetcher */
+	for (i = 0; i < FETCHER_MAX_TRANSFERS; ++i)
+	{	error_t error = reinithandle(f);
+		if (error) return error;
 	}
 
 	++handles;
@@ -193,8 +165,8 @@ static error_t resetfetcher(Fetcher *f)
 	{	sleep(sleep_time / 1000); /* on MS Windows, Sleep(sleep_time); */
 	}
 	else
-	{	timeout.tv_sec = sleep_time/1000;
-		timeout.tv_usec = (sleep_time%1000)*1000;
+	{	timeout.tv_sec = sleep_time / 1000;
+		timeout.tv_usec = (sleep_time % 1000) * 1000;
 
 		if (0 > select(max_fd+1, &read, &write, &except, &timeout))
 			return FETCHER_NO_MULTIPLEX;
@@ -203,4 +175,46 @@ static error_t resetfetcher(Fetcher *f)
 	return FETCHER_SUCCESS;
 }
 
+/**
+ * \brief Set an appropriate url and output file for each transfer.
+ *
+ * \param f  The fetcher from which to retrieve urls and metadata.
+ */
+static error_t reinithandle(Fetcher *f)
+{
+	CURL *handle;
+
+	if (!(handle = curl_easy_init())) return FECTHER_NO_MEMORY;
+
+////////////////////////////////////FIXME//////////////////////////////////////
+	/* The file to cache to */
+	FILE *output = fopen("test.html", "w");
+	char *chunkurl = "http://localhost:631";
+////////////////////////////////////////////////////////////////////////////////
+
+	/* Set the url from which to retrieve the chunk */
+	curl_easy_setopt(handle, CURLOPT_URL, chunkurl);
+	/* Write to the provided file handler */
+	curl_easy_setopt(handle, CURLOPT_WRITEDATA, output);
+	/* Use the default write function */
+	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
+	/* Some servers don't like requests without a user-agent field... */
+	curl_easy_setopt(handle, CURLOPT_USERAGENT, FETCHER_USERAGENT);
+	/* No headers written, only body. */
+	curl_easy_setopt(handle, CURLOPT_HEADER, 0L);
+	/* No verbose messages. */
+	curl_easy_setopt(handle, CURLOPT_VERBOSE, 0L);
+	/* with old versions of libcurl: no progress meter */
+	curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
+
+	if (curl_multi_add_handle(f->handle, handle))
+	{   curl_easy_cleanup(handle);
+		return FECTHER_HANDLE_NOT_ADDED;
+	}
+
+	/* Increase the pointer to dereference next chunk */
+	f->nextchunk++;
+
+	return FETCHER_SUCCESS;
+}
 /* vim: set ts=4 sw=4 tw=0: */

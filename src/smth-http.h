@@ -55,7 +55,10 @@
 /** Could not destroy a \c Fetcher */
 #define FETCHER_NOT_CLEANED            (-35)
 
-error_t SMTH_fetch(Manifest *m);
+/** Automatic quality setup */
+#define FETCHER_QUALITY_AUTO           (-1)
+
+error_t SMTH_fetch(Stream *stream, count_t track_no);
 
 #endif /* __SMTH_HTTP_H__ */
 

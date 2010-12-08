@@ -21,7 +21,7 @@
  * \file   smth-manifest-parser.h
  * \brief  XML manifest parser - public header
  * \author Stefano Sanfilippo
- * \date   30th June 2010
+ * \date   30th June 2010 ~ 7 Dicember 2010
  */
 
 #ifndef __SMTH_MANIFEST_PARSER_H__

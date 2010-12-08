@@ -33,10 +33,10 @@
 
 /** \brief The encryption system used by the samples */
 /* To avoid coding issues, add new encodings ONLY between AES_CBC and NEW	  */
-typedef enum {  NONE,    /**< non encrypted sample							  */
-				AES_CTR, /**< AES 128bit CTR encrypted sample				  */
-				AES_CBC, /**< AES 128bit CBC encrypted sample				  */
-				UNSET	 /**< Unknown encryption method. MUST be the last one */
+typedef enum { NONE,    /**< non encrypted sample							  */
+				 AES_CTR, /**< AES 128bit CTR encrypted sample				  */
+				 AES_CBC, /**< AES 128bit CBC encrypted sample				  */
+				 UNSET	 /**< Unknown encryption method. MUST be the last one */
 			 } EncryptionType ;
 
 /** \brief Holds the extension data parsed from UUIDBoxes */
