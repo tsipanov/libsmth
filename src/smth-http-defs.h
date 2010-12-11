@@ -34,12 +34,16 @@
 #include <smth-manifest-parser.h>
 
 /** The number of simultaneous transfers allowed per \c Fetcher::handle */
-#define FETCHER_MAX_TRANSFERS      10L
+#define FETCHER_MAX_TRANSFERS       10L
 /** The user agent string used by the fecther */
-#define FETCHER_USERAGENT          "libsmth/0"
+#define FETCHER_USERAGENT           "libsmth/0"
 /** The template for the temp directory, one per \c Track */
-#define FETCHER_DIRECTOTY_TEMPLATE "/tmp/smth.XXXXXX"
-
+#define FETCHER_DIRECTOTY_TEMPLATE  "/tmp/smth.XXXXXX"
+/** The maximum length for a filename */
+#define FETCHER_MAX_FILENAME_LENGTH 1024
+/** The maximum length for a chunk url */
+#define FETCHER_MAX_URL_LENGTH      2048
+ 
 /** \brief Holds the Curl multi handle and fetcher metadata. */
 typedef struct
 {
@@ -63,6 +67,8 @@ static error_t disposefetcher(Fetcher *f);
 static error_t resetfetcher(Fetcher *f);
 static error_t execfetcher(Fetcher *f);
 static error_t reinithandle(Fetcher *f);
+
+static char *compileurl(Fetcher *f, char *buffer);
 
 #endif /* __SMTH_HTTP_DEFS__ */
 

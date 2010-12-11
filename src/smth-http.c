@@ -47,7 +47,7 @@ error_t SMTH_fetch(Stream *stream, count_t track_no)
 	if (!stream) return FETCHER_SUCCESS;
 
 	f.stream = stream;
-/*	f.track_no = track_no; //XXX*/
+	f.track_no = track_no; //XXX
 
 	error = initfetcher(&f);
 	if (error) return error;
@@ -112,15 +112,15 @@ static error_t initfetcher(Fetcher *f)
 	/* limit the total amount of connections this multi handle uses */
 	curl_multi_setopt(f->handle, CURLMOPT_MAXCONNECTS, FETCHER_MAX_TRANSFERS);
 
+	/* Create a new temp dir */
+	char* template = strdup(FETCHER_DIRECTOTY_TEMPLATE);
+	f->cachedir = mkdtemp(template);
+
 	/* Build the fetcher */
 	for (i = 0; i < FETCHER_MAX_TRANSFERS; ++i)
 	{	error_t error = reinithandle(f);
 		if (error) return error;
 	}
-
-	/* Create a new temp dir */
-	char* template = strdup(FETCHER_DIRECTOTY_TEMPLATE);
-	f->cachedir = mkdtemp(template);
 
 	++handles;
 	return FETCHER_SUCCESS;
@@ -191,6 +191,8 @@ static error_t reinithandle(Fetcher *f)
 {
 	CURL *handle;
 	FILE *output;
+	char filename[FETCHER_MAX_FILENAME_LENGTH]; /* FIXME more efficient! */
+	char urlbuffer[FETCHER_MAX_URL_LENGTH];
 	char *chunkurl;
 
 	/* The chunk to be parsed right now */
@@ -198,19 +200,18 @@ static error_t reinithandle(Fetcher *f)
 	/* Ops! chunks are over! Bye bye. */
 	if (!f->nextchunk) return FETCHER_SUCCESS;
 	/* Increase the index to dereference next chunk */
-	f->chunk_no++;
+	f->chunk_no++; /* FIXME turn to pointer operation */
 
-////////////////////////////////////FIXME//////////////////////////////////////
-	/* The file to cache to */
-	char filename[1000];
-	sprintf(filename, "%s/%lu", f->cachedir, f->nextchunk->time);
+	chunkurl = compileurl(f, urlbuffer);
+
+	/* Build and open cache file */
+	snprintf(filename, FETCHER_MAX_FILENAME_LENGTH,  "%s/%lu",
+		f->cachedir, f->nextchunk->time);
 	output = fopen(filename, "w");
 	if (!output) return FETCHER_NO_FILE;
-	chunkurl = "http://localhost:631";
-////////////////////////////////////////////////////////////////////////////////
 
+	/* Build downloader */
 	if (!(handle = curl_easy_init())) return FECTHER_NO_MEMORY;
-
 	/* Set the url from which to retrieve the chunk */
 	curl_easy_setopt(handle, CURLOPT_URL, chunkurl);
 	/* Write to the provided file handler */
@@ -232,6 +233,17 @@ static error_t reinithandle(Fetcher *f)
 	}
 
 	return FETCHER_SUCCESS;
+}
+
+/**
+ * \brief Compile a valid url to send a \c Chunk request
+ *
+ * \param buffer The char buffer to be filled with the new url.
+ * \return       A pointer to the filled buffer.
+ */
+static char *compileurl(Fetcher *f, char *buffer)
+{
+	return strcpy(buffer, "http://localhost:631"); //XXX
 }
 
 /* vim: set ts=4 sw=4 tw=0: */
