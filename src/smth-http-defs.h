@@ -49,8 +49,12 @@ typedef struct
 	Stream *stream;
 	/** Pointer to the next \c chunk to handle */
 	Chunk *nextchunk;
-	/** Track number, if -1, auto. */
-	count_t track_no;
+	/** Index of the last parsed chunk */
+	count_t chunk_no;
+	/** Model from which to build the retrieve url */
+	url_t urlmodel;
+	/** The local path to the cache directory */
+	chardata* cachedir;
 
 } Fetcher;
 

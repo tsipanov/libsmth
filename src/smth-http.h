@@ -54,6 +54,8 @@
 #define FETCHER_TRANFER_FAILED         (-34)
 /** Could not destroy a \c Fetcher */
 #define FETCHER_NOT_CLEANED            (-35)
+/** Could not create a cache file for a chunk */
+#define FETCHER_NO_FILE                (-36)
 
 /** Automatic quality setup */
 #define FETCHER_QUALITY_AUTO           (-1)

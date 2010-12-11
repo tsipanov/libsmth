@@ -40,15 +40,14 @@
 error_t SMTH_fetch(Stream *stream, count_t track_no)
 {
 	Fetcher f;
-	int queue, running_no = -1; //XXX successivamente, finchè è pieno...
+	int queue, running_no = -1;
 	error_t error;
 	CURLMsg *msg;
 
 	if (!stream) return FETCHER_SUCCESS;
 
 	f.stream = stream;
-	f.track_no = track_no;
-	f.nextchunk = 0;
+/*	f.track_no = track_no; //XXX*/
 
 	error = initfetcher(&f);
 	if (error) return error;
@@ -70,8 +69,7 @@ error_t SMTH_fetch(Stream *stream, count_t track_no)
 				curl_multi_remove_handle(f.handle, msg->easy_handle);
 				curl_easy_cleanup(msg->easy_handle);
 
-				printf("%ld\n", f.nextchunk->time);
-				if (f.nextchunk) reinithandle(&f);
+				reinithandle(&f);
 			}
 			else
 			{   error = FETCHER_TRANFER_FAILED;
@@ -103,6 +101,8 @@ static error_t initfetcher(Fetcher *f)
 {
 	count_t i;
 
+	f->chunk_no = 0; /* essential */
+
 	if (!handles && curl_global_init(CURL_GLOBAL_ALL))
 		return FECTHER_FAILED_INIT; /* do it only once. */
 
@@ -111,11 +111,16 @@ static error_t initfetcher(Fetcher *f)
 
 	/* limit the total amount of connections this multi handle uses */
 	curl_multi_setopt(f->handle, CURLMOPT_MAXCONNECTS, FETCHER_MAX_TRANSFERS);
+
 	/* Build the fetcher */
 	for (i = 0; i < FETCHER_MAX_TRANSFERS; ++i)
 	{	error_t error = reinithandle(f);
 		if (error) return error;
 	}
+
+	/* Create a new temp dir */
+	char* template = strdup(FETCHER_DIRECTOTY_TEMPLATE);
+	f->cachedir = mkdtemp(template);
 
 	++handles;
 	return FETCHER_SUCCESS;
@@ -131,6 +136,8 @@ static error_t disposefetcher(Fetcher *f)
 {
 	if (f->handle && curl_multi_cleanup(f->handle))
 		return FETCHER_HANDLE_NOT_CLEANED;
+
+	free(f->cachedir);
 
 	--handles;
 	if (!handles) curl_global_cleanup();
@@ -183,14 +190,26 @@ static error_t resetfetcher(Fetcher *f)
 static error_t reinithandle(Fetcher *f)
 {
 	CURL *handle;
+	FILE *output;
+	char *chunkurl;
 
-	if (!(handle = curl_easy_init())) return FECTHER_NO_MEMORY;
+	/* The chunk to be parsed right now */
+	f->nextchunk = f->stream->chunks[f->chunk_no];
+	/* Ops! chunks are over! Bye bye. */
+	if (!f->nextchunk) return FETCHER_SUCCESS;
+	/* Increase the index to dereference next chunk */
+	f->chunk_no++;
 
 ////////////////////////////////////FIXME//////////////////////////////////////
 	/* The file to cache to */
-	FILE *output = fopen("test.html", "w");
-	char *chunkurl = "http://localhost:631";
+	char filename[1000];
+	sprintf(filename, "%s/%lu", f->cachedir, f->nextchunk->time);
+	output = fopen(filename, "w");
+	if (!output) return FETCHER_NO_FILE;
+	chunkurl = "http://localhost:631";
 ////////////////////////////////////////////////////////////////////////////////
+
+	if (!(handle = curl_easy_init())) return FECTHER_NO_MEMORY;
 
 	/* Set the url from which to retrieve the chunk */
 	curl_easy_setopt(handle, CURLOPT_URL, chunkurl);
@@ -212,9 +231,7 @@ static error_t reinithandle(Fetcher *f)
 		return FECTHER_HANDLE_NOT_ADDED;
 	}
 
-	/* Increase the pointer to dereference next chunk */
-	f->nextchunk++;
-
 	return FETCHER_SUCCESS;
 }
+
 /* vim: set ts=4 sw=4 tw=0: */
