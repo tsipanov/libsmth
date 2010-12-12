@@ -314,8 +314,6 @@ static char *compileurl(Fetcher *f, char *buffer)
 	replace(buffer, FETCHER_MAX_URL_LENGTH, temp,
 		FETCHER_BITRATE_PLACEHOLDER, "%u", f->track->bitrate);
 
-	puts(buffer);
-
 	return buffer;
 }
 
