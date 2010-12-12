@@ -23,20 +23,29 @@ Requires:       %{name} = %{version}-%{release}
 The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
+%package        static
+Summary:        Development files for %{name}
+Group:          Development/Libraries
+Requires:       %{name} = %{version}-%{release}
+
+%description    static
+The %{name}-devel package contains static libraries applications that
+will embed %{name}.
+
 
 %prep
 %setup -q
 
 
 %build
-%configure --disable-static
+%configure
 make %{?_smp_mflags}
 
 
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-find $RPM_BUILD_ROOT -name '*.la' -delete
+#find $RPM_BUILD_ROOT -name '*.la' -delete
 
 
 %clean
@@ -53,8 +62,7 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc AUTHORS BUGS TODO
 %{_libdir}/*.so.*
-%{_bindir}/dissector
-%{_bindir}/manifest
+%{_bindir}/smth-*
 
 %files devel
 %defattr(-,root,root,-)
@@ -62,5 +70,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_includedir}/*
 %{_libdir}/*.so
 
+%files static
+%defattr(-,root,root,-)
+%doc AUTHORS BUGS TODO
+%{_libdir}/*.a
+%{_libdir}/*.la
 
 %changelog

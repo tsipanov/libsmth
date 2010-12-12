@@ -3,7 +3,7 @@
  *
  * downloader.c: relying on the internal API, downloads all chunks in a Manifest
  *
- * 10th-12th July 2010
+ * 10th-12th July 2010 ~ 12th December 2010
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 				usage(argv[0]);
 		}
 
-		f = SMTH_fecthmanifest(urlname, params);
+		f = SMTH_fetchmanifest(urlname, params);
 	}
 	else return usage(argv[0]);
 

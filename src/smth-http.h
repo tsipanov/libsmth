@@ -63,7 +63,7 @@
 #define FETCHER_QUALITY_AUTO           (-1)
 
 error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no);
-FILE* SMTH_fecthmanifest(const char *url, const char *params);
+FILE* SMTH_fetchmanifest(const char *url, const char *params);
 
 #endif /* __SMTH_HTTP_H__ */
 

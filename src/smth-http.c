@@ -103,7 +103,7 @@ end:
  * \param params Any param necessary to invoke the url.
  * \return       A pointer to the manifest stream, or NULL
  */
-FILE* SMTH_fecthmanifest(const char *url, const char *params)
+FILE* SMTH_fetchmanifest(const char *url, const char *params)
 {
 	CURL *handle;
 	CURLcode error;
@@ -250,7 +250,8 @@ static error_t resetfetcher(Fetcher *f)
 /**
  * \brief Set an appropriate url and output file for each transfer.
  *
- * \param f  The fetcher from which to retrieve urls and metadata.
+ * \param f The fetcher from which to retrieve urls and metadata.
+ * \return  FETCHER_SUCCESS or an appropriate error code. 
  */
 static error_t reinithandle(Fetcher *f)
 {
