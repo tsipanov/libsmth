@@ -71,6 +71,8 @@ typedef struct
 	url_t *urlmodel;
 	/** The local path to the cache directory */
 	chardata *cachedir;
+	/** The time the last download took */
+	double downloadtime;
 
 } Fetcher;
 

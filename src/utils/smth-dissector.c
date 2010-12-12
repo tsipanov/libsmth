@@ -27,36 +27,41 @@
 
 int main(int argc, char **argv)
 {
+	int i;
 
 	if (argc < 2)
-	{	fprintf(stderr, "SMTH dissector v0.1\nusage: %s filename\n", argv[0]);
+	{	fprintf(stderr, "SMTH dissector v0.1\nusage: %s filename ...\n", argv[0]);
 		return 0;
 	}
 
-	char* ifile = argv[1];
+	for (i = 1; i < argc; ++i)
+	{
+		char* ifile = argv[i];
 
-	if (access(ifile, R_OK))
-	{	fprintf(stderr, "File specified does not exist or it is not readable.\n");
-		return 0;
+		if (access(ifile, R_OK))
+		{	fprintf(stderr, "File specified does not exist or it is not readable.\n");
+			return 0;
+		}
+
+		FILE *input  = fopen(ifile, "rb");
+
+		Fragment vc;
+
+		error_t exitcode = SMTH_parsefragment(&vc, input);
+		if (exitcode != FRAGMENT_SUCCESS)
+		{	printf("Error no.%d!\n", exitcode);
+			return 1;
+		}
+
+		SMTH_dumpfragment(&vc, stdout);
+
+		printf("Dumping data to file...\n", vc.size);
+		SMTH_dumppayload(&vc, ifile); //dumpt
+
+		SMTH_disposefragment(&vc);
+
+		fclose(input);
 	}
 
-	FILE *input  = fopen(ifile, "rb");
-
-	Fragment vc;
-
-	error_t exitcode = SMTH_parsefragment(&vc, input);
-	if (exitcode != FRAGMENT_SUCCESS)
-	{	printf("Error no.%d!\n", exitcode);
-		return 1;
-	}
-
-	SMTH_dumpfragment(&vc, stdout);
-
-	printf("Dumping data to file...\n", vc.size);
-	SMTH_dumppayload(&vc, ifile); //dumpt
-
-	SMTH_disposefragment(&vc);
-
-	fclose(input);
 	return 0;
 }

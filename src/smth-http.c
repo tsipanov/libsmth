@@ -74,6 +74,9 @@ error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no)
 		{
 			if (msg->msg == CURLMSG_DONE)
 			{
+				curl_easy_getinfo(msg->easy_handle, CURLINFO_SPEED_DOWNLOAD,
+					&f.downloadtime);
+
 				curl_multi_remove_handle(f.handle, msg->easy_handle);
 				curl_easy_cleanup(msg->easy_handle);
 
