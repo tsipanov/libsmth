@@ -33,16 +33,24 @@
 #include <smth-http.h>
 #include <smth-manifest-parser.h>
 
-/** The number of simultaneous transfers allowed per \c Fetcher::handle */
-#define FETCHER_MAX_TRANSFERS       10L
 /** The user agent string used by the fecther */
-#define FETCHER_USERAGENT           "libsmth/0"
+#define FETCHER_USERAGENT             "libsmth/0"
 /** The template for the temp directory, one per \c Track */
-#define FETCHER_DIRECTOTY_TEMPLATE  "/tmp/smth.XXXXXX"
+#define FETCHER_DIRECTOTY_TEMPLATE    "/tmp/smth.XXXXXX"
+
+/** The number of simultaneous transfers allowed per \c Fetcher::handle */
+#define FETCHER_MAX_TRANSFERS         10L
 /** The maximum length for a filename */
-#define FETCHER_MAX_FILENAME_LENGTH 1024
+#define FETCHER_MAX_FILENAME_LENGTH   1024
 /** The maximum length for a chunk url */
-#define FETCHER_MAX_URL_LENGTH      2048
+#define FETCHER_MAX_URL_LENGTH        2048
+/** The maximum length of a replace format specifier */
+#define FETCHER_REPLACE_FORMAT_LENGTH 8
+
+/** The placeholder for \c Chunk::time */
+#define FETCHER_START_TIME_PLACEHOLDER "{start time}"
+/** The placeholder for \c Track::bitrate */
+#define FETCHER_BITRATE_PLACEHOLDER    "{bitrate}"
  
 /** \brief Holds the Curl multi handle and fetcher metadata. */
 typedef struct
@@ -51,14 +59,16 @@ typedef struct
 	CURLM *handle;
 	/** Handle to the active \c Stream */
 	Stream *stream;
-	/** Pointer to the next \c chunk to handle */
+	/** Handle to the active \c Track */ /* XXX */
+	Track *track;
+	/** Pointer to the next \c Chunk to handle */
 	Chunk *nextchunk;
-	/** Index of the last parsed chunk */
+	/** Index of the last parsed \c Chunk */
 	count_t chunk_no;
 	/** Model from which to build the retrieve url */
-	url_t urlmodel;
+	const url_t *urlmodel;
 	/** The local path to the cache directory */
-	chardata* cachedir;
+	chardata *cachedir;
 
 } Fetcher;
 
@@ -69,6 +79,8 @@ static error_t execfetcher(Fetcher *f);
 static error_t reinithandle(Fetcher *f);
 
 static char *compileurl(Fetcher *f, char *buffer);
+static char *replace(char *buffer, const char *source,
+	char *search, const char *format, void *replace);
 
 #endif /* __SMTH_HTTP_DEFS__ */
 

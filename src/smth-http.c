@@ -23,8 +23,11 @@
  * \file   smth-http.c
  * \brief  Web transfer glue.
  * \author Stefano Sanfilippo
- * \date   12th June 2010 ~ 7 Dicember 2010
+ * \date   12th June 2010 ~ 7-11th Dicember 2010
  */
+
+#include <string.h>
+#include <stdlib.h>
 
 #include <smth-http-defs.h>
 
@@ -47,7 +50,8 @@ error_t SMTH_fetch(Stream *stream, count_t track_no)
 	if (!stream) return FETCHER_SUCCESS;
 
 	f.stream = stream;
-	f.track_no = track_no; //XXX
+	f.track = stream->tracks[track_no]; // TODO automatico...
+	f.urlmodel = "http://localhost:631/quality={bitrate}"; //XXX
 
 	error = initfetcher(&f);
 	if (error) return error;
@@ -243,7 +247,41 @@ static error_t reinithandle(Fetcher *f)
  */
 static char *compileurl(Fetcher *f, char *buffer)
 {
-	return strcpy(buffer, "http://localhost:631"); //XXX
+	replace(buffer, f->urlmodel,
+		FETCHER_START_TIME_PLACEHOLDER, "%lu", f->nextchunk->time);
+	replace(buffer, f->urlmodel,
+		FETCHER_BITRATE_PLACEHOLDER, "%u", f->track->bitrate);
+
+	return buffer;
+}
+
+/**
+ * \brief Replace a string with another
+ *
+ * \warning For the sake of speed, this will copy only the first
+ *          \c FETCHER_REPLACE_FORMAT_LENGTH characters.
+ * \param  buffer  the buffer to fill
+ * \param  source  the string to process
+ * \param  search  the token to find
+ * \param  the printf token for the replacing tag (e.g. "%lu" or "%d")
+ * \param  replace the token to replace
+ * \return pointer to the string buffer
+ */
+static
+char *replace(char *buffer, const char *source, char *search,
+	const char *format, void *replace)
+{
+	char *position;
+	char specs[FETCHER_REPLACE_FORMAT_LENGTH+1];
+	/* if no match, just say hello */
+	if (!(position = strstr(source, search))) return strcpy(buffer, source);
+	/* compile format string */
+	snprintf(specs, FETCHER_REPLACE_FORMAT_LENGTH, "%s%%s", format);
+	/* replace */
+	strncpy(buffer, source, position-source);  
+	buffer[position-source] = 0;
+	sprintf(buffer+(position-source), specs, replace, position+strlen(search));
+	return buffer;
 }
 
 /* vim: set ts=4 sw=4 tw=0: */
