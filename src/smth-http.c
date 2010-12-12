@@ -29,6 +29,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <curl/curl.h>
+
 #include <smth-http-defs.h>
 
 /**
@@ -40,7 +42,7 @@
  * \param m The \c Stream from which to fetch fragments.
  * \return  FETCHER_SUCCESS on successfull operation, or an appropriate error code.
  */
-error_t SMTH_fetch(Stream *stream, count_t track_no)
+error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no)
 {
 	Fetcher f;
 	int queue, running_no = -1;
@@ -48,10 +50,12 @@ error_t SMTH_fetch(Stream *stream, count_t track_no)
 	CURLMsg *msg;
 
 	if (!stream) return FETCHER_SUCCESS;
+	if (!url) return FECTHER_NO_URL;
 
+	f.track = stream->tracks[track_no]; //TODO automatico...
 	f.stream = stream;
-	f.track = stream->tracks[track_no]; // TODO automatico...
-	f.urlmodel = "http://localhost:631/quality={bitrate}"; //XXX
+	f.urlmodel = malloc(snprintf(NULL, 0, "%s/%s", url, stream->url));
+	sprintf(f.urlmodel, "%s/%s", url, stream->url);
 
 	error = initfetcher(&f);
 	if (error) return error;
@@ -87,6 +91,59 @@ error_t SMTH_fetch(Stream *stream, count_t track_no)
 end:
 	disposefetcher(&f);
 	return error;
+}
+
+/**
+ * \brief Fetches the manifest from a given url
+ *
+ * \param url    The url from which retrieve a manifest
+ * \param params Any param necessary to invoke the url.
+ * \return       A pointer to the manifest stream, or NULL
+ */
+FILE* SMTH_fecthmanifest(const char *url, const char *params)
+{
+	CURL *handle;
+	CURLcode error;
+	char filename[] = FETCHER_MANIFEST_TEMPLATE;
+	char manifesturl[FETCHER_MAX_URL_LENGTH];
+
+	snprintf(manifesturl, FETCHER_MAX_FILENAME_LENGTH,  "%s/Manifest%c%s",
+		url, (params? '?': 0), params);
+
+	/* Open a temporary file */
+	FILE *output = tmpfile();
+
+	/* Build downloader */
+	if (!(handle = curl_easy_init())) return NULL;
+
+	/* Set the url from which to retrieve the chunk */
+	curl_easy_setopt(handle, CURLOPT_URL, manifesturl);
+	/* Write to the provided file handler */
+	curl_easy_setopt(handle, CURLOPT_WRITEDATA, output);
+	/* Use the default write function */
+	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
+	/* Some servers don't like requests without a user-agent field... */
+	curl_easy_setopt(handle, CURLOPT_USERAGENT, FETCHER_USERAGENT);
+	/* No headers written, only body. */
+	curl_easy_setopt(handle, CURLOPT_HEADER, 0L);
+	/* No verbose messages. */
+	curl_easy_setopt(handle, CURLOPT_VERBOSE, 0L);
+	/* with old versions of libcurl: no progress meter */
+	curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 1L);
+
+	if (curl_easy_perform(handle))
+	{
+		curl_easy_cleanup(handle);
+		close(output);
+		return NULL;
+	}
+
+	curl_easy_cleanup(handle);
+
+	/* Rewind the output stream */
+	rewind(output);
+	/* Reopens it in read only mode */
+	return output;
 }
 
 /*------------------------- HIC SUNT LEONES (CODICIS) ------------------------*/
@@ -142,6 +199,7 @@ static error_t disposefetcher(Fetcher *f)
 		return FETCHER_HANDLE_NOT_CLEANED;
 
 	free(f->cachedir);
+	free(f->urlmodel);
 
 	--handles;
 	if (!handles) curl_global_cleanup();
@@ -222,6 +280,8 @@ static error_t reinithandle(Fetcher *f)
 	curl_easy_setopt(handle, CURLOPT_WRITEDATA, output);
 	/* Use the default write function */
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
+	/* Store the file descriptor to close it later */
+	curl_easy_setopt(handle, CURLOPT_PRIVATE, output);
 	/* Some servers don't like requests without a user-agent field... */
 	curl_easy_setopt(handle, CURLOPT_USERAGENT, FETCHER_USERAGENT);
 	/* No headers written, only body. */
@@ -247,10 +307,14 @@ static error_t reinithandle(Fetcher *f)
  */
 static char *compileurl(Fetcher *f, char *buffer)
 {
-	replace(buffer, f->urlmodel,
+	char temp[FETCHER_MAX_URL_LENGTH]; /* FIXME find something less painful */
+
+	replace(temp, FETCHER_MAX_URL_LENGTH, f->urlmodel,
 		FETCHER_START_TIME_PLACEHOLDER, "%lu", f->nextchunk->time);
-	replace(buffer, f->urlmodel,
+	replace(buffer, FETCHER_MAX_URL_LENGTH, temp,
 		FETCHER_BITRATE_PLACEHOLDER, "%u", f->track->bitrate);
+
+	puts(buffer);
 
 	return buffer;
 }
@@ -268,7 +332,7 @@ static char *compileurl(Fetcher *f, char *buffer)
  * \return pointer to the string buffer
  */
 static
-char *replace(char *buffer, const char *source, char *search,
+char *replace(char *buffer, size_t size, const char *source, char *search,
 	const char *format, void *replace)
 {
 	char *position;
@@ -280,7 +344,8 @@ char *replace(char *buffer, const char *source, char *search,
 	/* replace */
 	strncpy(buffer, source, position-source);  
 	buffer[position-source] = 0;
-	sprintf(buffer+(position-source), specs, replace, position+strlen(search));
+	snprintf(buffer+(position-source), size, specs,
+		replace, position+strlen(search));
 	return buffer;
 }
 

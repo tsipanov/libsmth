@@ -37,6 +37,8 @@
 #define FETCHER_USERAGENT             "libsmth/0"
 /** The template for the temp directory, one per \c Track */
 #define FETCHER_DIRECTOTY_TEMPLATE    "/tmp/smth.XXXXXX"
+/** The template directory for a manifest file. */
+#define FETCHER_MANIFEST_TEMPLATE     "/tmp/smth-manifest.XXXXXX"
 
 /** The number of simultaneous transfers allowed per \c Fetcher::handle */
 #define FETCHER_MAX_TRANSFERS         10L
@@ -66,7 +68,7 @@ typedef struct
 	/** Index of the last parsed \c Chunk */
 	count_t chunk_no;
 	/** Model from which to build the retrieve url */
-	const url_t *urlmodel;
+	url_t *urlmodel;
 	/** The local path to the cache directory */
 	chardata *cachedir;
 
@@ -79,7 +81,7 @@ static error_t execfetcher(Fetcher *f);
 static error_t reinithandle(Fetcher *f);
 
 static char *compileurl(Fetcher *f, char *buffer);
-static char *replace(char *buffer, const char *source,
+static char *replace(char *buffer, size_t size, const char *source,
 	char *search, const char *format, void *replace);
 
 #endif /* __SMTH_HTTP_DEFS__ */

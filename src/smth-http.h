@@ -56,11 +56,14 @@
 #define FETCHER_NOT_CLEANED            (-35)
 /** Could not create a cache file for a chunk */
 #define FETCHER_NO_FILE                (-36)
+/** An appropriate url for \c Chunk retrieval was not specified */
+#define FECTHER_NO_URL                 (-37)
 
 /** Automatic quality setup */
 #define FETCHER_QUALITY_AUTO           (-1)
 
-error_t SMTH_fetch(Stream *stream, count_t track_no);
+error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no);
+FILE* SMTH_fecthmanifest(const char *url, const char *params);
 
 #endif /* __SMTH_HTTP_H__ */
 
