@@ -18,8 +18,8 @@ dispose_all()
 		install-sh libtool ltmain.sh \
 		src/.deps \
 		src/Makefile src/Makefile.in \
-		src/utils/.deps \
-		src/utils/Makefile src/utils/Makefile.in \
+		src/tools/.deps \
+		src/tools/Makefile src/tools/Makefile.in \
 		doc/html \
 		doc/latex
 } > /dev/null

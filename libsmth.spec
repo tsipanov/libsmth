@@ -1,7 +1,7 @@
 Name:           libsmth
 Version:        0.0.1
 Release:        1%{?dist}
-Summary:        Open Source implementation of SmoothStream(C)
+Summary:        Open Source implementation of SmoothStream ©
 
 Group:          System Environment/Libraries
 License:        GPLv2
@@ -12,6 +12,9 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 Requires:       libexpat libcurl
 
 %description
+Libsmth aims at providing an open source implementation of Microsoft's smth©
+protocol, as of the specification released on 9 August 2009.
+The implementation is covered by the Microsoft Community Promise.
 
 
 %package        devel
@@ -24,12 +27,12 @@ The %{name}-devel package contains libraries and header files for
 developing applications that use %{name}.
 
 %package        static
-Summary:        Development files for %{name}
+Summary:        Static build of %{name}
 Group:          Development/Libraries
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release}-devel
 
 %description    static
-The %{name}-devel package contains static libraries applications that
+The %{name}-static package contains static libraries applications that
 will embed %{name}.
 
 
