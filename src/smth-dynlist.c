@@ -82,6 +82,7 @@ bool SMTH_finalizelist(DynList *list)
 	if (!tmp) return false;
 	list->list = tmp;
 	list->list[list->index] = NULL;
+	list->slots = 0;
 
 	return true;
 }

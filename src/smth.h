@@ -21,61 +21,7 @@
 #ifndef __SMTH_H__
 #define __SMTH_H__
 
-/*
- * 1. Packet (`Box`) structure
- * ===========================
- *
- * Each `Fragment` contains a chunk of audio, video or text data, with a
- * metadata header. Each functional block of the fragment was named `Box`.
- * Each `Box` has a fixed structure:
- *
- *    ~-----------+------+-----------------+------------+-------------~
- *    ~ BoxLenght | Name | [BoxLongLenght] | BoxFields  | BoxChildren ~
- *    ~    4B     |  4B  |  8B (optional)  | {variable} |  {variable} ~
- *    ~-----------+------+-----------------+------------+-------------~
- *
- * where:
- *  + `Length`     is the length of the box in bytes, encoded in network format.
- *                 If the value of the field is 1, the BoxLongLength
- *                 field must be present. Otherwise, we assert that it is not
- *                 present. Size includes all the fields, even BoxLenght itself.
- *  + `Name`       is a 4B non null-terminated string identifying the type of
- *                 the block. There are seven different types, as it will be
- *                 explained in the appropriate section.
- *  + `LongLenght` is the length of the Box in bytes, encoded in network format. 
- *                 This field is present only if the size of the `Box` is larger
- *                 than BoxLenght max size (32B).
- *  + `Fields` &   are respectively the attributes and the content of the `Box`
- *    `Children`   and may vary accordingly to the role of the respective `Box`.
- *
- * The syntax of each `Box` is a strict subset of the syntax of the respective
- * Fragment Box defined in [ISOFF].
- *
- * 2. Fragment Structure
- * =====================
- *
- * As stated before, a Fragment Response is composed of various `Boxes`,
- *
- *  ~------------+------------~
- *  ~   MoofBox  |  MdatBox   ~
- *  ~ {variable} | {variable} ~
- *  ~------------+------------~
- *
- * Each `Box` must contain certain sub-Boxes, and it may contain others.
- * Any block may contain one or more `VendorExtensionUUIDBox`, as described later.
- *
- * 3. Manifest Response
- * ====================
- *
- * According to the specifications, the Manifest must be a Well-Formed XML
- * Document subject to the following constraints:
- *
- *   +The Document's XML Declaration's major version is 1.
- *   +The Document’s XML Declaration's minor version is 0.
- *   +The Document does not use a Document Type Definition (DTD).
- *   +The Document uses an encoding that is supported by the Client.
- *   +The XML Elements specified in this document do not use XML Namespaces.
- */
+int SMTH_open(const char *url, const char *params);
 
 #endif /* __SMTH_H__ */
 

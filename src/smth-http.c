@@ -39,26 +39,31 @@
  * The \c Manifest may be obtained via \c SMTH_fetchmanifest or directly parsed
  * from local media.
  *
- * \param m The \c Stream from which to fetch fragments.
- * \return  FETCHER_SUCCESS on successfull operation, or an appropriate error code.
+ * \param url     The url from which retrieve the files.
+ * \param stream  The \c Stream from which to fetch fragments.
+ * \param dirpath Pointer to the buffer to be filled with the location of a
+ *                temporary directory where files where downloaded.
+ *
+ * \warning       The returned string buffer MUST be freed.
+ * \return        Pointer to path variable, or NULL
  */
-error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no)
+char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 {
 	Fetcher f;
 	int queue, running_no = -1;
 	error_t error;
 	CURLMsg *msg;
 
-	if (!stream) return FETCHER_SUCCESS;
-	if (!url) return FECTHER_NO_URL;
+	if (!stream) return NULL;
+	if (!url) return NULL;
 
-	f.track = stream->tracks[track_no]; //TODO automatico...
+	f.track = stream->tracks[0]; //TODO automatico...
 	f.stream = stream;
 	f.urlmodel = malloc(snprintf(NULL, 0, "%s/%s", url, stream->url));
 	sprintf(f.urlmodel, "%s/%s", url, stream->url);
 
 	error = initfetcher(&f);
-	if (error) return error;
+	if (error) return NULL; //error;
 
 	while (running_no)
 	{
@@ -93,7 +98,9 @@ error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no)
 
 end:
 	disposefetcher(&f);
-	return error;
+	if (error) return NULL;
+
+	return f.cachedir;
 }
 
 /**
@@ -201,7 +208,7 @@ static error_t disposefetcher(Fetcher *f)
 	if (f->handle && curl_multi_cleanup(f->handle))
 		return FETCHER_HANDLE_NOT_CLEANED;
 
-	free(f->cachedir);
+	//free(f->cachedir);
 	free(f->urlmodel);
 
 	--handles;

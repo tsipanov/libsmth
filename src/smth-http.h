@@ -60,9 +60,9 @@
 #define FECTHER_NO_URL                 (-37)
 
 /** Automatic quality setup */
-#define FETCHER_QUALITY_AUTO           (-1)
+#define FETCHER_QUALITY_AUTO           (0)
 
-error_t SMTH_fetch(const char *url, Stream *stream, count_t track_no);
+char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate);
 FILE* SMTH_fetchmanifest(const char *url, const char *params);
 
 #endif /* __SMTH_HTTP_H__ */

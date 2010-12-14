@@ -22,13 +22,17 @@
 
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <smth-dump.h>
 #include <smth-http.h>
 
 int usage(const char *name)
 {
-	fprintf(stderr, "SMTH downloader v0.1\nusage: %s url [-m manifestname "
-		"| -d [authentication]]\n", name);
+	fprintf(stderr, "Usage: %s url [-m manifestname "
+		"| -d [authentication]]\nOptions:\n\t-m manifestname\t\tThe filename"
+		"of the manifest of the stream to be download.\n\t-d [authentication]"
+		"\tDownload manifest (with optional urlencoded GET tokens, "
+		"`authentication'\n\t-v\t\t\tPrints version number and exits.\n", name);
 	return 0;
 }
 
@@ -36,42 +40,54 @@ int main(int argc, char **argv)
 {
 	FILE *f;
 
-	if (argc < 3) return usage(argv[0]);
+	if ((argc == 2) && (!strcmp(argv[1], "-v")))
+	{	printf("SMTH downloader v0.1\n");
+		return 0;
+	}
+
+	if (argc < 2) return usage(argv[0]);
 
 	char *urlname = argv[1];
-	char *option  = argv[2];
 
-	if (!strcmp(option, "-m"))
+	if (argc == 3)
 	{
-		char *filename = argv[3];
+		char *option  = argv[2];
 
-		if (access(filename, R_OK))
+		if (!strcmp(option, "-m"))
 		{
-			fprintf(stderr, "File specified does not exist or it is not readable.\n");
-			return 0;
+			char *filename = argv[3];
+
+			if (access(filename, R_OK))
+			{
+				fprintf(stderr, "File specified does not exist or it is not readable.\n");
+				return 0;
+			}
+
+			if (argc < 4) return usage(argv[0]);
+
+			f = fopen(filename, "r");
 		}
-
-		if (argc < 4) return usage(argv[0]);
-
-		f = fopen(filename, "r");
-	}
-	else if (!strcmp(option, "-d"))
-	{
-		char *params;
-
-		switch (argc)
+		else if (!strcmp(option, "-d"))
 		{
-			case 3:
-				params = NULL; break;
-			case 4:
-				params = argv[3];break;
-			default:
-				usage(argv[0]);
-		}
+			char *params;
 
-		f = SMTH_fetchmanifest(urlname, params);
+			switch (argc)
+			{
+				case 3:
+					params = NULL; break;
+				case 4:
+					params = argv[3];break;
+				default:
+					usage(argv[0]);
+			}
+	
+			f = SMTH_fetchmanifest(urlname, params);
+		}
+		else return usage(argv[0]);
 	}
-	else return usage(argv[0]);
+	else
+	{	f = SMTH_fetchmanifest(urlname, NULL);
+	}
 
 	Manifest m;
 	error_t r = SMTH_parsemanifest(&m, f);
@@ -84,9 +100,16 @@ int main(int argc, char **argv)
 	int i;
 
 	for (i = 0; m.streams[i]; ++i)
-		SMTH_fetch(urlname, m.streams[i], 0); //FIXME track (deve essere adattivo)
+	{
+		char *dir = SMTH_fetch(urlname, m.streams[i], 0);
+		printf("[*] Stream %d saved to dir `%s'\n", i, dir);
+		free(dir);
+	}
+		
 
 	SMTH_disposemanifest(&m);
 
 	fclose(f);
+
+	return 0;
 }
