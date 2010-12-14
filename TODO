@@ -15,6 +15,7 @@
 trasformare le iterazioni su array in puntatori
 controllare la reale dimensione di %lu
 
+rimuovere files in blocco dopo un po'
 
 controllare gli errori sul atoi e che 't' sia piu` affidabile
 (tolower(attr[i + 1][0]) == 't'); semplificare

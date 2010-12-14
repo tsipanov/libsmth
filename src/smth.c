@@ -26,106 +26,126 @@
  * \date   14th December 2010
  */
 
+#include <stdlib.h>
+
 #include <smth-http.h>
 #include <smth-manifest-parser.h>
 #include <smth-common-defs.h>
 #include <smth-dynlist.h>
+#include <smth-defs.h>
 
-#include <stdlib.h>
+/**
+\mainpage libsmth internals documentation
 
-/*
- * 1. Packet (`Box`) structure
- * ===========================
- *
- * Each `Fragment` contains a chunk of audio, video or text data, with a
- * metadata header. Each functional block of the fragment was named `Box`.
- * Each `Box` has a fixed structure:
- *
- *    ~-----------+------+-----------------+------------+-------------~
- *    ~ BoxLenght | Name | [BoxLongLenght] | BoxFields  | BoxChildren ~
- *    ~    4B     |  4B  |  8B (optional)  | {variable} |  {variable} ~
- *    ~-----------+------+-----------------+------------+-------------~
- *
- * where:
- *  + `Length`     is the length of the box in bytes, encoded in network format.
- *                 If the value of the field is 1, the BoxLongLength
- *                 field must be present. Otherwise, we assert that it is not
- *                 present. Size includes all the fields, even BoxLenght itself.
- *  + `Name`       is a 4B non null-terminated string identifying the type of
- *                 the block. There are seven different types, as it will be
- *                 explained in the appropriate section.
- *  + `LongLenght` is the length of the Box in bytes, encoded in network format. 
- *                 This field is present only if the size of the `Box` is larger
- *                 than BoxLenght max size (32B).
- *  + `Fields` &   are respectively the attributes and the content of the `Box`
- *    `Children`   and may vary accordingly to the role of the respective `Box`.
- *
- * The syntax of each `Box` is a strict subset of the syntax of the respective
- * Fragment Box defined in [ISOFF].
- *
- * 2. Fragment Structure
- * =====================
- *
- * As stated before, a Fragment Response is composed of various `Boxes`,
- *
- *  ~------------+------------~
- *  ~   MoofBox  |  MdatBox   ~
- *  ~ {variable} | {variable} ~
- *  ~------------+------------~
- *
- * Each `Box` must contain certain sub-Boxes, and it may contain others.
- * Any block may contain one or more `VendorExtensionUUIDBox`, as described later.
- *
- * 3. Manifest Response
- * ====================
- *
- * According to the specifications, the Manifest must be a Well-Formed XML
- * Document subject to the following constraints:
- *
- *   +The Document's XML Declaration's major version is 1.
- *   +The Document’s XML Declaration's minor version is 0.
- *   +The Document does not use a Document Type Definition (DTD).
- *   +The Document uses an encoding that is supported by the Client.
- *   +The XML Elements specified in this document do not use XML Namespaces.
- */
+\section alfa Welcome
+This is to document thouroughly the internals of libsmth. Note that only
+internal developers should read this. If you simply wish to link against
+this lib, you may want to check out \c README.
+
+\section beta Brief introduction to Smooth Streaming key concepts
+
+\subsection anna Packet (Box) structure
+
+Each \c Fragment contains a chunk of audio, video or text data, with a
+metadata header. Each functional block of the fragment was named \c Box.
+Each \c Box has a fixed structure:
+
+\verbatim
+~-----------+------+-----------------+------------+-------------~
+~ BoxLenght | Name | [BoxLongLenght] | BoxFields  | BoxChildren ~
+~    4B     |  4B  |  8B (optional)  | {variable} |  {variable} ~
+~-----------+------+-----------------+------------+-------------~
+\endverbatim
+
+where:
+
+\li \c Length     is the length of the box in bytes, encoded in network format.
+                  If the value of the field is 1, the BoxLongLength
+                  field must be present. Otherwise, we assert that it is not
+                  present. Size includes all the fields, even BoxLenght itself.
+\li \c Name       is a 4B non null-terminated string identifying the type of
+                  the block. There are seven different types, as it will be
+                  explained in the appropriate section.
+\li \c LongLenght is the length of the Box in bytes, encoded in network format. 
+                  This field is present only if the size of the \c Box is larger
+                  than BoxLenght max size (32B).
+
+\li \c Fields&Children are respectively the attributes and the content of the
+                       \c Box and may vary accordingly to the role of the
+                       respective \c Box.
+
+The syntax of each \c Box is a strict subset of the syntax of the respective
+Fragment Box defined in [\c ISOFF].
+
+\subsection bebba Fragment Structure
+
+As stated before, a Fragment Response is composed of various \c Boxes,
+
+\verbatim
+~------------+------------~
+~   MoofBox  |  MdatBox   ~
+~ {variable} | {variable} ~
+~------------+------------~
+\endverbatim
+
+Each \c Box must contain certain sub-Boxes, and it may contain others.
+Any block may contain one or more \c VendorExtensionUUIDBox, as described later.
+
+\subsection cedda Manifest Response
+
+According to the specifications, the Manifest must be a Well-Formed \c XML
+Document subject to the following constraints:
+
+\li The Document's \c XML Declaration's major version is \c 1.
+\li The Document’s \c XML Declaration's minor version is \c 0.
+\li The Document does not use a Document Type Definition (\c DTD).
+\li The Document uses an encoding that is supported by the Client.
+\li The XML Elements specified in this document do not use \c XML Namespaces.
+
+*/
 
 /**
  * \brief Opens an url for a Smooth Stream and
  *
- * \params url    The url from which to retrieve the Smooth Stream
- * \params params Optional GET params to make the request (e.g. authentication
- *                codes, pages... etc.
+ * \param url    The url from which to retrieve the Smooth Stream
+ * \param params Optional \c GET params to make the request (e.g. authentication
+ *               codes, pages, etc...), as an urlencoded string.
  * \return
  */
-int SMTH_open(const char *url, const char *params)
+SMTH_handle *SMTH_open(const char *url, const char *params)
 {
 	FILE *mfile = SMTH_fetchmanifest(url, params);
-	Manifest manifest;
+	SMTH_handle handle;
 	DynList cachedirslist;
-	char **cachedirs;
 	count_t i;
 
-	SMTH_parsemanifest(&manifest, mfile);
+	SMTH_parsemanifest(&handle.manifest, mfile);
 	fclose(mfile);
 
 	SMTH_preparelist(&cachedirslist);
 
-	for (i = 0; manifest.streams[i]; ++i) /* if possible find something more efficient */
-		SMTH_addtolist(SMTH_fetch(url, manifest.streams[i], 0), &cachedirslist);
+	for (i = 0; handle.manifest.streams[i]; ++i) /* if possible find something more efficient */
+		SMTH_addtolist(SMTH_fetch(url, handle.manifest.streams[i], 0),
+			&cachedirslist);
 
 	SMTH_finalizelist(&cachedirslist);
-	cachedirs = cachedirslist.list;
+	/* Warning! Do not call SMTH_disposelist before the end. */
+	handle.cachedirs = (char**)cachedirslist.list;
 
 	for (i = 0; i < cachedirslist.index; ++i)
 	{
-		puts(cachedirs[i]); //TODO pipe
-		free(cachedirs[i]);
+		puts(handle.cachedirs[i]); //TODO pipe
+		free(handle.cachedirs[i]);
 	}
 
 	SMTH_disposelist(&cachedirslist);
-	SMTH_disposemanifest(&manifest);
+	SMTH_disposemanifest(&handle.manifest);
 
 	return 0;
+}
+
+void SMTH_close(SMTH_handle *handle)
+{   
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

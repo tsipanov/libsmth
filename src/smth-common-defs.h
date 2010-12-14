@@ -36,6 +36,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 typedef uint64_t tick_t;			/**< A time interval					*/
 typedef uint64_t offset_t;			/**< A memory offset					*/
@@ -60,6 +61,8 @@ typedef enum { UNDEF = 0, YES = 1, NO = 2} state_t;
 
 /* from smth-base64.c */
 error_t SMTH_unbase64(unsigned char *dest, const unsigned char *src, int srclen);
+/* from smth-error.c */
+error_t SMTH_error(error_t code, FILE *output);
 
 #endif /* __SMTH_COMMON_DEFS_H__ */
 

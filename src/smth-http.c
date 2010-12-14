@@ -79,8 +79,13 @@ char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 		{
 			if (msg->msg == CURLMSG_DONE)
 			{
+				FILE *file;
+
 				curl_easy_getinfo(msg->easy_handle, CURLINFO_SPEED_DOWNLOAD,
 					&f.downloadtime);
+				curl_easy_getinfo(msg->easy_handle, CURLOPT_PRIVATE, &file);
+				printf("< %p\n", file);
+/*				fclose(file); XXX*/
 
 				curl_multi_remove_handle(f.handle, msg->easy_handle);
 				curl_easy_cleanup(msg->easy_handle);
@@ -274,6 +279,9 @@ static error_t reinithandle(Fetcher *f)
 	if (!f->nextchunk) return FETCHER_SUCCESS;
 	/* Increase the index to dereference next chunk */
 	f->chunk_no++; /* FIXME turn to pointer operation */
+/*	Chunk *next = f->stream->chunks++; // will leak */
+/*	if (!next) return FETCHER_SUCCESS;*/
+/*	f->nextchunk = *next;*/
 
 	chunkurl = compileurl(f, urlbuffer);
 
