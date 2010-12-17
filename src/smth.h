@@ -29,10 +29,10 @@
  */
 
 /* Opaque pointer, just to hide any tentation */
-typedef void SMTH_handle;
+typedef void *SMTHh;
 
-SMTH_handle *SMTH_open(const char *url, const char *params);
-void SMTH_close(SMTH_handle *handle);
+SMTHh SMTH_open(const char *url, const char *params);
+void SMTH_close(SMTHh handle);
 
 #endif /* __SMTH_H__ */
 

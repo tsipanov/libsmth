@@ -32,7 +32,7 @@ Group:          Development/Libraries
 Requires:       %{name} = %{version}-%{release}-devel
 
 %description    static
-The %{name}-static package contains static libraries applications that
+The %{name}-static package contains static libraries for applications that
 will embed %{name}.
 
 
@@ -48,7 +48,6 @@ make %{?_smp_mflags}
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
-find $RPM_BUILD_ROOT -name '*.la' -delete
 
 
 %clean
@@ -72,6 +71,7 @@ rm -rf $RPM_BUILD_ROOT
 %doc AUTHORS BUGS TODO
 %{_includedir}/*.h
 %{_libdir}/*.so
+%{_libdir}/*.la
 
 %files static
 %defattr(-,root,root,-)

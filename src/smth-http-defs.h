@@ -61,8 +61,8 @@ typedef struct
 	CURLM *handle;
 	/** Handle to the active \c Stream */
 	Stream *stream;
-	/** Handle to the active \c Track */ /* XXX */
-	Track *track;
+	/** Maximal stream bitrate. 0 = unlimited */
+	bitrate_t maxbitrate;
 	/** Pointer to the next \c Chunk to handle */
 	Chunk *nextchunk;
 	/** Index of the last parsed \c Chunk */
@@ -81,6 +81,8 @@ static error_t disposefetcher(Fetcher *f);
 static error_t resetfetcher(Fetcher *f);
 static error_t execfetcher(Fetcher *f);
 static error_t reinithandle(Fetcher *f);
+
+static bitrate_t getbitrate(Fetcher *f);
 
 static char *compileurl(Fetcher *f, char *buffer);
 static char *replace(char *buffer, size_t size, const char *source,

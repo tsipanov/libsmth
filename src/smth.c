@@ -35,6 +35,7 @@
 #include <smth-defs.h>
 
 /**
+
 \mainpage libsmth internals documentation
 
 \section alfa Welcome
@@ -105,7 +106,8 @@ Document subject to the following constraints:
 */
 
 /**
- * \brief Opens an url for a Smooth Stream and
+ * \brief Opens an url for a Smooth Stream and registers a handle, which will
+ *        be used to fetch data with subsequent calls to \c SMTH_read
  *
  * \param url    The url from which to retrieve the Smooth Stream
  * \param params Optional \c GET params to make the request (e.g. authentication
@@ -118,6 +120,8 @@ SMTH_handle *SMTH_open(const char *url, const char *params)
 	SMTH_handle handle;
 	DynList cachedirslist;
 	count_t i;
+
+	if (!mfile) return NULL;
 
 	SMTH_parsemanifest(&handle.manifest, mfile);
 	fclose(mfile);
@@ -145,7 +149,7 @@ SMTH_handle *SMTH_open(const char *url, const char *params)
 }
 
 void SMTH_close(SMTH_handle *handle)
-{   
+{
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

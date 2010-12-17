@@ -21,7 +21,9 @@ dispose_all()
 		src/tools/.deps \
 		src/tools/Makefile src/tools/Makefile.in \
 		doc/html \
-		doc/latex
+		doc/latex \
+		doc/xml
+
 } > /dev/null
 
 # Inflates the whole system (scripts, files & macros)

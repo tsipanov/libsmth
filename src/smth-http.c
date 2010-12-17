@@ -57,7 +57,7 @@ char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 	if (!stream) return NULL;
 	if (!url) return NULL;
 
-	f.track = stream->tracks[0]; //TODO automatico...
+	f.maxbitrate = maxbitrate;
 	f.stream = stream;
 	f.urlmodel = malloc(snprintf(NULL, 0, "%s/%s", url, stream->url));
 	sprintf(f.urlmodel, "%s/%s", url, stream->url);
@@ -84,7 +84,6 @@ char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 				curl_easy_getinfo(msg->easy_handle, CURLINFO_SPEED_DOWNLOAD,
 					&f.downloadtime);
 				curl_easy_getinfo(msg->easy_handle, CURLOPT_PRIVATE, &file);
-				printf("< %p\n", file);
 /*				fclose(file); XXX*/
 
 				curl_multi_remove_handle(f.handle, msg->easy_handle);
@@ -157,7 +156,6 @@ FILE* SMTH_fetchmanifest(const char *url, const char *params)
 
 	/* Rewind the output stream */
 	rewind(output);
-	/* Reopens it in read only mode */
 	return output;
 }
 
@@ -199,6 +197,9 @@ static error_t initfetcher(Fetcher *f)
 	}
 
 	++handles;
+
+	f->downloadtime = 0.;
+
 	return FETCHER_SUCCESS;
 }
 
@@ -331,9 +332,51 @@ static char *compileurl(Fetcher *f, char *buffer)
 	replace(temp, FETCHER_MAX_URL_LENGTH, f->urlmodel,
 		FETCHER_START_TIME_PLACEHOLDER, "%lu", f->nextchunk->time);
 	replace(buffer, FETCHER_MAX_URL_LENGTH, temp,
-		FETCHER_BITRATE_PLACEHOLDER, "%u", f->track->bitrate);
+		FETCHER_BITRATE_PLACEHOLDER, "%u", getbitrate(f));
 
 	return buffer;
+}
+
+/**
+ * \brief Estimates the suitable bitrate, according to the network download speed.
+ *
+ * \param f The fetcher from which to get data
+ * \return  A suitable bitrate.
+ */
+static bitrate_t getbitrate(Fetcher *f)
+{
+	int i;
+	bitrate_t rightone = 0;
+	Track **tracks = f->stream->tracks;
+
+	for (i = 0; tracks[i]; ++i)
+	{
+		bitrate_t br = tracks[i]->bitrate;
+
+		if ((br > rightone) && (!f->maxbitrate || (br <= f->maxbitrate))
+/*		&& (!f->downloadtime || !f->nextchunk->duration*/
+/*		|| (br <= (2. * sizeof (byte_t) * f->downloadtime))*/
+		)
+		{   rightone = br;
+		}
+	}
+
+	if (!rightone) /* If can't find any, picks the smallest */
+	{
+		rightone = tracks[0]; //assuming each one has tracks...
+		for (i = 1; tracks[i]; ++i)
+		{
+			bitrate_t br = tracks[i]->bitrate;
+			if (br < rightone) rightone = br;
+		}
+
+		f->maxbitrate = rightone; /* so that this won't happen again */
+	}
+
+	printf("Bitrate:\t%d\nI/O ratio:\t%.2lf%%\n\n", rightone,
+		(200. * sizeof (byte_t) * f->downloadtime)/(double)rightone);
+
+	return rightone;
 }
 
 /**
