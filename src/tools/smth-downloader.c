@@ -3,7 +3,7 @@
  *
  * downloader.c: relying on the internal API, downloads all chunks in a Manifest
  *
- * 10th-12th July 2010 ~ 12th December 2010
+ * 10th-12th July 2010 ~ 12th/17th December 2010
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU Library General Public License as published
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
 	char *urlname = argv[1];
 
-	if (argc == 4)
+	if (argc > 2)
 	{
 		char *option  = argv[2];
 
@@ -62,7 +62,8 @@ int main(int argc, char **argv)
 
 			if (access(filename, R_OK))
 			{
-				fprintf(stderr, "File specified does not exist or it is not readable.\n\n");
+				fprintf(stderr, "Manifest file specified does not exist or it "
+					"is not readable.\n\n");
 				return usage(argv[0]);
 			}
 
@@ -79,7 +80,7 @@ int main(int argc, char **argv)
 				case 3:
 					params = NULL; break;
 				case 4:
-					params = argv[3];break;
+					params = argv[3]; break;
 				default:
 					usage(argv[0]);
 			}
@@ -114,7 +115,6 @@ int main(int argc, char **argv)
 		printf("[*] Stream %d saved to dir `%s'\n", i, dir);
 		free(dir);
 	}
-		
 
 	SMTH_disposemanifest(&m);
 
