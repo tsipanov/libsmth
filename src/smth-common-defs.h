@@ -43,11 +43,11 @@ typedef uint64_t offset_t;			/**< A memory offset					*/
 typedef uint64_t length_t;			/**< A memory length					*/
 typedef  int64_t signedlength_t;	/**< A length that can be negative. Used
 									 **  for overflow check.				*/
-typedef uint32_t shortlength_t;	    /**< Short memory length				*/
+typedef uint32_t shortlength_t;	/**< Short memory length				*/
 typedef uint32_t count_t;		    /**< An ordinal number					*/
-typedef uint32_t bitrate_t;		    /**< A bitrate or a samplerate			*/
+typedef uint32_t bitrate_t;		/**< A bitrate or a samplerate			*/
 typedef uint32_t metric_t;		    /**< Something concerning screen size   */
-typedef uint32_t tag_t;				/**< A numeric code that identifier		*/
+typedef uint32_t tag_t;			/**< A numeric code that identifier		*/
 typedef uint32_t word_t;			/**< A 32bit word						*/
 typedef uint32_t flags_t;			/**< Flags bitfield						*/
 typedef uint16_t unit_t;			/**< An atomic unit						*/

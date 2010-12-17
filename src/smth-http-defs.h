@@ -41,13 +41,15 @@
 #define FETCHER_MANIFEST_TEMPLATE     "/tmp/smth-manifest.XXXXXX"
 
 /** The number of simultaneous transfers allowed per \c Fetcher::handle */
-#define FETCHER_MAX_TRANSFERS         10L
+#define FETCHER_MAX_TRANSFERS         2L
 /** The maximum length for a filename */
 #define FETCHER_MAX_FILENAME_LENGTH   1024
 /** The maximum length for a chunk url */
 #define FETCHER_MAX_URL_LENGTH        2048
 /** The maximum length of a replace format specifier */
 #define FETCHER_REPLACE_FORMAT_LENGTH 8
+/** The maximum ratio between bitrate and download speed */
+#define FETCHER_MAX_OVERHEAD_RATIO    1.5
 
 /** The placeholder for \c Chunk::time */
 #define FETCHER_START_TIME_PLACEHOLDER "{start time}"
@@ -72,7 +74,7 @@ typedef struct
 	/** The local path to the cache directory */
 	chardata *cachedir;
 	/** The time the last download took */
-	double downloadtime;
+	bitrate_t downloadtime;
 
 } Fetcher;
 

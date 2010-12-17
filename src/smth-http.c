@@ -80,9 +80,10 @@ char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 			if (msg->msg == CURLMSG_DONE)
 			{
 				FILE *file;
+				double time = 0.;
 
-				curl_easy_getinfo(msg->easy_handle, CURLINFO_SPEED_DOWNLOAD,
-					&f.downloadtime);
+				curl_easy_getinfo(msg->easy_handle, CURLINFO_SPEED_DOWNLOAD, &time);
+				f.downloadtime = (bitrate_t)(sizeof (byte_t) * time);
 				curl_easy_getinfo(msg->easy_handle, CURLOPT_PRIVATE, &file);
 /*				fclose(file); XXX*/
 
@@ -198,7 +199,7 @@ static error_t initfetcher(Fetcher *f)
 
 	++handles;
 
-	f->downloadtime = 0.;
+	f->downloadtime = 0;
 
 	return FETCHER_SUCCESS;
 }
@@ -354,8 +355,9 @@ static bitrate_t getbitrate(Fetcher *f)
 		bitrate_t br = tracks[i]->bitrate;
 
 		if ((br > rightone) && (!f->maxbitrate || (br <= f->maxbitrate))
-/*		&& (!f->downloadtime || !f->nextchunk->duration*/
-/*		|| (br <= (2. * sizeof (byte_t) * f->downloadtime))*/
+		&& (!f->downloadtime || !f->nextchunk->duration ||
+			(br <= (FETCHER_MAX_OVERHEAD_RATIO * f->nextchunk->duration /
+				f->stream->tick * f->downloadtime)))
 		)
 		{   rightone = br;
 		}
@@ -363,7 +365,7 @@ static bitrate_t getbitrate(Fetcher *f)
 
 	if (!rightone) /* If can't find any, picks the smallest */
 	{
-		rightone = tracks[0]; //assuming each one has tracks...
+		rightone = tracks[0]; // assuming each one has at least tracks...
 		for (i = 1; tracks[i]; ++i)
 		{
 			bitrate_t br = tracks[i]->bitrate;
@@ -373,8 +375,8 @@ static bitrate_t getbitrate(Fetcher *f)
 		f->maxbitrate = rightone; /* so that this won't happen again */
 	}
 
-	printf("Bitrate:\t%d\nI/O ratio:\t%.2lf%%\n\n", rightone,
-		(200. * sizeof (byte_t) * f->downloadtime)/(double)rightone);
+	printf("%dkbps (%.2lf%% overhead ratio)\n", rightone / 1000,
+		(100. * f->nextchunk->duration / f->stream->tick * f->downloadtime)/rightone);
 
 	return rightone;
 }
