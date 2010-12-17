@@ -28,11 +28,14 @@
 
 int usage(const char *name)
 {
-	fprintf(stderr, "Usage: %s url [-m manifestname "
-		"| -d [authentication]]\nOptions:\n\t-m manifestname\t\tThe filename"
-		"of the manifest of the stream to be download.\n\t-d [authentication]"
-		"\tDownload manifest (with optional urlencoded GET tokens, "
-		"`authentication'\n\t-v\t\t\tPrints version number and exits.\n", name);
+	fprintf(stderr,
+		"Usage: %s url [-m manifestname | -d [authentication]]\n"
+		"Options:\n"
+		"\t-m manifestname\t\tThe filename of the manifest of the stream to "
+			"be downloaded.\n"
+		"\t-d [authentication]\tDownload manifest (with optional urlencoded "
+			"GET tokens, `authentication')\n"
+		"\t-v\t\t\tPrints version number and exits.\n", name);
 	return 0;
 }
 
@@ -49,7 +52,7 @@ int main(int argc, char **argv)
 
 	char *urlname = argv[1];
 
-	if (argc == 3)
+	if (argc == 4)
 	{
 		char *option  = argv[2];
 
@@ -59,8 +62,8 @@ int main(int argc, char **argv)
 
 			if (access(filename, R_OK))
 			{
-				fprintf(stderr, "File specified does not exist or it is not readable.\n");
-				return 0;
+				fprintf(stderr, "File specified does not exist or it is not readable.\n\n");
+				return usage(argv[0]);
 			}
 
 			if (argc < 4) return usage(argv[0]);
@@ -87,6 +90,12 @@ int main(int argc, char **argv)
 	}
 	else
 	{	f = SMTH_fetchmanifest(urlname, NULL);
+	}
+
+	if (!f)
+	{
+		fprintf(stderr, "Could not retrieve the stream manifest from the Internet.\n");
+		return -1;
 	}
 
 	Manifest m;
