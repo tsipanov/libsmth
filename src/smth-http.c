@@ -55,6 +55,9 @@ char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 	CURLMsg *msg;
 
 	if (!stream) return NULL;
+
+	if (stream->isembedded) return unembed(stream);
+
 	if (!url) return NULL;
 
 	f.maxbitrate = maxbitrate;
@@ -202,6 +205,23 @@ static error_t initfetcher(Fetcher *f)
 	f->downloadtime = 0;
 
 	return FETCHER_SUCCESS;
+}
+
+/**
+ * \brief Extracts and writes to cache embedded data.
+ *
+ * \param s The Stream from which to extract data.
+ * \return  Pointer to the file handle, or NULL.
+ */
+static FILE *unembed(Stream *s)
+{
+	int i;
+	for (i = 0; s->chunks[i]; ++i)
+	{
+		//TODO
+	}
+
+	return NULL;
 }
 
 /**
@@ -363,10 +383,10 @@ static bitrate_t getbitrate(Fetcher *f)
 		}
 	}
 
-	if (!rightone) /* If can't find any, picks the smallest */
+	if (!rightone) /* If can't find any, pick the smallest */
 	{
 		rightone = tracks[0]; // assuming each one has at least tracks...
-		for (i = 1; tracks[i]; ++i)
+		for (i = 0; tracks[i]; ++i)
 		{
 			bitrate_t br = tracks[i]->bitrate;
 			if (br < rightone) rightone = br;
@@ -375,8 +395,8 @@ static bitrate_t getbitrate(Fetcher *f)
 		f->maxbitrate = rightone; /* so that this won't happen again */
 	}
 
-	printf("%dkbps (%.2lf%% overhead ratio)\n", rightone / 1000,
-		(100. * f->nextchunk->duration / f->stream->tick * f->downloadtime)/rightone);
+	fprintf(stderr, "%dkbps (%.2lf%% overhead ratio)\n", rightone / 1000,
+		100. * f->nextchunk->duration / f->stream->tick * f->downloadtime /rightone);
 
 	return rightone;
 }

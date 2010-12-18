@@ -120,36 +120,63 @@ SMTH_handle *SMTH_open(const char *url, const char *params)
 	SMTH_handle handle;
 	DynList cachedirslist;
 	count_t i;
+	error_t error;
 
-	if (!mfile) return NULL;
+	if (!mfile)
+	{
+		SMTH_error(SMTH_NO_FILE_HANDLE, stderr);
+		return NULL;
+	}
 
-	SMTH_parsemanifest(&handle.manifest, mfile);
+	error = SMTH_parsemanifest(&handle.manifest, mfile);
 	fclose(mfile);
+
+	if (error)
+	{
+		SMTH_error(error, stderr);
+		return NULL;
+	}
 
 	SMTH_preparelist(&cachedirslist);
 
 	for (i = 0; handle.manifest.streams[i]; ++i) /* if possible find something more efficient */
-		SMTH_addtolist(SMTH_fetch(url, handle.manifest.streams[i], 0),
-			&cachedirslist);
+	{
+		if (!SMTH_addtolist(SMTH_fetch(url, handle.manifest.streams[i], 0),
+			&cachedirslist))
+		{
+			SMTH_error(SMTH_NO_MEMORY, stderr);
+			return NULL;
+		}
+	}
 
-	SMTH_finalizelist(&cachedirslist);
-	/* Warning! Do not call SMTH_disposelist before the end. */
+	if (!SMTH_finalizelist(&cachedirslist))
+	{
+		SMTH_error(SMTH_NO_MEMORY, stderr);
+		return NULL;
+	}
+
 	handle.cachedirs = (char**)cachedirslist.list;
 
+////////////////////////////////////////////////////////////////////////////////
 	for (i = 0; i < cachedirslist.index; ++i)
 	{
 		puts(handle.cachedirs[i]); //TODO pipe
-		free(handle.cachedirs[i]);
 	}
 
-	SMTH_disposelist(&cachedirslist);
-	SMTH_disposemanifest(&handle.manifest);
 
 	return 0;
 }
 
 void SMTH_close(SMTH_handle *handle)
 {
+	int i;
+
+	SMTH_disposemanifest(&handle->manifest);
+
+	for (i = 0; handle->cachedirs[i]; ++i)
+		free(handle->cachedirs[i]);
+
+	free(handle->cachedirs);
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

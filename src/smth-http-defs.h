@@ -84,6 +84,8 @@ static error_t resetfetcher(Fetcher *f);
 static error_t execfetcher(Fetcher *f);
 static error_t reinithandle(Fetcher *f);
 
+static FILE *unembed(Stream *s);
+
 static bitrate_t getbitrate(Fetcher *f);
 
 static char *compileurl(Fetcher *f, char *buffer);

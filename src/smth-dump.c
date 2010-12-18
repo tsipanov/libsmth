@@ -33,7 +33,7 @@
 #include <smth-dump.h>
 
 
-static const char shortbar[] = "=======================";
+static const char shortbar[] = "========================";
 static const char  longbar[] = "==========================================\
 ==================";
 

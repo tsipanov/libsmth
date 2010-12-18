@@ -29,6 +29,11 @@
  * \date   11th July 2010
  */
 
+/** Could not open a blocking file handle for the Manifest */
+#define SMTH_NO_FILE_HANDLE (-38)
+/** No more memory to allocate data */
+#define SMTH_NO_MEMORY      (-39)
+
 /** \brief Holds the pseudofile handle for a given stream
  *
  *  This is redeclared as an opaque \c pointer in the public header file.

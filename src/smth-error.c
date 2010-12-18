@@ -29,6 +29,7 @@
 #include <smth-fragment-parser.h>
 #include <smth-manifest-parser.h>
 #include <smth-http.h>
+#include <smth-defs.h>
 
 /**
  * \brief Prints a readable error message for each error code.
@@ -162,6 +163,13 @@ error_t SMTH_error(error_t code, FILE *output)
 		case FECTHER_NO_URL: /* -37 */
 			fputs("An appropriate url for chunk retrieval was not "
 				"specified.", output);
+			break;
+		case SMTH_NO_FILE_HANDLE:
+			fputs("Could not open a blocking file handle for the Manifest",
+				output);
+			break;
+		case SMTH_NO_MEMORY:
+			fputs("No more memory to allocate data", output);
 			break;
 		default:
 			fputs("Unknown error code.", output);
