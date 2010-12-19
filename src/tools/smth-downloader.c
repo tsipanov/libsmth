@@ -105,7 +105,8 @@ int main(int argc, char **argv)
 	error_t r = SMTH_parsemanifest(&m, f);
 
 	if (r != MANIFEST_SUCCESS)
-	{	fprintf(stderr, "Error n.%d\n", r);
+	{
+		SMTH_error(r, stderr);
 		return 1;
 	}
 

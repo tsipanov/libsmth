@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <smth-dump.h>
+#include <smth-common-defs.h>
 
 int main(int argc, char **argv)
 {
@@ -46,7 +47,8 @@ int main(int argc, char **argv)
 	error_t r = SMTH_parsemanifest(&m, f);
 
 	if (r != MANIFEST_SUCCESS)
-	{	fprintf(stderr, "Error n.%d\n", r);
+	{
+		SMTH_error(r, stderr);
 		return 1;
 	}
 

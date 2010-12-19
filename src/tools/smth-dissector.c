@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <smth-dump.h>
+#include <smth-common-defs.h>
 
 int main(int argc, char **argv)
 {
@@ -49,7 +50,8 @@ int main(int argc, char **argv)
 
 		error_t exitcode = SMTH_parsefragment(&vc, input);
 		if (exitcode != FRAGMENT_SUCCESS)
-		{	printf("Error no.%d!\n", exitcode);
+		{
+			SMTH_error(exitcode, stderr);
 			return 1;
 		}
 
