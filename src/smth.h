@@ -30,7 +30,7 @@
 
 #include <stdio.h>
 
-/* Opaque pointer, just to hide any tentation */
+/** \brief Pseudofile handle, declared as an opaque pointer to hide any tentation */
 typedef void *SMTHh;
 
 SMTHh SMTH_open(const char *url, const char *params);

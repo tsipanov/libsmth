@@ -103,6 +103,47 @@ Document subject to the following constraints:
 \li The Document uses an encoding that is supported by the Client.
 \li The XML Elements specified in this document do not use \c XML Namespaces.
 
+\section gamma Quick overview
+
+\subsection abba Public API
+
+The main API exposed by libsmth is composed of three functions:
+\li \c SMTH_open : Opens a stream with the given url and params
+\li \c SMTH_read : Performs a read on the pseudofile object returned by SMTH_open
+\li \c SMTH_close : Closes the handle.
+Note that SMTHh is \e not a \c FILE like object: it \e must be destroyed with a
+call to SMTH_close.
+
+\subsection dadda Example
+
+Here is a tiny example of how the lib may be used to read a single chunk from
+a given stream:
+
+\code
+#include <smth.h>
+
+int main()
+{
+	SMTHh h;
+	char a[8192];
+	size_t written = -1;
+
+	h = SMTH_open("http://streaming.server.xyz/videoclip.isml", 0);
+
+	while (written)
+	{
+		written = SMTH_read(a, sizeof (a), 0, h);
+		fwrite(a, written, 1, stdout);
+	}
+
+	SMTH_close(h);
+
+	return 0;
+}
+\endcode
+
+Usage is self-explanatory. Should you need more power, you can rely on the
+internal API, as documented below.
 */
 
 /**
@@ -190,7 +231,11 @@ Handle *SMTH_open(const char *url, const char *params)
  * \brief Reads at most size bytes from \c Stream \c stream into \c buffer
  *        using \c Handle \c h
  *
- * \return the number of bytes effectively read (0, in case of error)
+ * Read past the end of a fragment will return \c 0, and subsequent reads
+ * will return the next chunk. The input stream is empty when two or more subsequent
+ * calls return a \c 0 value.
+ *
+ * \return the number of bytes effectively read (0, in case of error or \c EOS)
  */
 size_t SMTH_read(void *buffer, size_t size, int stream, Handle *handle)
 {
