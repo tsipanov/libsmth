@@ -28,10 +28,13 @@
  * \date   14th December 2010
  */
 
+#include <stdio.h>
+
 /* Opaque pointer, just to hide any tentation */
 typedef void *SMTHh;
 
 SMTHh SMTH_open(const char *url, const char *params);
+size_t SMTH_read(void *buffer, size_t size, int stream, SMTHh handle);
 void SMTH_close(SMTHh handle);
 
 #endif /* __SMTH_H__ */

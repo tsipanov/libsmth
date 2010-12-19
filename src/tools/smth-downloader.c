@@ -26,6 +26,8 @@
 #include <smth-dump.h>
 #include <smth-http.h>
 
+#include <errno.h>
+
 int usage(const char *name)
 {
 	fprintf(stderr,
@@ -111,8 +113,22 @@ int main(int argc, char **argv)
 
 	for (i = 0; m.streams[i]; ++i)
 	{
+		char newdir[96];
+
 		char *dir = SMTH_fetch(urlname, m.streams[i], 0);
-		printf("[*] Stream %d saved to dir `%s'\n", i, dir);
+		if (!dir)
+		{
+			fprintf(stderr, "Could not save stream %d!", i);
+			exit(-1);
+		}
+
+		snprintf(newdir, sizeof(newdir), "./smth-download/%d", i);
+		if (0 > rename(dir, newdir)) /* FIXME will always fail -.- */
+		{
+			perror("Could not move saved streams to current dir");
+			fprintf(stderr,"Files are to be found in %s\n\n", dir);
+		}
+
 		free(dir);
 	}
 

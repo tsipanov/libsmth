@@ -33,6 +33,7 @@
 #include <smth-common-defs.h>
 #include <smth-dynlist.h>
 #include <smth-defs.h>
+#include <smth.h>
 
 /**
 
@@ -114,13 +115,13 @@ Document subject to the following constraints:
  *               codes, pages, etc...), as an urlencoded string.
  * \return
  */
-SMTH_handle *SMTH_open(const char *url, const char *params)
+SMTHh SMTH_open(const char *url, const char *params)
 {
-	FILE *mfile = SMTH_fetchmanifest(url, params);
-	SMTH_handle handle;
-	DynList cachedirslist;
+	DynList cachelist;
 	count_t i;
 	error_t error;
+
+	FILE *mfile = SMTH_fetchmanifest(url, params);
 
 	if (!mfile)
 	{
@@ -128,7 +129,15 @@ SMTH_handle *SMTH_open(const char *url, const char *params)
 		return NULL;
 	}
 
-	error = SMTH_parsemanifest(&handle.manifest, mfile);
+	Handle *handle = malloc(sizeof (Handle));
+
+	if (!handle)
+	{
+		SMTH_error(SMTH_NO_MEMORY, stderr);
+		return NULL;
+	}
+
+	error = SMTH_parsemanifest(&handle->manifest, mfile);
 	fclose(mfile);
 
 	if (error)
@@ -137,46 +146,115 @@ SMTH_handle *SMTH_open(const char *url, const char *params)
 		return NULL;
 	}
 
-	SMTH_preparelist(&cachedirslist);
+	SMTH_preparelist(&cachelist);
 
-	for (i = 0; handle.manifest.streams[i]; ++i) /* if possible find something more efficient */
+	for (i = 0; handle->manifest.streams[i]; ++i) /* if possible find something more efficient */ // thread
 	{
-		if (!SMTH_addtolist(SMTH_fetch(url, handle.manifest.streams[i], 0),
-			&cachedirslist))
+		StreamHandle *streamh = malloc(sizeof (StreamHandle));
+		if (!streamh)
+		{
+			SMTH_error(SMTH_NO_MEMORY, stderr); //will leak
+			return NULL;
+		}
+
+		streamh->cachedir = SMTH_fetch(url, handle->manifest.streams[i], 0);
+		if (!streamh->cachedir)
+		{
+			SMTH_error(SMTH_NO_MEMORY, stderr); //will leak
+			return NULL;
+		}
+			
+		streamh->index = 0;
+		streamh->active = NULL;
+
+		if (!SMTH_addtolist(streamh, &cachelist))
 		{
 			SMTH_error(SMTH_NO_MEMORY, stderr);
 			return NULL;
 		}
 	}
 
-	if (!SMTH_finalizelist(&cachedirslist))
+	handle->streamsno =  cachelist.index;
+
+	if (!SMTH_finalizelist(&cachelist))
 	{
 		SMTH_error(SMTH_NO_MEMORY, stderr);
 		return NULL;
 	}
 
-	handle.cachedirs = (char**)cachedirslist.list;
+	handle->streams = (StreamHandle**)cachelist.list;
 
-////////////////////////////////////////////////////////////////////////////////
-	for (i = 0; i < cachedirslist.index; ++i)
-	{
-		puts(handle.cachedirs[i]); //TODO pipe
-	}
-
-
-	return 0;
+	return handle;
 }
 
-void SMTH_close(SMTH_handle *handle)
+/**
+ * \brief
+ *
+ *
+ * \return
+ */
+size_t SMTH_read(void *buffer, size_t size, int stream, SMTHh h)
+{
+	Handle *handle = (Handle*) h;
+
+	if (stream >= handle->streamsno) return 0;
+	
+	StreamHandle *streams = handle->streams[stream];
+	printf("%d\n", streams->index);
+
+	if (!streams->active)
+	{
+	}
+}
+
+/*		char filename[SMTH_MAX_FILENAME_LENGHT];*/
+/*		snprintf(filename, SMTH_MAX_FILENAME_LENGHT, "%s/%s",*/
+/*			h->cachedir, h->index);*/
+
+/*		puts(filename);*/
+
+/*		FILE* input = fopen(filename, "rx"); FIXME ifdefined GLIBC */
+/*		if (!input) return 0;*/
+/*		if (SMTH_parsefragment(h->active, input) != FRAGMENT_SUCCESS)*/
+/*			return 0;*/
+/*		fclose(input);*/
+/*		++h->chunks[handle->index[stream]];*/
+
+/*
+leggi al più la payload (fragment->size fragment->data)
+copia con memcpy (e memorizza nuovo offset)
+*/
+
+/*	for( i = 0; i < vc->sampleno; i++)*/
+/*	{*/
+/*		int size = vc->samples[i].size;*/
+/*		FILE *output = fopen(ofile, "wb");*/
+/*		fwrite(&(vc->data[offset]), sizeof (byte_t), size, output);*/
+/*		offset += size;*/
+/*		fclose(output);*/
+/*	}*/
+
+/**
+ * \brief Closes a SMTHh handle.
+ *
+ * \param handle The handle to be disposed of properly.
+ */
+void SMTH_close(SMTHh h)
 {
 	int i;
 
+	Handle *handle = (Handle*)h;
+
 	SMTH_disposemanifest(&handle->manifest);
 
-	for (i = 0; handle->cachedirs[i]; ++i)
-		free(handle->cachedirs[i]);
+	for (i = 0; i < handle->streamsno; ++i)
+	{
+		free(handle->streams[i]->cachedir);
+		free(handle->streams[i]);
+	}
 
-	free(handle->cachedirs);
+	free(handle->streams);
+	free(handle);
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

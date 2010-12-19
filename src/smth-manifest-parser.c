@@ -121,6 +121,8 @@ error_t SMTH_parsemanifest(Manifest *m, FILE *stream)
  */
 void SMTH_disposemanifest(Manifest* m)
 {   
+	if (!m) return;
+
 	if (m->armor)
 	{   disposeembedded(m->armor);
 		free(m->armor);

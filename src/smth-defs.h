@@ -29,10 +29,27 @@
  * \date   11th July 2010
  */
 
+#include <smth-fragment-parser.h>
+#include <smth-manifest-parser.h>
+
 /** Could not open a blocking file handle for the Manifest */
 #define SMTH_NO_FILE_HANDLE (-38)
 /** No more memory to allocate data */
 #define SMTH_NO_MEMORY      (-39)
+
+/** The maximum lenght admittable for a file name */
+#define SMTH_MAX_FILENAME_LENGHT 2048
+
+typedef struct
+{
+	/** Pointer to the active \c Fragment structure */
+	Fragment *active;
+	/** Active \s Chunk index in \c Stream */
+	tick_t index;
+	/** Path to temporary dir. \c NULL terminated. */
+	char *cachedir;
+
+} StreamHandle;
 
 /** \brief Holds the pseudofile handle for a given stream
  *
@@ -42,12 +59,12 @@ typedef struct
 {
 	/** Manifest of the current Smooth Stream */
 	Manifest manifest;
-	/** Path to temporary dirs, one per stream. NULL terminated. */
-	char **cachedirs;
+	/** Streams handlers */
+	StreamHandle **streams;
+	/** Number of active streams (for safety) */
+	count_t streamsno;
 
 } Handle;
-
-typedef Handle SMTH_handle;
 
 #endif /* __SMTH_DEFS_H__ */
 

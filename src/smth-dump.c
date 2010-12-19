@@ -235,7 +235,7 @@ void SMTH_dumppayload(Fragment* vc, char* ifile)
 		mkdir(ofile, 0755);
 		sprintf(ofile, "%s.d/%04d.vc1", ifile, i);
 		int size = vc->samples[i].size;
-		FILE *output = fopen(ofile, "wb");
+		FILE *output = fopen(ofile, "wx");
 		fwrite(&(vc->data[offset]), sizeof (byte_t), size, output);
 		offset += size;
 		fclose(output);
