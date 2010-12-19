@@ -62,6 +62,19 @@
 /** Automatic quality setup */
 #define FETCHER_QUALITY_AUTO           (0)
 
+#if 0
+/** \brief Holds metadata for fetched streams */
+typedef struct
+{
+	/** A \c NULL terminated array pointing to the tracks indices
+	 *  relative to each chunk
+	 */
+	count_t *track;
+	/** The name of the temporary dir in which all files are stored */
+	char *dirname;
+} FetchedStream
+#endif
+
 char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate);
 FILE* SMTH_fetchmanifest(const char *url, const char *params);
 

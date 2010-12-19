@@ -96,10 +96,15 @@ error_t SMTH_parsefragment(Fragment *f, FILE *stream)
 void SMTH_disposefragment(Fragment *f)
 {
 	int i;
-	for(i = 0; f->extensions[i]; i++)
-	{   free(f->extensions[i]->data);
-		free(f->extensions[i]);
+
+	if (f->extensions)
+	{
+		for(i = 0; f->extensions[i]; i++)
+		{   free(f->extensions[i]->data);
+			free(f->extensions[i]);
+		}
 	}
+
 	if (f->data) free(f->data);
 	if (f->samples) free(f->samples);
 	if (f->extensions) free(f->extensions);
@@ -627,8 +632,10 @@ static error_t parseuuid(Box* root)
 	tmp->data = tmpdata;
 
 	if (!SMTH_addtolist(tmp, &root->extlist))
-	{   free(tmp);
+	{
+		free(tmp);
 		free(tmpdata);
+		SMTH_disposelist(&root->extlist);
 		return FRAGMENT_NO_MEMORY;
 	}
 

@@ -310,7 +310,7 @@ static error_t reinithandle(Fetcher *f)
 	/* Build and open cache file */
 	snprintf(filename, FETCHER_MAX_FILENAME_LENGTH,  "%s/%lu",
 		f->cachedir, f->nextchunk->time);
-	output = fopen(filename, "w");
+	output = fopen(filename, "wx"); /* FIXME with GLIBC */
 	if (!output) return FETCHER_NO_FILE;
 
 	/* Build downloader */
@@ -336,6 +336,7 @@ static error_t reinithandle(Fetcher *f)
 	{   curl_easy_cleanup(handle);
 		return FECTHER_HANDLE_NOT_ADDED;
 	}
+
 
 	return FETCHER_SUCCESS;
 }
@@ -395,8 +396,8 @@ static bitrate_t getbitrate(Fetcher *f)
 		f->maxbitrate = rightone; /* so that this won't happen again */
 	}
 
-	fprintf(stderr, "%dkbps (%.2lf%% overhead ratio)\n", rightone / 1000,
-		100. * f->nextchunk->duration / f->stream->tick * f->downloadtime /rightone);
+/*	fprintf(stderr, "%dkbps (%.2lf%% overhead ratio)\n", rightone / 1000,*/
+/*		100. * f->nextchunk->duration / f->stream->tick * f->downloadtime /rightone);*/
 
 	return rightone;
 }

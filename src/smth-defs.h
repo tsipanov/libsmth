@@ -42,12 +42,18 @@
 
 typedef struct
 {
-	/** Pointer to the active \c Fragment structure */
-	Fragment *active;
+	/** The active \c Fragment structure */
+	Fragment active;
+	/** Whether a new fragment needs to be parsed */
+	bool parsed;
 	/** Active \s Chunk index in \c Stream */
 	tick_t index;
 	/** Path to temporary dir. \c NULL terminated. */
 	char *cachedir;
+	/** Cursor position into the payload */
+	char* cursor;
+	/** Remaining payload bytes count */
+	size_t remaining;
 
 } StreamHandle;
 

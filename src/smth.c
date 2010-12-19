@@ -33,7 +33,6 @@
 #include <smth-common-defs.h>
 #include <smth-dynlist.h>
 #include <smth-defs.h>
-#include <smth.h>
 
 /**
 
@@ -115,7 +114,7 @@ Document subject to the following constraints:
  *               codes, pages, etc...), as an urlencoded string.
  * \return
  */
-SMTHh SMTH_open(const char *url, const char *params)
+Handle *SMTH_open(const char *url, const char *params)
 {
 	DynList cachelist;
 	count_t i;
@@ -165,7 +164,7 @@ SMTHh SMTH_open(const char *url, const char *params)
 		}
 			
 		streamh->index = 0;
-		streamh->active = NULL;
+		streamh->parsed = false;
 
 		if (!SMTH_addtolist(streamh, &cachelist))
 		{
@@ -188,62 +187,67 @@ SMTHh SMTH_open(const char *url, const char *params)
 }
 
 /**
- * \brief
+ * \brief Reads at most size bytes from \c Stream \c stream into \c buffer
+ *        using \c Handle \c h
  *
- *
- * \return
+ * \return the number of bytes effectively read (0, in case of error)
  */
-size_t SMTH_read(void *buffer, size_t size, int stream, SMTHh h)
+size_t SMTH_read(void *buffer, size_t size, int stream, Handle *handle)
 {
-	Handle *handle = (Handle*) h;
+	size_t writtens = 0;
 
 	if (stream >= handle->streamsno) return 0;
 	
-	StreamHandle *streams = handle->streams[stream];
-	printf("%d\n", streams->index);
+	StreamHandle *s = handle->streams[stream];
 
-	if (!streams->active)
+	/* If this is over... */
+	if (!s->remaining && s->parsed)
 	{
+		SMTH_disposefragment(&s->active);
+		s->parsed = false;
+		return 0;
 	}
+
+	if (!s->parsed)
+	{
+		/* If everything is over... */
+		if (!handle->manifest.streams[stream]->chunks[s->index]) return 0;
+
+		char filename[SMTH_MAX_FILENAME_LENGHT];
+		snprintf(filename, SMTH_MAX_FILENAME_LENGHT, "%s/%lu", s->cachedir,
+			handle->manifest.streams[stream]->chunks[s->index]->time);
+
+		fcloseall(); /* XXX workaround... stupid CURLOPT_PRIVATE */
+
+		FILE* input = fopen(filename, "rx"); /* FIXME ifdefined GLIBC */
+		if (!input) return 0;
+
+		if (SMTH_parsefragment(&s->active, input) != FRAGMENT_SUCCESS)
+			return 0;
+
+		fclose(input);
+		s->remaining = s->active.size;
+		s->cursor = s->active.data;
+		s->parsed = true;
+		s->index++;
+	}
+
+	writtens = size < s->remaining? size: s->remaining;
+	memcpy(buffer, s->cursor, writtens);
+	s->cursor = &s->cursor[writtens]; /* seek the stream */
+	s->remaining -= writtens;
+
+	return writtens;
 }
-
-/*		char filename[SMTH_MAX_FILENAME_LENGHT];*/
-/*		snprintf(filename, SMTH_MAX_FILENAME_LENGHT, "%s/%s",*/
-/*			h->cachedir, h->index);*/
-
-/*		puts(filename);*/
-
-/*		FILE* input = fopen(filename, "rx"); FIXME ifdefined GLIBC */
-/*		if (!input) return 0;*/
-/*		if (SMTH_parsefragment(h->active, input) != FRAGMENT_SUCCESS)*/
-/*			return 0;*/
-/*		fclose(input);*/
-/*		++h->chunks[handle->index[stream]];*/
-
-/*
-leggi al più la payload (fragment->size fragment->data)
-copia con memcpy (e memorizza nuovo offset)
-*/
-
-/*	for( i = 0; i < vc->sampleno; i++)*/
-/*	{*/
-/*		int size = vc->samples[i].size;*/
-/*		FILE *output = fopen(ofile, "wb");*/
-/*		fwrite(&(vc->data[offset]), sizeof (byte_t), size, output);*/
-/*		offset += size;*/
-/*		fclose(output);*/
-/*	}*/
 
 /**
  * \brief Closes a SMTHh handle.
  *
  * \param handle The handle to be disposed of properly.
  */
-void SMTH_close(SMTHh h)
+void SMTH_close(Handle *handle)
 {
 	int i;
-
-	Handle *handle = (Handle*)h;
 
 	SMTH_disposemanifest(&handle->manifest);
 
