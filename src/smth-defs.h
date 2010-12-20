@@ -39,6 +39,8 @@
 
 /** The maximum lenght admittable for a file name */
 #define SMTH_MAX_FILENAME_LENGHT 2048
+/** The string returned if a \c Stream has no name */
+#define SMTH_UNNAMED_STREAM      "(no name)"
 
 typedef struct
 {
@@ -54,7 +56,8 @@ typedef struct
 	char* cursor;
 	/** Remaining payload bytes count */
 	size_t remaining;
-
+	/** Whether the read is over */
+	bool EOS;
 } StreamHandle;
 
 /** \brief Holds the pseudofile handle for a given stream

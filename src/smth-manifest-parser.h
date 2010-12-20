@@ -113,15 +113,15 @@ typedef struct
 	/** Data that specifies parameters specific to the media format and common
 	 *  to all samples in the track.
 	 *  The meaning of each sequence is correlated to the FourCC type, as follows:
-	 *    + "H264": hex-coded string of the following byte sequence:
-	 *           %x00 %x00 %x00 %x01 SPSField %x00 %x00 %x00 %x01 SPSField
-	 *              SPSField contains the Sequence Parameter Set (SPS).
-	 *              PPSField contains the Slice Parameter Set (PPS).
-	 *    + "WVC1": hex-coded string of the VIDEOINFOHEADER structure.
-	 *    + "AACL": should be empty.
-	 *    + "WMAP": WAVEFORMATEX structure, if the AudioTag field equals "65534",
-	 *				and should be empty otherwise.
-	 *    +  other: the format of the CodecPrivateData field is vendor-extensible.
+	 *    \li \c "H264": hex-coded string of the following byte sequence:
+	 *                   %x00 %x00 %x00 %x01 SPSField %x00 %x00 %x00 %x01 SPSField
+	 *                   SPSField contains the Sequence Parameter Set (SPS).
+	 *                   PPSField contains the Slice Parameter Set (PPS).
+	 *    \li \c "WVC1": hex-coded string of the VIDEOINFOHEADER structure.
+	 *    \li \c "AACL": should be empty.
+	 *    \li \c "WMAP": WAVEFORMATEX structure, if the AudioTag field equals "65534",
+	 *				     and should be empty otherwise.
+	 *    \li  other: the format of the CodecPrivateData field is vendor-extensible.
 	 *              Registration of the FourCC field value with MPEG4-RA, can be
 	 *              used to avoid collision between extensions.
 	 */

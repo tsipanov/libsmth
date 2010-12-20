@@ -27,12 +27,17 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+
+#define __COMPILING_LIBSMTH__
 
 #include <smth-http.h>
 #include <smth-manifest-parser.h>
 #include <smth-common-defs.h>
 #include <smth-dynlist.h>
 #include <smth-defs.h>
+#include <smth.h>
 
 /**
 
@@ -120,21 +125,40 @@ Here is a tiny example of how the lib may be used to read a single chunk from
 a given stream:
 
 \code
+#include <stdio.h>
 #include <smth.h>
 
 int main()
 {
 	SMTHh h;
-	char a[8192];
-	size_t written = -1;
+	char buffer[8192];
+	int i, fragnum = 0;
+	char *name;
 
-	h = SMTH_open("http://streaming.server.xyz/videoclip.isml", 0);
+	h = SMTH_open("http://secondary.adaptiveedge.rai.it/mediapolis11.isml", 0);
 
-	while (written)
+	if (!h) return -1;
+
+	for (i = 0; !SMTH_EOS(h, i); ++i)
 	{
-		written = SMTH_read(a, sizeof (a), 0, h);
-		fwrite(a, written, 1, stdout);
+		size_t written = -1;
+
+		char filename[100];
+		snprintf(filename, 100, "fragment-%d.vc1", fragnum++);
+		FILE *output = fopen(filename, "w");
+
+		while (written)
+		{
+			written = SMTH_read(buffer, sizeof (buffer), i, h);
+			fwrite(buffer, written, 1, output);
+		}
+
+		fclose(output);
 	}
+
+	SMTH_getinfo(SMTH_NAME, h, 0, &name);
+	fprintf(stderr, "Downloaded first chunk from stream %s\n", name);
+	free(name); // this is very important! it's up to you to free strings
 
 	SMTH_close(h);
 
@@ -153,7 +177,7 @@ internal API, as documented below.
  * \param url    The url from which to retrieve the Smooth Stream
  * \param params Optional \c GET params to make the request (e.g. authentication
  *               codes, pages, etc...), as an urlencoded string.
- * \return
+ * \return       A pseudofile handle to perform subsequent calls, or \c NULL
  */
 Handle *SMTH_open(const char *url, const char *params)
 {
@@ -186,6 +210,11 @@ Handle *SMTH_open(const char *url, const char *params)
 		return NULL;
 	}
 
+	if (!handle->manifest.streams)
+	{
+		return NULL;
+	}
+
 	SMTH_preparelist(&cachelist);
 
 	for (i = 0; handle->manifest.streams[i]; ++i) /* if possible find something more efficient */ // thread
@@ -206,6 +235,7 @@ Handle *SMTH_open(const char *url, const char *params)
 			
 		streamh->index = 0;
 		streamh->parsed = false;
+		streamh->EOS = false;
 
 		if (!SMTH_addtolist(streamh, &cachelist))
 		{
@@ -256,7 +286,11 @@ size_t SMTH_read(void *buffer, size_t size, int stream, Handle *handle)
 	if (!s->parsed)
 	{
 		/* If everything is over... */
-		if (!handle->manifest.streams[stream]->chunks[s->index]) return 0;
+		if (!handle->manifest.streams[stream]->chunks[s->index])
+		{
+			s->EOS = true;
+			return 0;
+		}
 
 		char filename[SMTH_MAX_FILENAME_LENGHT];
 		snprintf(filename, SMTH_MAX_FILENAME_LENGHT, "%s/%lu", s->cachedir,
@@ -265,6 +299,7 @@ size_t SMTH_read(void *buffer, size_t size, int stream, Handle *handle)
 		fcloseall(); /* XXX workaround... stupid CURLOPT_PRIVATE */
 
 		FILE* input = fopen(filename, "rx"); /* FIXME ifdefined GLIBC */
+		unlink(filename); /* will be removed after fclose() */
 		if (!input) return 0;
 
 		if (SMTH_parsefragment(&s->active, input) != FRAGMENT_SUCCESS)
@@ -298,12 +333,145 @@ void SMTH_close(Handle *handle)
 
 	for (i = 0; i < handle->streamsno; ++i)
 	{
+		unlink(handle->streams[i]->cachedir); /* will delete empty cache dirs */
 		free(handle->streams[i]->cachedir);
 		free(handle->streams[i]);
 	}
 
 	free(handle->streams);
 	free(handle);
+}
+
+/**
+ * \brief Signals whether a stream is over.
+ *
+ * \param handle The handle to be tested
+ * \param stream The index of the stream to be tested
+ * \return       Non zero if the stream is over.
+ */
+int SMTH_EOS(Handle *handle, count_t stream)
+{
+	if (stream >= handle->streamsno) return 1;
+	return handle->streams[stream]->EOS;
+}
+
+/**
+ * \brief Gets the specified setting value for currently parsed stream and
+ *        stores it into \c destination. If an invalid setting is requested,
+ *        \c dest is nulled.
+ *
+ * \param what The setting to retrieve
+ * \param handle The handle to be tested
+ * \param stream The index of the stream to be tested
+ * \param dest Pointer to an appropriate memory area to store the requested setting
+ */
+void SMTH_getinfo(SMTH_setting what, Handle *handle, count_t stream, ...)
+{
+	va_list args;
+
+	bitrate_t *dest_bitrate;
+	unit_t *dest_unit;
+	chardata **dest_char;
+	hexdata **dest_hex;
+	metric_t *dest_metrics;
+	flags_t *dest_flags;
+	StreamType *dest_type;
+
+	if (stream >= handle->streamsno) return;
+
+	va_start(args, stream);
+
+	Stream *astream = handle->manifest.streams[stream];
+	Track *atrack = astream->tracks[0]; //FIXME FIRST select correct one
+
+	switch (what)
+	{
+		case SMTH_BITRATE:
+			dest_bitrate  = va_arg(args, bitrate_t*);
+			*dest_bitrate = atrack->bitrate;
+			break;
+
+		case SMTH_AUDIO_PACKET_SIZE:
+			dest_bitrate  = va_arg(args, bitrate_t*);
+			*dest_bitrate = atrack->packetsize;
+			break;
+
+		case SMTH_AUDIO_SAMPLE_RATE:
+			dest_bitrate  = va_arg(args, bitrate_t*);
+			*dest_bitrate = atrack->samplerate;
+			break;
+
+		case SMTH_AUDIO_TAG:
+			dest_flags  = va_arg(args, flags_t*);
+			*dest_flags = atrack->audiotag;
+			break;
+
+		case SMTH_AUDIO_CHANNELS:
+			dest_unit = va_arg(args, unit_t*);
+			*dest_unit = atrack->channelsno;
+			break;
+
+		case SMTH_AUDIO_SAMPLE_SIZE:
+			dest_unit = va_arg(args, unit_t*);
+			*dest_unit = atrack->bitspersample;
+			break;
+
+		case SMTH_NAL_UNIT_LENGTH:
+			dest_unit = va_arg(args, unit_t*);
+			*dest_unit = atrack->nalunitlength;
+			break;
+
+		case SMTH_FOURCC:
+			dest_char = va_arg(args, chardata**);
+			*dest_char = strdup(atrack->fourcc);
+			break;
+
+		case SMTH_HEADER:
+			dest_hex = va_arg(args, hexdata**);
+			*dest_hex = strdup(atrack->header);  //FIXME unhexlify
+			break;
+
+		case SMTH_SCREENSIZE:
+			dest_metrics = va_arg(args, metric_t*);
+			memcpy(dest_metrics, &atrack->maxsize, sizeof (ScreenMetrics));
+			break;
+
+		case SMTH_TYPE:
+			dest_type = va_arg(args, StreamType*);
+			*dest_type = astream->type;
+			break;
+
+		case SMTH_NAME:
+			dest_char  = va_arg(args, chardata**);
+			*dest_char = strdup(astream->name? astream->name: SMTH_UNNAMED_STREAM);
+			break;
+
+		default:
+			dest_char = va_arg(args, chardata**);
+			*dest_char = NULL;
+			return;
+	}
+
+	va_end(args);
+
+#if 0
+	Manifest: TODO
+
+	/** The suggested display size of a video sample, in pixels. */
+	ScreenMetrics bestsize;
+	/** A four-character code that identifies the intended use category for
+	 *  each sample in a text track. However, the FourCC field, is used to
+	 *  identify the media format for each sample.
+	 */
+	chardata subtype[MANIFEST_STREAM_SUBTYPE_SIZE+1];
+	/** A UUID that uniquely identifies the Content Protection System.
+	 *  For instance: \c {9A04F079-9840-4286-AB92E65BE0885F95}
+	 */
+	uuid_t armorID;
+	/** Opaque data that can use to enable playback for authorized users */
+	EmbeddedData *armor;
+#endif
+
 }
 
 /* vim: set ts=4 sw=4 tw=0: */

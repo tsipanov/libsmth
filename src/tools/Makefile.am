@@ -2,4 +2,4 @@
 AM_CFLAGS = -I..
 LDADD  = ../libsmth.la
 
-bin_PROGRAMS = smth-dissector smth-manifest smth-downloader
+bin_PROGRAMS = smth-dissector smth-manifest smth-downloader smth-test
