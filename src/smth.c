@@ -112,8 +112,10 @@ Document subject to the following constraints:
 
 \subsection abba Public API
 
-The main API exposed by libsmth is composed of three functions:
+The main API exposed by libsmth is composed of five functions:
 \li \c SMTH_open : Opens a stream with the given url and params
+\li \c SMTH_getinfo: Get various metadata about the playing stream
+\li \c SMTH_EOS: signals whether the end of the selected stream has been reached
 \li \c SMTH_read : Performs a read on the pseudofile object returned by SMTH_open
 \li \c SMTH_close : Closes the handle.
 Note that SMTHh is \e not a \c FILE like object: it \e must be destroyed with a
@@ -127,7 +129,7 @@ a given stream:
 \include smth-test.c
 
 Usage is self-explanatory. Should you need more power, you can rely on the
-internal API, as documented below.
+internal API, as documented in this paper.
 */
 
 /**
@@ -360,9 +362,9 @@ void SMTH_getinfo(SMTH_setting what, Handle *handle, ...)
 	size_t *dest_size;
 	chardata **dest_char;
 	hexdata **dest_hex;
-	metric_t *dest_metrics;
+	metric_t **dest_metrics;
 	flags_t *dest_flags;
-	StreamType *dest_type;
+	SMTH_type *dest_type;
 
 	va_start(args, stream);
 
@@ -431,13 +433,13 @@ void SMTH_getinfo(SMTH_setting what, Handle *handle, ...)
 			break;
 
 		case SMTH_SCREENSIZE:
-			dest_metrics = va_arg(args, metric_t*);
-			memcpy(dest_metrics, &atrack->maxsize, sizeof (ScreenMetrics));
+			dest_metrics = va_arg(args, metric_t**);
+			memcpy(*dest_metrics, &atrack->maxsize, sizeof (ScreenMetrics));
 			break;
 
 		case SMTH_BESTSIZE:
-			dest_metrics = va_arg(args, metric_t*);
-			memcpy(dest_metrics, &astream->bestsize, sizeof (ScreenMetrics));
+			dest_metrics = va_arg(args, metric_t**);
+			memcpy(*dest_metrics, &astream->bestsize, sizeof (ScreenMetrics));
 			break;
 
 		case SMTH_TYPE:
