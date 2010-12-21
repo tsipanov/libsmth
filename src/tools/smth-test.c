@@ -21,37 +21,49 @@
 #include <stdio.h>
 #include <smth.h>
 
-int main()
+int main(int argc, char** argv)
 {
 	SMTHh h;
 	char buffer[8192];
 	int i, fragnum = 0;
+	size_t streamsno;  /* total number of streams */
 	char *name;
 
-	h = SMTH_open("http://secondary.adaptiveedge.rai.it/mediapolis11.isml", 0);
+	if (argc < 2)
+	{
+		fprintf(stderr, "Usage: %s url\n", argv[0]);
+		return -1;
+	}
+
+	h = SMTH_open(argv[1], 0);
 
 	if (!h) return -1;
 
-	for (i = 0; !SMTH_EOS(h, i); ++i)
+	SMTH_getinfo(SMTH_STREAMS_NO, h, &streamsno);
+
+	for (i = 0; i < streamsno; ++i)
 	{
-		size_t written = -1;
+		SMTH_getinfo(SMTH_NAME, h, i, &name);
+		fprintf(stderr, "Downloading chunks from stream %s\n", name);
+		free(name); // this is very important! it's up to you to free strings
 
-		char filename[100];
-		snprintf(filename, 100, "fragment-%d.vc1", fragnum++);
-		FILE *output = fopen(filename, "w");
-
-		while (written)
+		for (fragnum = 0; !SMTH_EOS(h, i); ++fragnum)
 		{
-			written = SMTH_read(buffer, sizeof (buffer), i, h);
-			fwrite(buffer, written, 1, output);
+			size_t written = -1;
+
+			char filename[100];
+			snprintf(filename, 100, "fragment-%d-%d.vc1", i, fragnum);
+			FILE *output = fopen(filename, "w");
+
+			while (written)
+			{
+				written = SMTH_read(buffer, sizeof (buffer), i, h);
+				fwrite(buffer, written, 1, output);
+			}
+
+			fclose(output);
 		}
-
-		fclose(output);
 	}
-
-	SMTH_getinfo(SMTH_NAME, h, 0, &name);
-	fprintf(stderr, "Downloaded first chunk from stream %s\n", name);
-	free(name); // this is very important! it's up to you to free strings
 
 	SMTH_close(h);
 

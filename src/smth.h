@@ -66,6 +66,17 @@ typedef enum
 	SMTH_TYPE,
 	/** Pointer to a malloced string containing the stream name */
 	SMTH_NAME,
+	/** Number of streams in the active handle. In this case, the \c stream parameter, is ignored*/
+	SMTH_STREAMS_NO,
+	/** Preferred screen size, may be 0x0 */
+	SMTH_BESTSIZE,
+	/** A four-character code as a 0 terminated string that identifies the
+	 *  intended category for each sample in a text track. The \c SMTH_FOURCC
+	 *  field is used to identify the media format.
+	 */
+	SMTH_SUBTYPE,
+	/** Whether the active video is live or not, as a size_t */
+	SMTH_ISLIVE,
 
 } SMTH_setting;
 
@@ -77,7 +88,7 @@ typedef void *SMTHh;
 SMTHh SMTH_open(const char *url, const char *params);
 size_t SMTH_read(void *buffer, size_t size, int stream, SMTHh handle);
 int SMTH_EOS(SMTHh handle, int stream);
-void SMTH_getinfo(SMTH_setting what, SMTHh handle, int stream, ...);
+void SMTH_getinfo(SMTH_setting what, SMTHh handle, ...);
 void SMTH_close(SMTHh handle);
 
 #endif /* __COMPILING_LIBSMTH___ */

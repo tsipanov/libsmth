@@ -72,6 +72,10 @@ typedef struct
 	StreamHandle **streams;
 	/** Number of active streams (for safety) */
 	count_t streamsno;
+	/** Tranfer url (to regenerate manifest in a live stream) */
+	char *url;
+	/** Transfer params (to regenerate manifest in a live stream) */
+	char *params;
 
 } Handle;
 

@@ -46,133 +46,133 @@ error_t SMTH_error(error_t code, FILE *output)
 			break;
 		case FRAGMENT_IO_ERROR:
 			fputs("The parser encountered an i/o error in the "
-				"SmoothStream.", output);
+				"SmoothStream.\n", output);
 			break;
 		case FRAGMENT_UNKNOWN:
-			fputs("An unknown Box was encountered in a ISMV fragment.", output);
+			fputs("An unknown Box was encountered in a ISMV fragment.\n", output);
 			break;
 		case FRAGMENT_NO_MEMORY:
-			fputs("No more memory to allocate data sections.", output);
+			fputs("No more memory to allocate data sections.\n", output);
 			break;
 		case FRAGMENT_PARSE_ERROR:
-			fputs("A malformed Box was encountered.", output);
+			fputs("A malformed Box was encountered.\n", output);
 			break;
 		case FRAGMENT_INAPPROPRIATE:
 			fputs("An element that should not be in the current section was "
-				"parsed.", output);
+				"parsed.\n", output);
 			break;
 		case FRAGMENT_OUT_OF_BOUNDS:
 			fputs("The fragment is smaller than declared. This often means a "
-				"parse error.", output);
+				"parse error.\n", output);
 			break;
 		case FRAGMENT_UNKNOWN_ENCRYPTION:
 			fputs("The fragment is encrypted with a new, non implemented, "
-				"algorithm.", output);
+				"algorithm.\n", output);
 			break;
 		case FRAGMENT_BIGGER_THAN_DECLARED:
 			fputs("There are trailing bytes after a MdatBox that will not be "
-				"parsed.", output);
+				"parsed.\n", output);
 			break;
 		case MANIFEST_WRONG_VERSION:
-			fputs("Wrong Manifest version.", output);
+			fputs("Wrong Manifest version.\n", output);
 			break;
 		case MANIFEST_INAPPROPRIATE_ATTRIBUTE:
-			fputs("An out-of-context attribute was parsed.", output);
+			fputs("An out-of-context attribute was parsed.\n", output);
 			break;
 		case MANIFEST_NO_MEMORY:
-			fputs("There was no memory to istantiate the parser.", output);
+			fputs("There was no memory to istantiate the parser.\n", output);
 			break;
 		case MANIFEST_IO_ERROR	:
-			fputs("There was an i/o error with the manifest file.", output);
+			fputs("There was an i/o error with the manifest file.\n", output);
 			break;
 		case MANIFEST_PARSE_ERROR:
-			fputs("The parser encountered a malformed xml manifest.", output);
+			fputs("The parser encountered a malformed xml manifest.\n", output);
 			break;
 		case MANIFEST_EMPTY:
 			fputs("The manifest is... ehm... empty?", output);
 			break;
 		case MANIFEST_PARSER_ERROR	:
-			fputs("The xml backend behaved badly and it was blocked.", output);
+			fputs("The xml backend behaved badly and it was blocked.\n", output);
 			break;
 		case MANIFEST_UNKNOWN_BLOCK:
-			fputs("The manifest parser encountered an unknown element.", output);
+			fputs("The manifest parser encountered an unknown element.\n", output);
 			break;
 		case MANIFEST_UNEXPECTED_TRAILING:
 			fputs("A text block was encountered where it was not expected in the "
-				"manifest.", output);
+				"manifest.\n", output);
 			break;
 		case MANIFEST_MALFORMED_ARMOR_UUID:
-			fputs("The armor UUID is malformed.", output);
+			fputs("The armor UUID is malformed.\n", output);
 			break;
 		case MANIFEST_UNKNOWN_STREAM_TYPE:
 			fputs("A stream type different from audio, video and text was "
-				"encountered.", output);
+				"encountered.\n", output);
 			break;
 		case MANIFEST_MALFORMED_SUBTYPE:
-			fputs("A malformed subtype string was encountered.", output);
+			fputs("A malformed subtype string was encountered.\n", output);
 			break;
 		case MANIFEST_MALFORMED_FOURCC	:
-			fputs("A malformed fourcc string was encountered.", output);
+			fputs("A malformed fourcc string was encountered.\n", output);
 			break;
 		case MANIFEST_UNEXPECTED_ATTRS	:
 			fputs("An attribute block was encountered out of a Track "
-				"element.", output);
+				"element.\n", output);
 			break;
 		case MANIFEST_INVALID_IDENTIFIER:
 			fputs("A string identifier contained characters other than "
-				"[A-Za-z/-] .", output);
+				"[A-Za-z/-] .\n", output);
 			break;
 		case MANIFEST_MALFORMED_URL:
-			fputs("A malformed request URI was encountered.", output);
+			fputs("A malformed request URI was encountered.\n", output);
 			break;
 		case FETCHER_FAILED_FDSET:
-			fputs("Could not set fd_set descriptors for cache.", output);
+			fputs("Could not set fd_set descriptors for cache.\n", output);
 			break;
 		case FETCHER_CONNECTION_TIMEOUT:
-			fputs("Connection to server has reached timeout latency.", output);
+			fputs("Connection to server has reached timeout latency.\n", output);
 			break;
 		case FETCHER_NO_MULTIPLEX:
-			fputs("Could not multiplex fd_set with select().", output);
+			fputs("Could not multiplex fd_set with select().\n", output);
 			break;
 		case FECTHER_FAILED_INIT:
-			fputs("Could not initialize libcurl backend.", output);
+			fputs("Could not initialize libcurl backend.\n", output);
 			break;
 		case FECTHER_NO_MEMORY:
 			fputs("There was no memory enough to instantiate another."
-				"handle.", output);
+				"handle.\n", output);
 			break;
 		case FECTHER_HANDLE_NOT_ADDED:
 			fputs("Could not add a Fragment handler to the global."
 				"handle", output);
 			break;
 		case FETCHER_HANDLE_NOT_CLEANED:
-			fputs("Could not destroy global fetch handle.", output);
+			fputs("Could not destroy global fetch handle.\n", output);
 			break;
 		case FETCHER_HANDLE_NOT_INITIALISED:
-			fputs("Could not properly initialise an handle.", output);
+			fputs("Could not properly initialise an handle.\n", output);
 			break;
 		case FETCHER_TRANFER_FAILED:
-			fputs("Could not transfer the file from the Network.", output);
+			fputs("Could not transfer the file from the Network.\n", output);
 			break;
 		case FETCHER_NOT_CLEANED:
-			fputs("Could not destroy a fetcher.", output);
+			fputs("Could not destroy a fetcher.\n", output);
 			break;
 		case FETCHER_NO_FILE:
-			fputs("Could not create a cache file for a chunk.", output);
+			fputs("Could not create a cache file for a chunk.\n", output);
 			break;
 		case FECTHER_NO_URL: /* -37 */
 			fputs("An appropriate url for chunk retrieval was not "
-				"specified.", output);
+				"specified.\n", output);
 			break;
 		case SMTH_NO_FILE_HANDLE:
-			fputs("Could not open a blocking file handle for the Manifest",
+			fputs("Could not open a blocking file handle for the Manifest.\n",
 				output);
 			break;
 		case SMTH_NO_MEMORY:
-			fputs("No more memory to allocate data", output);
+			fputs("No more memory to allocate data.\n", output);
 			break;
 		default:
-			fputs("Unknown error code.", output);
+			fputs("Unknown error code.\n", output);
 			break;
 	}
 
