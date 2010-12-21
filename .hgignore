@@ -27,3 +27,5 @@ ltmain.sh
 .lo
 .la
 .a
+
+libsmth-docs
