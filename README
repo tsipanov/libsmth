@@ -1,0 +1,14 @@
+If you have downloaded -expert version, you'll need to set up the environment
+by issuing:
+
+./fireup start
+
+If you grabbed a conventional tarball, you may skip the passage above.
+
+After that, you may issue the traditional:
+
+./configure
+make
+make install
+
+The last passage is not required.
