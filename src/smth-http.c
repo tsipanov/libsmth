@@ -88,7 +88,7 @@ char* SMTH_fetch(const char *url, Stream *stream, bitrate_t maxbitrate)
 				curl_easy_getinfo(msg->easy_handle, CURLINFO_SPEED_DOWNLOAD, &time);
 				f.downloadtime = (bitrate_t)(sizeof (byte_t) * time);
 				curl_easy_getinfo(msg->easy_handle, CURLOPT_PRIVATE, &file);
-/*				fclose(file); XXX*/
+/*				fclose(file); //XXX*/
 
 				curl_multi_remove_handle(f.handle, msg->easy_handle);
 				curl_easy_cleanup(msg->easy_handle);
@@ -322,7 +322,7 @@ static error_t reinithandle(Fetcher *f)
 	/* Use the default write function */
 	curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, NULL);
 	/* Store the file descriptor to close it later */
-	curl_easy_setopt(handle, CURLOPT_PRIVATE, output);
+	curl_easy_setopt(handle, CURLOPT_PRIVATE, (char*)output);
 	/* Some servers don't like requests without a user-agent field... */
 	curl_easy_setopt(handle, CURLOPT_USERAGENT, FETCHER_USERAGENT);
 	/* No headers written, only body. */
@@ -336,7 +336,6 @@ static error_t reinithandle(Fetcher *f)
 	{   curl_easy_cleanup(handle);
 		return FECTHER_HANDLE_NOT_ADDED;
 	}
-
 
 	return FETCHER_SUCCESS;
 }

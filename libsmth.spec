@@ -1,5 +1,5 @@
 Name:           libsmth
-Version:        0.0.2
+Version:        0.0.3
 Release:        1%{?dist}
 Summary:        Open Source implementation of SmoothStream ©
 
@@ -9,7 +9,7 @@ URL:            http://code.google.com/p/libsmth
 Source0:        libsmth-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-Requires:       libexpat libcurl
+Requires:       expat libcurl
 
 %description
 Libsmth aims at providing an open source implementation of Microsoft's smth©

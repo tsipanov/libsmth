@@ -1,5 +1,5 @@
 # Fire up the whole enchilada
-AC_INIT([libsmth], [0.0.2])
+AC_INIT([libsmth], [0.0.3])
 AM_INIT_AUTOMAKE([-Wall -Werror foreign])
 LT_INIT
 
@@ -25,7 +25,7 @@ AC_PROG_LIBTOOL
 AC_CONFIG_MACRO_DIR([m4])
 #AC_CONFIG_SRCDIR([src/foo.c])
 #AC_CONFIG_HEADERS([expat.h])
-AC_CONFIG_FILES([Makefile src/Makefile src/tools/Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/tools/Makefile src/gstreamer/Makefile])
 AC_OUTPUT
 
 # vim: set ts=4 sw=4 tw=0:
