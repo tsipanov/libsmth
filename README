@@ -1,4 +1,4 @@
-If you have downloaded -expert version, you'll need to set up the environment
+If you downloaded an *-expert version, you'll need to set up the environment
 by issuing:
 
 ./fireup start
@@ -12,3 +12,5 @@ make
 make install
 
 The last passage is not required.
+
+Refer to src/tools/smth-test.c for a working example.

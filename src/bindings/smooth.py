@@ -40,4 +40,6 @@ close = libsmth.SMTH_close
 close.argtypes = [voidp]
 close.restypes = None
 
+makebuffer = ctypes.create_string_buffer
+
 #void SMTH_getinfo(SMTH_setting what, SMTHh handle, ...);
