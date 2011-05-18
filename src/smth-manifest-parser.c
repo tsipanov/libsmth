@@ -796,7 +796,7 @@ static error_t parsechunk(ManifestBox *mb, const char **attr)
 	if (!tmp->duration)
 		tmp->duration = mb->previoustime? tmp->time - mb->previoustime: 0;
 	if (!tmp->time)
-		tmp->time = mb->previousduration? tmp->duration + mb->previousduration: 0;
+		tmp->time = mb->previousduration? mb->previoustime + mb->previousduration: 0;
 
 	mb->previousduration = tmp->duration;
 	mb->previoustime = tmp->time;
