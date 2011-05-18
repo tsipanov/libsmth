@@ -561,7 +561,7 @@ static error_t parsestream(ManifestBox *mb, const char **attr)
 		}
 		if (!strcmp(attr[i], MANIFEST_STREAM_SUBTYPE))
 		{   /* overflow safe */
-			if (strlen(attr[i+1]) == MANIFEST_STREAM_SUBTYPE_SIZE)
+// 			if (strlen(attr[i+1]) == MANIFEST_STREAM_SUBTYPE_SIZE)
 			{   strcpy(tmp->subtype, attr[i+1]);
 				continue;
 			}
