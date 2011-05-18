@@ -175,6 +175,8 @@ typedef struct
 	 *  by the values of the DefaultSampleSize and SampleSize fields
 	 *  in the TrunBox. */
 	byte_t *data;
+
+        length_t data_offset;
 } Fragment;
 
 /** The fragment was successfully parsed */

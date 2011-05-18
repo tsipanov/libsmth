@@ -67,6 +67,8 @@ typedef struct
 /** The tfhd Box has a DefaultSampleFlags field		*/
 #define TFHD_DEFAULT_SAMPLE_FLAGS_PRESENT					(1<<5)
 
+/** The TrunBox has a DataOffset field		*/
+#define TRUN_DATA_OFFSET_PRESENT						(1<<0)
 /** The TrunBox has a FirstSampleFlags field		*/
 #define TRUN_FIRST_SAMPLE_FLAGS_PRESENT						(1<<2)
 /** The TrunBox has a SampleDuration field			*/
