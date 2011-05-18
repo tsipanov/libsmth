@@ -405,12 +405,17 @@ static error_t parsetrun(Box* root)
 	root->f->sampleno = (count_t) be32toh(samplecount); /* endian-safe */
 
 	boxsize -= sizeof (boxflags) + sizeof (samplecount);
-	GET_IF_FLAG_SET(root->f->settings, TRUN_FIRST_SAMPLE_FLAGS_PRESENT);
+
+        uint32_t singleword;
+	GET_IF_FLAG_SET(singleword, TRUN_DATA_OFFSET_PRESENT);
+        root->f->data_offset = (length_t) be32toh(singleword);
+        GET_IF_FLAG_SET(singleword, TRUN_FIRST_SAMPLE_FLAGS_PRESENT);
+        root->f->settings = (flags_t) be32toh(singleword);
+
 
 	if(root->f->sampleno > 0)
 	{	
 		count_t i;
-		uint32_t singleword;
 		tmp = calloc(root->f->sampleno, sizeof (Sample));
 		if(!tmp) return FRAGMENT_NO_MEMORY;
 		for( i = 0; i < root->f->sampleno; i++)
